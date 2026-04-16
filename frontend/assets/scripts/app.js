@@ -33,8 +33,12 @@ function syncDraftFromForm() {
 function hydrateFormWithDemo() {
   const state = getState();
   const selectedMediumId = state.selectedMediumId || state.media[0]?.id || "";
-  const configuredModel = state.models.find((model) => model.status === "configured")?.id || state.models[0]?.id || "meshgraphnet";
-  const payload = buildDemoPayload(selectedMediumId, configuredModel);
+  const selectedModel =
+    state.selectedModel ||
+    state.models.find((model) => model.status === "configured")?.id ||
+    state.models[0]?.id ||
+    "meshgraphnet";
+  const payload = buildDemoPayload(selectedMediumId, selectedModel);
   fillForm(ui.refs.form, payload);
   syncDraftFromForm();
 }
@@ -67,13 +71,14 @@ function updateView(state) {
   ui.renderValidation(state.validationErrors);
   ui.setLoading(state.loading);
   ui.renderDebug(state.lastRequest, state.lastResponse, state.error);
-  ui.renderError(state.error);
 
   if (state.lastResponse) {
     ui.renderResult(state.lastResponse, model?.name || state.selectedModel);
   } else {
     ui.renderIdle(model?.name || state.selectedModel);
   }
+
+  ui.renderError(state.error);
 
   renderDomain(ui.refs.domainSvg, state.draftRequest, state.lastResponse, model?.name || state.selectedModel);
 }
@@ -120,7 +125,7 @@ async function bootstrap() {
       media,
       models,
       selectedMediumId: media[0]?.id || "",
-      selectedModel: models[0]?.id || "meshgraphnet",
+      selectedModel: models.find((model) => model.status === "configured")?.id || models[0]?.id || "meshgraphnet",
     });
 
     hydrateFormWithDemo();
@@ -147,8 +152,12 @@ ui.refs.copyJsonButton.addEventListener("click", async () => {
   if (!response) {
     return;
   }
-  await navigator.clipboard.writeText(JSON.stringify(response, null, 2));
-  ui.refs.copyJsonButton.textContent = "Copied";
+  try {
+    await navigator.clipboard.writeText(JSON.stringify(response, null, 2));
+    ui.refs.copyJsonButton.textContent = "Copied";
+  } catch (error) {
+    ui.refs.copyJsonButton.textContent = "Clipboard blocked";
+  }
   window.setTimeout(() => {
     ui.refs.copyJsonButton.textContent = "Copy JSON";
   }, 1200);

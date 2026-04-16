@@ -65,13 +65,28 @@ async def app_error_handler(_: Request, exc: AppError) -> JSONResponse:
 
 @app.exception_handler(RequestValidationError)
 async def request_validation_handler(_: Request, exc: RequestValidationError) -> JSONResponse:
+    errors = exc.errors()
+    first_error = errors[0] if errors else {}
+    location = ".".join(str(item) for item in first_error.get("loc", []))
+    message = str(first_error.get("msg", "Request validation failed")).replace("Value error, ", "")
+
+    if location.endswith("model"):
+        code = "UNKNOWN_MODEL"
+        message = "Unsupported model requested"
+    elif "coordinates" in message.lower():
+        code = "INVALID_COORDINATES"
+    elif "resolution" in location or "rect_2d" in message.lower() or "rect_3d" in message.lower():
+        code = "INVALID_RESOLUTION"
+    else:
+        code = "VALIDATION_ERROR"
+
     return JSONResponse(
         status_code=422,
         content={
             "error": {
-                "code": "VALIDATION_ERROR",
-                "message": "Request validation failed",
-                "details": {"errors": exc.errors()},
+                "code": code,
+                "message": message,
+                "details": {"errors": errors},
             }
         },
     )

@@ -20,23 +20,37 @@ async function request(path, options = {}) {
     });
 
     const text = await response.text();
-    const data = text ? JSON.parse(text) : null;
+    let data = null;
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        data = null;
+      }
+    }
 
     if (!response.ok) {
       throw {
         status: response.status,
         code: data?.error?.code || "REQUEST_FAILED",
-        message: data?.error?.message || "Request failed",
+        message: data?.error?.message || `Request failed with status ${response.status}`,
         details: data?.error?.details || {},
       };
     }
 
-    return data;
+    return data || {};
   } catch (error) {
     if (error.name === "AbortError") {
       throw {
         code: "REQUEST_TIMEOUT",
         message: "The request took too long and was cancelled in the browser.",
+        details: {},
+      };
+    }
+    if (error instanceof TypeError) {
+      throw {
+        code: "NETWORK_ERROR",
+        message: "Unable to reach the backend API.",
         details: {},
       };
     }

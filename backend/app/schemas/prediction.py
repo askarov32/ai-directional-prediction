@@ -26,12 +26,16 @@ def _normalize_vector(direction: list[float]) -> tuple[float, float, float]:
 
 
 class ScenarioRequestSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     temperature_c: float
     pressure_mpa: float = Field(..., gt=0)
     time_ms: float = Field(..., gt=0)
 
 
 class SourceRequestSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     type: str = Field(..., min_length=2, max_length=64)
     x: float
     y: float
@@ -50,24 +54,32 @@ class SourceRequestSchema(BaseModel):
 
 
 class ProbeRequestSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     x: float
     y: float
     z: float = 0.0
 
 
 class DomainSizeSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     lx: float = Field(..., gt=0)
     ly: float = Field(..., gt=0)
     lz: float = Field(..., ge=0)
 
 
 class DomainResolutionSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     nx: int = Field(..., ge=2)
     ny: int = Field(..., ge=2)
     nz: int = Field(..., ge=1)
 
 
 class BoundaryConditionsSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     left: str
     right: str
     top: str
@@ -77,6 +89,8 @@ class BoundaryConditionsSchema(BaseModel):
 
 
 class DomainRequestSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     type: Literal["rect_2d", "rect_3d"]
     size: DomainSizeSchema
     resolution: DomainResolutionSchema
@@ -94,7 +108,7 @@ class DomainRequestSchema(BaseModel):
 
 
 class PredictionRequestSchema(BaseModel):
-    model_config = ConfigDict(use_enum_values=False)
+    model_config = ConfigDict(use_enum_values=False, extra="forbid")
 
     model: ModelType
     medium_id: str = Field(..., min_length=2, max_length=120)
