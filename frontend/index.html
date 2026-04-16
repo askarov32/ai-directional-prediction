@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thermoelastic Wave Direction Predictor</title>
+    <link rel="stylesheet" href="assets/styles/reset.css" />
+    <link rel="stylesheet" href="assets/styles/variables.css" />
+    <link rel="stylesheet" href="assets/styles/base.css" />
+    <link rel="stylesheet" href="assets/styles/layout.css" />
+    <link rel="stylesheet" href="assets/styles/components.css" />
+    <link rel="stylesheet" href="assets/styles/animations.css" />
+  </head>
+  <body>
+    <div class="ambient ambient--one"></div>
+    <div class="ambient ambient--two"></div>
+    <div class="ambient ambient--grid"></div>
+
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero__copy">
+          <div class="eyebrow">AI Thesis MVP</div>
+          <h1>AI directional prediction of thermoelastic-wave propagation in geological media</h1>
+          <p class="hero__lead">
+            Unified scientific interface for MeshGraphNet, FNO, and PINN model services. Configure a rock preset,
+            describe the thermoelastic scenario, and inspect the predicted propagation direction in a polished thesis-demo workspace.
+          </p>
+          <div class="hero__chips">
+            <span class="chip">FastAPI Orchestrator</span>
+            <span class="chip">Vanilla HTML/CSS/JS</span>
+            <span class="chip">Dockerized Local Demo</span>
+          </div>
+        </div>
+
+        <div class="hero__stats">
+          <div class="stat-card">
+            <span class="stat-card__value">3</span>
+            <span class="stat-card__label">Remote model routes</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-card__value">JSON</span>
+            <span class="stat-card__label">Rock catalog presets</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-card__value">2D</span>
+            <span class="stat-card__label">Default domain workspace</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="dashboard">
+        <section class="column column--controls">
+          <form id="prediction-form" class="stack">
+            <section class="card">
+              <div class="card__header">
+                <div>
+                  <p class="section-kicker">Prediction Workspace</p>
+                  <h2>Medium + model selection</h2>
+                </div>
+                <img class="brand-mark" src="assets/icons/wave-grid.svg" alt="Wave grid icon" />
+              </div>
+
+              <div class="field-grid field-grid--two">
+                <label class="field">
+                  <span class="field__label">Geological medium</span>
+                  <select id="medium-select" name="medium_id"></select>
+                  <small class="field__hint">Loaded live from the backend rock catalog.</small>
+                </label>
+
+                <label class="field">
+                  <span class="field__label">Model route</span>
+                  <select id="model-select" name="model"></select>
+                  <small class="field__hint">Backend routes the request to the selected model host.</small>
+                </label>
+              </div>
+
+              <div class="property-grid" id="medium-properties"></div>
+            </section>
+
+            <section class="card">
+              <div class="card__header">
+                <div>
+                  <p class="section-kicker">Scenario</p>
+                  <h2>Thermoelastic inputs</h2>
+                </div>
+              </div>
+
+              <div class="field-grid field-grid--three">
+                <label class="field">
+                  <span class="field__label">Temperature (°C)</span>
+                  <input id="temperature-input" name="scenario_temperature_c" type="number" step="0.1" />
+                  <small class="field__hint" id="temperature-range-hint"></small>
+                  <small class="field__error" data-error-for="scenario.temperature_c"></small>
+                </label>
+
+                <label class="field">
+                  <span class="field__label">Pressure (MPa)</span>
+                  <input id="pressure-input" name="scenario_pressure_mpa" type="number" step="0.1" />
+                  <small class="field__hint" id="pressure-range-hint"></small>
+                  <small class="field__error" data-error-for="scenario.pressure_mpa"></small>
+                </label>
+
+                <label class="field">
+                  <span class="field__label">Time (ms)</span>
+                  <input id="time-input" name="scenario_time_ms" type="number" step="0.1" />
+                  <small class="field__hint">Observation horizon for the current prediction query.</small>
+                </label>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card__header">
+                <div>
+                  <p class="section-kicker">Source</p>
+                  <h2>Excitation configuration</h2>
+                </div>
+              </div>
+
+              <div class="field-grid field-grid--three">
+                <label class="field">
+                  <span class="field__label">Source type</span>
+                  <select id="source-type-input" name="source_type">
+                    <option value="thermal_pulse">Thermal pulse</option>
+                    <option value="point_force">Point force</option>
+                    <option value="coupled_excitation">Coupled excitation</option>
+                  </select>
+                </label>
+
+                <label class="field">
+                  <span class="field__label">Amplitude</span>
+                  <input id="source-amplitude-input" name="source_amplitude" type="number" step="0.1" />
+                  <small class="field__hint">Normalized source intensity.</small>
+                </label>
+
+                <label class="field">
+                  <span class="field__label">Frequency (Hz)</span>
+                  <input id="source-frequency-input" name="source_frequency_hz" type="number" step="0.1" />
+                  <small class="field__hint">Excitation frequency for synthetic demo services.</small>
+                </label>
+              </div>
+
+              <div class="field-grid field-grid--three">
+                <label class="field">
+                  <span class="field__label">Source X</span>
+                  <input id="source-x-input" name="source_x" type="number" step="0.01" />
+                </label>
+
+                <label class="field">
+                  <span class="field__label">Source Y</span>
+                  <input id="source-y-input" name="source_y" type="number" step="0.01" />
+                </label>
+
+                <label class="field">
+                  <span class="field__label">Source Z</span>
+                  <input id="source-z-input" name="source_z" type="number" step="0.01" />
+                </label>
+              </div>
+
+              <div class="field-grid field-grid--three">
+                <label class="field">
+                  <span class="field__label">Direction X</span>
+                  <input id="direction-x-input" name="direction_x" type="number" step="0.01" />
+                </label>
+
+                <label class="field">
+                  <span class="field__label">Direction Y</span>
+                  <input id="direction-y-input" name="direction_y" type="number" step="0.01" />
+                </label>
+
+                <label class="field">
+                  <span class="field__label">Direction Z</span>
+                  <input id="direction-z-input" name="direction_z" type="number" step="0.01" />
+                </label>
+              </div>
+
+              <small class="field__error field__error--wide" data-error-for="source.coordinates"></small>
+              <small class="field__error field__error--wide" data-error-for="source.direction"></small>
+            </section>
+
+            <section class="card">
+              <div class="card__header">
+                <div>
+                  <p class="section-kicker">Probe</p>
+                  <h2>Observation point</h2>
+                </div>
+              </div>
+
+              <div class="field-grid field-grid--three">
+                <label class="field">
+                  <span class="field__label">Probe X</span>
+                  <input id="probe-x-input" name="probe_x" type="number" step="0.01" />
+                </label>
+
+                <label class="field">
+                  <span class="field__label">Probe Y</span>
+                  <input id="probe-y-input" name="probe_y" type="number" step="0.01" />
+                </label>
+
+                <label class="field">
+                  <span class="field__label">Probe Z</span>
+                  <input id="probe-z-input" name="probe_z" type="number" step="0.01" />
+                </label>
+              </div>
+
+              <small class="field__error field__error--wide" data-error-for="probe.coordinates"></small>
+            </section>
+
+            <section class="card">
+              <div class="card__header">
+                <div>
+                  <p class="section-kicker">Domain</p>
+                  <h2>Computational domain</h2>
+                </div>
+              </div>
+
+              <div class="field-grid field-grid--three">
+                <label class="field">
+                  <span class="field__label">Domain type</span>
+                  <select id="domain-type-input" name="domain_type">
+                    <option value="rect_2d">rect_2d</option>
+                    <option value="rect_3d">rect_3d</option>
+                  </select>
+                </label>
+
+                <label class="field">
+                  <span class="field__label">Boundary left</span>
+                  <select id="boundary-left-input" name="boundary_left">
+                    <option value="fixed">fixed</option>
+                    <option value="free">free</option>
+                    <option value="insulated">insulated</option>
+                  </select>
+                </label>
+
+                <label class="field">
+                  <span class="field__label">Boundary right</span>
+                  <select id="boundary-right-input" name="boundary_right">
+                    <option value="free">free</option>
+                    <option value="fixed">fixed</option>
+                    <option value="insulated">insulated</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="field-grid field-grid--three">
+                <label class="field">
+                  <span class="field__label">Lx</span>
+                  <input id="domain-lx-input" name="domain_lx" type="number" step="0.01" />
+                </label>
+
+                <label class="field">
+                  <span class="field__label">Ly</span>
+                  <input id="domain-ly-input" name="domain_ly" type="number" step="0.01" />
+                </label>
+
+                <label class="field">
+                  <span class="field__label">Lz</span>
+                  <input id="domain-lz-input" name="domain_lz" type="number" step="0.01" />
+                </label>
+              </div>
+
+              <div class="field-grid field-grid--three">
+                <label class="field">
+                  <span class="field__label">Nx</span>
+                  <input id="domain-nx-input" name="domain_nx" type="number" step="1" />
+                </label>
+
+                <label class="field">
+                  <span class="field__label">Ny</span>
+                  <input id="domain-ny-input" name="domain_ny" type="number" step="1" />
+                </label>
+
+                <label class="field">
+                  <span class="field__label">Nz</span>
+                  <input id="domain-nz-input" name="domain_nz" type="number" step="1" />
+                </label>
+              </div>
+
+              <div class="field-grid field-grid--two">
+                <label class="field">
+                  <span class="field__label">Boundary top</span>
+                  <select id="boundary-top-input" name="boundary_top">
+                    <option value="insulated">insulated</option>
+                    <option value="fixed">fixed</option>
+                    <option value="free">free</option>
+                  </select>
+                </label>
+
+                <label class="field">
+                  <span class="field__label">Boundary bottom</span>
+                  <select id="boundary-bottom-input" name="boundary_bottom">
+                    <option value="insulated">insulated</option>
+                    <option value="fixed">fixed</option>
+                    <option value="free">free</option>
+                  </select>
+                </label>
+              </div>
+
+              <small class="field__error field__error--wide" data-error-for="domain.size"></small>
+              <small class="field__error field__error--wide" data-error-for="domain.resolution"></small>
+            </section>
+
+            <div class="action-row">
+              <button type="button" id="demo-button" class="button button--secondary">Use demo values</button>
+              <button type="button" id="reset-button" class="button button--ghost">Reset form</button>
+              <button type="submit" id="predict-button" class="button button--primary">
+                <span class="button__label">Run prediction</span>
+                <span class="button__loader" aria-hidden="true"></span>
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section class="column column--insights">
+          <section class="card card--visual">
+            <div class="card__header">
+              <div>
+                <p class="section-kicker">Visualization</p>
+                <h2>2D directional field view</h2>
+              </div>
+              <span id="model-badge" class="model-pill model-pill--idle">Awaiting prediction</span>
+            </div>
+
+            <div class="visual-stage">
+              <svg id="domain-svg" viewBox="0 0 1000 650" role="img" aria-label="Prediction domain view"></svg>
+            </div>
+
+            <div class="legend">
+              <span><i class="legend__dot legend__dot--source"></i> Source point</span>
+              <span><i class="legend__dot legend__dot--probe"></i> Probe point</span>
+              <span><i class="legend__dot legend__dot--arrow"></i> Predicted direction</span>
+            </div>
+          </section>
+
+          <section class="card result-card" id="result-card">
+            <div class="card__header">
+              <div>
+                <p class="section-kicker">Prediction</p>
+                <h2>Directional response summary</h2>
+              </div>
+              <span class="latency-badge" id="latency-badge">Latency --</span>
+            </div>
+
+            <div class="empty-state" id="result-empty">
+              <h3>Ready for inference</h3>
+              <p>Select a medium, configure the thermoelastic scenario, and run the prediction to reveal the normalized response.</p>
+            </div>
+
+            <div class="result-content is-hidden" id="result-content">
+              <div class="result-hero">
+                <div>
+                  <p class="result-hero__label">Direction vector</p>
+                  <h3 id="result-direction">[0.000, 0.000, 0.000]</h3>
+                </div>
+                <div class="metric-pill" id="result-wave-type">wave</div>
+              </div>
+
+              <div class="metric-grid">
+                <div class="metric-card">
+                  <span class="metric-card__label">Azimuth</span>
+                  <strong id="result-azimuth">0.0°</strong>
+                </div>
+                <div class="metric-card">
+                  <span class="metric-card__label">Elevation</span>
+                  <strong id="result-elevation">0.0°</strong>
+                </div>
+                <div class="metric-card">
+                  <span class="metric-card__label">Magnitude</span>
+                  <strong id="result-magnitude">0.000</strong>
+                </div>
+                <div class="metric-card">
+                  <span class="metric-card__label">Travel time</span>
+                  <strong id="result-travel-time">0.0 ms</strong>
+                </div>
+              </div>
+
+              <div class="field-summary">
+                <div class="field-summary__item">
+                  <span>Max displacement</span>
+                  <strong id="result-displacement">0.000000</strong>
+                </div>
+                <div class="field-summary__item">
+                  <span>Temperature perturbation</span>
+                  <strong id="result-temperature-perturbation">0.000000</strong>
+                </div>
+                <div class="field-summary__item">
+                  <span>Model version</span>
+                  <strong id="result-model-version">--</strong>
+                </div>
+                <div class="field-summary__item">
+                  <span>Request ID</span>
+                  <strong id="result-request-id">--</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="error-banner is-hidden" id="error-banner"></div>
+          </section>
+
+          <details class="card debug-card" id="debug-panel">
+            <summary>
+              <span>Request / response debug</span>
+              <span class="summary-meta">Collapsible panel</span>
+            </summary>
+
+            <div class="debug-actions">
+              <button type="button" id="copy-json-button" class="button button--ghost button--small">Copy JSON</button>
+            </div>
+
+            <div class="debug-grid">
+              <article>
+                <h3>Request JSON</h3>
+                <pre id="request-json">No request sent yet.</pre>
+              </article>
+              <article>
+                <h3>Response JSON</h3>
+                <pre id="response-json">No response received yet.</pre>
+              </article>
+            </div>
+          </details>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <span>FastAPI + httpx orchestration layer</span>
+        <span>Vanilla HTML/CSS/JS scientific UI</span>
+        <span>Docker demo stack with mock MeshGraphNet / FNO / PINN</span>
+      </footer>
+    </div>
+
+    <script type="module" src="assets/scripts/app.js"></script>
+  </body>
+</html>

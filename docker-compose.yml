@@ -1,41 +1,63 @@
 version: "3.9"
 
 services:
-  api:
-    image: python:3.11-slim
-    container_name: thermoelastic-api
-    working_dir: /app
-    command: sh -c "python -m http.server 8000"
-    ports:
-      - "${API_PORT:-8000}:8000"
-    volumes:
-      - ./:/app
+  backend:
+    build:
+      context: ./backend
+    container_name: thermoelastic-backend
     environment:
-      MESHGRAPHNET_URL: ${MESHGRAPHNET_URL}
-      FNO_URL: ${FNO_URL}
-      PINN_URL: ${PINN_URL}
+      APP_NAME: ${APP_NAME:-Thermoelastic Direction API}
+      APP_VERSION: ${APP_VERSION:-0.1.0}
+      API_PREFIX: ${API_PREFIX:-/api/v1}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
+      MEDIA_CATALOG_PATH: /app/data/media/catalog.json
+      REMOTE_MODEL_TIMEOUT_SECONDS: ${REMOTE_MODEL_TIMEOUT_SECONDS:-12}
+      MODEL_MESHGRAPHNET_URL: ${MODEL_MESHGRAPHNET_URL:-http://mock-meshgraphnet:9000}
+      MODEL_FNO_URL: ${MODEL_FNO_URL:-http://mock-fno:9000}
+      MODEL_PINN_URL: ${MODEL_PINN_URL:-http://mock-pinn:9000}
+      MODEL_MESHGRAPHNET_PREDICT_PATH: ${MODEL_MESHGRAPHNET_PREDICT_PATH:-/predict}
+      MODEL_FNO_PREDICT_PATH: ${MODEL_FNO_PREDICT_PATH:-/predict}
+      MODEL_PINN_PREDICT_PATH: ${MODEL_PINN_PREDICT_PATH:-/predict}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
     depends_on:
-      - meshgraphnet
-      - fno
-      - pinn
+      - mock-meshgraphnet
+      - mock-fno
+      - mock-pinn
 
-  meshgraphnet:
-    image: python:3.11-slim
-    container_name: meshgraphnet-service
-    command: sh -c "python -m http.server 8001"
+  frontend:
+    build:
+      context: ./frontend
+    container_name: thermoelastic-frontend
     ports:
-      - "8001:8001"
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      - backend
 
-  fno:
-    image: python:3.11-slim
-    container_name: fno-service
-    command: sh -c "python -m http.server 8002"
+  mock-meshgraphnet:
+    build:
+      context: ./mock-services
+    container_name: mock-meshgraphnet
+    environment:
+      SERVICE_KIND: meshgraphnet
     ports:
-      - "8002:8002"
+      - "${MOCK_MESHGRAPHNET_PORT:-9001}:9000"
 
-  pinn:
-    image: python:3.11-slim
-    container_name: pinn-service
-    command: sh -c "python -m http.server 8003"
+  mock-fno:
+    build:
+      context: ./mock-services
+    container_name: mock-fno
+    environment:
+      SERVICE_KIND: fno
     ports:
-      - "8003:8003"
+      - "${MOCK_FNO_PORT:-9002}:9000"
+
+  mock-pinn:
+    build:
+      context: ./mock-services
+    container_name: mock-pinn
+    environment:
+      SERVICE_KIND: pinn
+    ports:
+      - "${MOCK_PINN_PORT:-9003}:9000"
