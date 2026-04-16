@@ -1,0 +1,92 @@
+from __future__ import annotations
+
+import logging
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from app.api.dependencies import get_app_settings, get_medium_catalog_service
+from app.api.routes.health import router as health_router
+from app.api.routes.media import router as media_router
+from app.api.routes.models import router as models_router
+from app.api.routes.predictions import router as predictions_router
+from app.core.exceptions import AppError
+from app.core.logging import configure_logging
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    settings = get_app_settings()
+    configure_logging(settings.log_level)
+    logger = logging.getLogger("app")
+    media = get_medium_catalog_service().list_media()
+    logger.info("Loaded geological media catalog with %s entries", len(media))
+    yield
+
+
+settings = get_app_settings()
+
+app = FastAPI(
+    title=settings.app_name,
+    version=settings.app_version,
+    lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(health_router, prefix=settings.api_prefix)
+app.include_router(media_router, prefix=settings.api_prefix)
+app.include_router(models_router, prefix=settings.api_prefix)
+app.include_router(predictions_router, prefix=settings.api_prefix)
+
+
+@app.exception_handler(AppError)
+async def app_error_handler(_: Request, exc: AppError) -> JSONResponse:
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": {
+                "code": exc.code,
+                "message": exc.message,
+                "details": exc.details,
+            }
+        },
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_handler(_: Request, exc: RequestValidationError) -> JSONResponse:
+    return JSONResponse(
+        status_code=422,
+        content={
+            "error": {
+                "code": "VALIDATION_ERROR",
+                "message": "Request validation failed",
+                "details": {"errors": exc.errors()},
+            }
+        },
+    )
+
+
+@app.exception_handler(Exception)
+async def unexpected_error_handler(_: Request, exc: Exception) -> JSONResponse:
+    logging.getLogger("app").exception("Unhandled application error", exc_info=exc)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": {
+                "code": "INTERNAL_SERVER_ERROR",
+                "message": "An unexpected error occurred",
+                "details": {},
+            }
+        },
+    )

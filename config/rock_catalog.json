@@ -1,0 +1,71 @@
+[
+  {
+    "id": "sandstone_medium",
+    "name": "Sandstone (medium)",
+    "category": "sedimentary",
+    "properties": {
+      "rho": 2684.0,
+      "porosity_total": 0.34,
+      "porosity_effective": 0.27,
+      "vp": 6.17,
+      "vs": 3.2,
+      "thermal_conductivity": 2.5,
+      "heat_capacity": 850.0,
+      "thermal_expansion": 0.000012
+    },
+    "ranges": {
+      "temperature_c": [-20.0, 300.0],
+      "pressure_mpa": [0.1, 1500.0]
+    },
+    "metadata": {
+      "source": "presentation_seed",
+      "notes": "Values are a starter preset and should be replaced by validated data."
+    }
+  },
+  {
+    "id": "limestone",
+    "name": "Limestone",
+    "category": "sedimentary",
+    "properties": {
+      "rho": 2694.0,
+      "porosity_total": 0.3,
+      "porosity_effective": 0.14,
+      "vp": 5.8,
+      "vs": 3.1,
+      "thermal_conductivity": 2.3,
+      "heat_capacity": 900.0,
+      "thermal_expansion": 0.00001
+    },
+    "ranges": {
+      "temperature_c": [-20.0, 300.0],
+      "pressure_mpa": [0.1, 1500.0]
+    },
+    "metadata": {
+      "source": "presentation_seed",
+      "notes": "Starter preset."
+    }
+  },
+  {
+    "id": "basalt",
+    "name": "Basalt",
+    "category": "igneous",
+    "properties": {
+      "rho": 2950.0,
+      "porosity_total": 0.17,
+      "porosity_effective": 0.05,
+      "vp": 6.4,
+      "vs": 3.6,
+      "thermal_conductivity": 1.8,
+      "heat_capacity": 840.0,
+      "thermal_expansion": 0.000008
+    },
+    "ranges": {
+      "temperature_c": [-20.0, 500.0],
+      "pressure_mpa": [0.1, 2000.0]
+    },
+    "metadata": {
+      "source": "presentation_seed",
+      "notes": "Porosity effective is estimated for MVP and should be verified."
+    }
+  }
+]
