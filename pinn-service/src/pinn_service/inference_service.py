@@ -67,7 +67,11 @@ class PINNInferenceService:
 
     def predict(self, request: PINNPredictionRequest) -> dict[str, Any]:
         artifacts = self._require_artifacts()
-        features = build_feature_vector(request, time_scale=self.config.time_scale)
+        features = build_feature_vector(
+            request,
+            time_scale=self.config.time_scale,
+            expected_feature_names=artifacts.input_feature_names,
+        )
         self._assert_feature_alignment(features.feature_names, artifacts.input_feature_names)
 
         scaled = ((features.values - artifacts.input_mean) / artifacts.input_std).astype(np.float32)

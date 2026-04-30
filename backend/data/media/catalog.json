@@ -67,5 +67,143 @@
       "source": "presentation_seed",
       "notes": "Porosity effective is estimated for MVP and should be verified."
     }
+  },
+  {
+    "id": "granite",
+    "name": "Granite",
+    "category": "igneous",
+    "properties": {
+      "rho": 2650.0,
+      "porosity_total": 0.015,
+      "porosity_effective": 0.005,
+      "vp": 5.95,
+      "vs": 3.4,
+      "thermal_conductivity": 2.7,
+      "heat_capacity": 790.0,
+      "thermal_expansion": 0.0000075
+    },
+    "ranges": {
+      "temperature_c": [-20.0, 500.0],
+      "pressure_mpa": [0.1, 2000.0]
+    },
+    "metadata": {
+      "source": "mvp_catalog_extension",
+      "notes": "Starter preset for hard crystalline rock. Replace with validated laboratory values when available."
+    }
+  },
+  {
+    "id": "shale",
+    "name": "Shale",
+    "category": "sedimentary",
+    "properties": {
+      "rho": 2520.0,
+      "porosity_total": 0.22,
+      "porosity_effective": 0.1,
+      "vp": 4.2,
+      "vs": 2.4,
+      "thermal_conductivity": 1.5,
+      "heat_capacity": 920.0,
+      "thermal_expansion": 0.000011
+    },
+    "ranges": {
+      "temperature_c": [-20.0, 250.0],
+      "pressure_mpa": [0.1, 1200.0]
+    },
+    "metadata": {
+      "source": "mvp_catalog_extension",
+      "notes": "Starter preset for fine-grained sedimentary rock. Elastic and porosity values should be calibrated for anisotropy-sensitive studies."
+    }
+  },
+  {
+    "id": "dolomite",
+    "name": "Dolomite",
+    "category": "sedimentary",
+    "properties": {
+      "rho": 2850.0,
+      "porosity_total": 0.18,
+      "porosity_effective": 0.08,
+      "vp": 6.2,
+      "vs": 3.3,
+      "thermal_conductivity": 3.4,
+      "heat_capacity": 880.0,
+      "thermal_expansion": 0.000009
+    },
+    "ranges": {
+      "temperature_c": [-20.0, 350.0],
+      "pressure_mpa": [0.1, 1700.0]
+    },
+    "metadata": {
+      "source": "mvp_catalog_extension",
+      "notes": "Starter carbonate-rock preset for scenarios where limestone and denser dolomitic media should be compared."
+    }
+  },
+  {
+    "id": "quartzite",
+    "name": "Quartzite",
+    "category": "metamorphic",
+    "properties": {
+      "rho": 2620.0,
+      "porosity_total": 0.04,
+      "porosity_effective": 0.01,
+      "vp": 6.0,
+      "vs": 3.7,
+      "thermal_conductivity": 5.5,
+      "heat_capacity": 730.0,
+      "thermal_expansion": 0.0000065
+    },
+    "ranges": {
+      "temperature_c": [-20.0, 600.0],
+      "pressure_mpa": [0.1, 2200.0]
+    },
+    "metadata": {
+      "source": "mvp_catalog_extension",
+      "notes": "Starter metamorphic preset with high thermal conductivity and low porosity for comparative propagation studies."
+    }
+  },
+  {
+    "id": "gneiss",
+    "name": "Gneiss",
+    "category": "metamorphic",
+    "properties": {
+      "rho": 2740.0,
+      "porosity_total": 0.05,
+      "porosity_effective": 0.015,
+      "vp": 6.1,
+      "vs": 3.5,
+      "thermal_conductivity": 2.9,
+      "heat_capacity": 790.0,
+      "thermal_expansion": 0.000007
+    },
+    "ranges": {
+      "temperature_c": [-20.0, 550.0],
+      "pressure_mpa": [0.1, 2200.0]
+    },
+    "metadata": {
+      "source": "mvp_catalog_extension",
+      "notes": "Starter metamorphic preset for medium-density banded crystalline rock."
+    }
+  },
+  {
+    "id": "tuff",
+    "name": "Tuff",
+    "category": "igneous",
+    "properties": {
+      "rho": 2350.0,
+      "porosity_total": 0.28,
+      "porosity_effective": 0.18,
+      "vp": 3.8,
+      "vs": 2.1,
+      "thermal_conductivity": 1.2,
+      "heat_capacity": 950.0,
+      "thermal_expansion": 0.0000105
+    },
+    "ranges": {
+      "temperature_c": [-20.0, 300.0],
+      "pressure_mpa": [0.1, 1000.0]
+    },
+    "metadata": {
+      "source": "mvp_catalog_extension",
+      "notes": "Starter volcanic-rock preset with relatively high porosity and lower wave velocities."
+    }
   }
 ]
