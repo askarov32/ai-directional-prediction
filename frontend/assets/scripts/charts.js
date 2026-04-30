@@ -47,24 +47,20 @@ export function renderDomain(svg, payload, response, modelLabel) {
 
   svg.innerHTML = `
     <defs>
-      <linearGradient id="domainFill" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="rgba(117,244,208,0.18)" />
-        <stop offset="100%" stop-color="rgba(91,123,255,0.08)" />
-      </linearGradient>
       <marker id="arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-        <path d="M 0 0 L 10 5 L 0 10 z" fill="#5ed9ff"></path>
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#f8fafc"></path>
       </marker>
     </defs>
     <style>
-      .viz-domain { fill: rgba(10, 24, 40, 0.62); stroke: rgba(117, 244, 208, 0.28); stroke-width: 2; }
-      .viz-grid { stroke: rgba(149, 167, 191, 0.12); stroke-width: 1; }
-      .viz-link { stroke: rgba(248, 187, 103, 0.45); stroke-width: 2; stroke-dasharray: 8 8; }
-      .viz-source { fill: #f8bb67; stroke: rgba(248, 187, 103, 0.36); stroke-width: 8; }
-      .viz-probe { fill: #75f4d0; stroke: rgba(117, 244, 208, 0.28); stroke-width: 8; }
-      .viz-arrow { stroke: #5ed9ff; stroke-width: 5; stroke-linecap: round; fill: none; }
-      .viz-label { font-family: "IBM Plex Sans", sans-serif; font-size: 15px; fill: #dce7f8; }
-      .viz-label--meta { fill: #9aacbf; }
-      .viz-axis { font-family: "JetBrains Mono", monospace; font-size: 13px; fill: #8fa5c2; }
+      .viz-domain { fill: rgba(15, 23, 42, 0.82); stroke: rgba(148, 163, 184, 0.22); stroke-width: 2; }
+      .viz-grid { stroke: rgba(148, 163, 184, 0.07); stroke-width: 1; }
+      .viz-link { stroke: rgba(148, 163, 184, 0.34); stroke-width: 2; stroke-dasharray: 7 7; }
+      .viz-source { fill: #c8ab81; stroke: rgba(200, 171, 129, 0.18); stroke-width: 8; }
+      .viz-probe { fill: #d9e2ef; stroke: rgba(217, 226, 239, 0.16); stroke-width: 8; }
+      .viz-arrow { stroke: #f8fafc; stroke-width: 4.25; stroke-linecap: round; fill: none; }
+      .viz-label { font-family: "Avenir Next", "Segoe UI", sans-serif; font-size: 15px; fill: #f8fafc; }
+      .viz-label--meta { fill: #94a3b8; }
+      .viz-axis { font-family: "JetBrains Mono", monospace; font-size: 13px; fill: #94a3b8; }
     </style>
     <rect x="${margin}" y="${margin}" width="${width - margin * 2}" height="${height - margin * 2}" rx="32" class="viz-domain" />
     ${gridLines.join("")}

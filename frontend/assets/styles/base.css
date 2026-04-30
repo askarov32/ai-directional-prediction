@@ -1,16 +1,25 @@
+html {
+  color-scheme: dark;
+}
+
 body {
+  min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(94, 217, 255, 0.16), transparent 28%),
-    radial-gradient(circle at 85% 10%, rgba(248, 187, 103, 0.18), transparent 24%),
-    linear-gradient(180deg, #06101b 0%, #08131d 36%, #050d16 100%);
+    radial-gradient(circle at top center, rgba(148, 163, 184, 0.06), transparent 30%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-alt) 100%);
   color: var(--text);
   font-family: var(--font-body);
-  line-height: 1.5;
-  overflow-x: hidden;
+  line-height: 1.6;
 }
 
 a {
   color: inherit;
+}
+
+button,
+input,
+select {
+  font: inherit;
 }
 
 h1,
@@ -27,37 +36,7 @@ pre {
   word-break: break-word;
 }
 
-.ambient {
-  pointer-events: none;
-  position: fixed;
-  inset: auto;
-  z-index: 0;
-}
-
-.ambient--one {
-  top: -10rem;
-  left: -8rem;
-  width: 28rem;
-  height: 28rem;
-  background: radial-gradient(circle, rgba(97, 228, 240, 0.18) 0%, transparent 70%);
-  filter: blur(12px);
-}
-
-.ambient--two {
-  right: -8rem;
-  bottom: 4rem;
-  width: 26rem;
-  height: 26rem;
-  background: radial-gradient(circle, rgba(248, 187, 103, 0.12) 0%, transparent 70%);
-  filter: blur(10px);
-}
-
-.ambient--grid {
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(118, 145, 171, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(118, 145, 171, 0.06) 1px, transparent 1px);
-  background-size: 48px 48px;
-  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.65), transparent 90%);
-  opacity: 0.4;
+::selection {
+  background: rgba(217, 226, 239, 0.18);
+  color: var(--text);
 }

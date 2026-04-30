@@ -7,7 +7,6 @@ from typing import Any
 SERVICE_OFFSETS = {
     "meshgraphnet": 0.12,
     "fno": -0.08,
-    "pinn": 0.2,
 }
 
 
@@ -39,7 +38,7 @@ def generate_prediction(service_kind: str, payload: dict[str, Any]) -> dict[str,
         [
             dx + 0.25 + offset + temperature / 1500.0,
             dy + 0.1 - offset + pressure / 800.0,
-            dz + (0.04 if service_kind == "pinn" else 0.0),
+            dz,
         ]
     )
 
@@ -55,7 +54,6 @@ def generate_prediction(service_kind: str, payload: dict[str, Any]) -> dict[str,
     wave_type = {
         "meshgraphnet": "dominant_p",
         "fno": "coupled_field",
-        "pinn": "physics_constrained",
     }.get(service_kind, "dominant_p")
 
     return {

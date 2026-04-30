@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   backend:
     build:
@@ -15,16 +13,25 @@ services:
       REMOTE_MODEL_TIMEOUT_SECONDS: ${REMOTE_MODEL_TIMEOUT_SECONDS:-12}
       MODEL_MESHGRAPHNET_URL: ${MODEL_MESHGRAPHNET_URL:-http://mock-meshgraphnet:9000}
       MODEL_FNO_URL: ${MODEL_FNO_URL:-http://mock-fno:9000}
-      MODEL_PINN_URL: ${MODEL_PINN_URL:-http://mock-pinn:9000}
+      MODEL_PINN_URL: ${MODEL_PINN_URL:-http://pinn-service:9000}
       MODEL_MESHGRAPHNET_PREDICT_PATH: ${MODEL_MESHGRAPHNET_PREDICT_PATH:-/predict}
       MODEL_FNO_PREDICT_PATH: ${MODEL_FNO_PREDICT_PATH:-/predict}
       MODEL_PINN_PREDICT_PATH: ${MODEL_PINN_PREDICT_PATH:-/predict}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
-      - mock-meshgraphnet
-      - mock-fno
-      - mock-pinn
+      mock-meshgraphnet:
+        condition: service_healthy
+      mock-fno:
+        condition: service_healthy
+      pinn-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   frontend:
     build:
@@ -33,7 +40,8 @@ services:
     ports:
       - "${FRONTEND_PORT:-8080}:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
   mock-meshgraphnet:
     build:
@@ -43,6 +51,12 @@ services:
       SERVICE_KIND: meshgraphnet
     ports:
       - "${MOCK_MESHGRAPHNET_PORT:-9001}:9000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
   mock-fno:
     build:
@@ -52,12 +66,31 @@ services:
       SERVICE_KIND: fno
     ports:
       - "${MOCK_FNO_PORT:-9002}:9000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
-  mock-pinn:
+  pinn-service:
     build:
-      context: ./mock-services
-    container_name: mock-pinn
+      context: ./pinn-service
+    container_name: pinn-service
     environment:
-      SERVICE_KIND: pinn
+      PINN_CHECKPOINT_PATH: ${PINN_CHECKPOINT_PATH:-/app/artifacts/checkpoints/baseline}
+      PINN_DEVICE: ${PINN_DEVICE:-cpu}
+      PINN_LOG_LEVEL: ${PINN_LOG_LEVEL:-INFO}
+      PINN_SERVICE_PORT: 9000
+      PINN_REFERENCE_TEMPERATURE_K: ${PINN_REFERENCE_TEMPERATURE_K:-293.15}
+      PINN_TIME_SCALE: ${PINN_TIME_SCALE:-1.0}
+    volumes:
+      - ./pinn-service/artifacts:/app/artifacts
     ports:
-      - "${MOCK_PINN_PORT:-9003}:9000"
+      - "${PINN_SERVICE_PORT:-9003}:9000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s

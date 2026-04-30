@@ -144,6 +144,10 @@ ui.refs.form.addEventListener("input", () => {
   syncDraftFromForm();
 });
 
+ui.refs.form.addEventListener("change", () => {
+  syncDraftFromForm();
+});
+
 ui.refs.form.addEventListener("submit", handleSubmit);
 ui.refs.demoButton.addEventListener("click", hydrateFormWithDemo);
 ui.refs.resetButton.addEventListener("click", resetForm);
