@@ -4,21 +4,30 @@ const PROPERTY_META = [
   ["rho", "Density"],
   ["porosity_total", "Total porosity"],
   ["porosity_effective", "Effective porosity"],
-  ["vp", "Vp"],
-  ["vs", "Vs"],
+  ["vp", "P-wave velocity"],
+  ["vs", "S-wave velocity"],
   ["thermal_conductivity", "Thermal conductivity"],
   ["heat_capacity", "Heat capacity"],
   ["thermal_expansion", "Thermal expansion"],
 ];
 
 function prettyNumber(value) {
+  if (!Number.isFinite(value)) {
+    return "—";
+  }
   if (Math.abs(value) >= 1000) {
     return value.toFixed(1);
   }
   if (Math.abs(value) >= 10) {
     return value.toFixed(2);
   }
-  return value.toFixed(4);
+  if (Math.abs(value) >= 1) {
+    return value.toFixed(3);
+  }
+  if (Math.abs(value) >= 0.01) {
+    return value.toFixed(4);
+  }
+  return value.toExponential(2);
 }
 
 export function createUI() {
@@ -68,7 +77,7 @@ export function createUI() {
       refs.mediumSelect,
       media.map((medium) => ({
         value: medium.id,
-        label: `${medium.name} • ${medium.category}`,
+        label: medium.name,
       })),
       selectedMediumId
     );
@@ -79,7 +88,7 @@ export function createUI() {
       refs.modelSelect,
       models.map((model) => ({
         value: model.id,
-        label: `${model.name} • ${model.status}`,
+        label: model.name,
       })),
       selectedModel
     );
@@ -87,21 +96,54 @@ export function createUI() {
 
   function renderMediumDetails(medium) {
     if (!medium) {
-      refs.mediumProperties.innerHTML = `<div class="property-tile"><span class="property-tile__label">Medium</span><span class="property-tile__value">No preset selected</span></div>`;
+      refs.mediumProperties.innerHTML = `
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Property</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Medium</td>
+              <td>No preset selected</td>
+            </tr>
+          </tbody>
+        </table>
+      `;
       refs.temperatureRangeHint.textContent = "";
       refs.pressureRangeHint.textContent = "";
       return;
     }
 
-    refs.mediumProperties.innerHTML = PROPERTY_META.map(([key, label]) => {
+    const rows = PROPERTY_META.map(([key, label]) => {
       const value = medium.properties[key];
       return `
-        <div class="property-tile">
-          <span class="property-tile__label">${label}</span>
-          <span class="property-tile__value">${prettyNumber(Number(value))}</span>
-        </div>
+        <tr>
+          <td>${label}</td>
+          <td>${prettyNumber(Number(value))}</td>
+        </tr>
       `;
     }).join("");
+
+    refs.mediumProperties.innerHTML = `
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Category</td>
+            <td>${medium.category}</td>
+          </tr>
+          ${rows}
+        </tbody>
+      </table>
+    `;
 
     refs.temperatureRangeHint.textContent = formatRange(medium.ranges.temperature_c, "°C");
     refs.pressureRangeHint.textContent = formatRange(medium.ranges.pressure_mpa, "MPa");

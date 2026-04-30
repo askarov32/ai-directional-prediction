@@ -1,0 +1,86 @@
+{
+  "source_files": {
+    "materials": "/Users/askarovi/Downloads/data_materials.csv",
+    "temperature": "/Users/askarovi/Downloads/data_temperature.csv",
+    "displacement": "/Users/askarovi/Downloads/data_displacement.csv",
+    "stress1": "/Users/askarovi/Downloads/data_stress_1.csv",
+    "stress2": "/Users/askarovi/Downloads/data_stress_2.csv",
+    "stress3": "/Users/askarovi/Downloads/data_stress_3.csv"
+  },
+  "dimension": 3,
+  "node_count": 1020,
+  "time_steps": 3001,
+  "time_start": 0.0,
+  "time_end": 30.0,
+  "time_step": 0.009999999776482582,
+  "reference_temperature_k": 293.14996337890625,
+  "material_static_field_order": [
+    "youngs_modulus",
+    "poissons_ratio",
+    "density",
+    "thermal_expansion"
+  ],
+  "thermal_properties_field_order": [
+    "thermal_conductivity",
+    "thermal_density",
+    "heat_capacity"
+  ],
+  "stress_normal_field_order": [
+    "von_mises",
+    "stress_x",
+    "stress_y",
+    "stress_z"
+  ],
+  "stress_shear_field_order": [
+    "stress_xy",
+    "stress_yz",
+    "stress_xz"
+  ],
+  "strain_field_order": [
+    "strain_x",
+    "strain_y",
+    "strain_z"
+  ],
+  "training_input_names": [
+    "x",
+    "y",
+    "z",
+    "t",
+    "youngs_modulus",
+    "poissons_ratio",
+    "density",
+    "thermal_expansion",
+    "thermal_conductivity",
+    "heat_capacity"
+  ],
+  "training_target_names": [
+    "temperature_k",
+    "disp_x",
+    "disp_y",
+    "disp_z",
+    "vel_x",
+    "vel_y",
+    "vel_z",
+    "von_mises",
+    "stress_x",
+    "stress_y",
+    "stress_z",
+    "stress_xy",
+    "stress_yz",
+    "stress_xz",
+    "strain_x",
+    "strain_y",
+    "strain_z"
+  ],
+  "material_static_drift_abs_max": {
+    "youngs_modulus": 0.0,
+    "poissons_ratio": 0.0,
+    "density": 0.0,
+    "thermal_expansion": 0.0
+  },
+  "notes": [
+    "initial_coordinates are the raw node coordinates from the COMSOL exports",
+    "dynamic_coordinates are taken from the temperature export x/y/z time-dependent columns",
+    "material_static stores one value per node for each material field using the first time slice"
+  ]
+}

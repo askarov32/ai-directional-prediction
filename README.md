@@ -6,7 +6,8 @@ The project ships a full local stack:
 
 - `FastAPI` backend orchestrator
 - native `HTML/CSS/JavaScript` frontend
-- mock model services for `MeshGraphNet`, `FNO`, and `PINN`
+- mock model services for `MeshGraphNet` and `FNO`
+- a dedicated checkpoint-based `PINN` service
 - `Docker Compose` startup for quick local demos
 
 The backend does **not** implement ML models. It acts as an orchestration layer that validates a unified request, resolves the geological medium, merges scenario inputs with rock presets, routes the request to the correct remote model service, and normalizes the response.
@@ -42,11 +43,11 @@ Main user flow:
 - dynamic media/model loading from backend
 - inline validation and debug panel
 
-### Mock Services
+### Model Services
 
-- lightweight FastAPI services used by default in Docker
-- deterministic synthetic outputs with slightly different behavior per model type
-- easy to replace with real model hosts
+- lightweight FastAPI mock services for `MeshGraphNet` and `FNO`
+- a real `PINN` inference service scaffold that loads a trained checkpoint
+- easy to replace each service host independently
 
 ## Project Structure
 
@@ -120,12 +121,32 @@ Main user flow:
 │           ├── layout.css
 │           ├── reset.css
 │           └── variables.css
-└── mock-services
+├── mock-services
+│   ├── Dockerfile
+│   ├── main.py
+│   ├── requirements.txt
+│   └── common
+│       └── predictor.py
+└── pinn-service
     ├── Dockerfile
-    ├── main.py
+    ├── README.md
     ├── requirements.txt
-    └── common
-        └── predictor.py
+    └── src
+        └── pinn_service
+            ├── cli.py
+            ├── comsol_parser.py
+            ├── dataset_builder.py
+            ├── inference_config.py
+            ├── inference_service.py
+            ├── inference_utils.py
+            ├── losses.py
+            ├── model.py
+            ├── service_app.py
+            ├── service_schemas.py
+            ├── train.py
+            ├── trainer.py
+            ├── training_config.py
+            └── training_data.py
 ```
 
 ## Environment Variables
@@ -142,7 +163,7 @@ Important variables:
 - `FRONTEND_PORT`
 - `MOCK_MESHGRAPHNET_PORT`
 - `MOCK_FNO_PORT`
-- `MOCK_PINN_PORT`
+- `PINN_SERVICE_PORT`
 - `MODEL_MESHGRAPHNET_URL`
 - `MODEL_FNO_URL`
 - `MODEL_PINN_URL`
@@ -151,6 +172,9 @@ Important variables:
 - `MODEL_PINN_PREDICT_PATH`
 - `REMOTE_MODEL_TIMEOUT_SECONDS`
 - `CORS_ORIGINS`
+- `PINN_CHECKPOINT_PATH`
+- `PINN_DEVICE`
+- `PINN_TIME_SCALE`
 
 Default Docker routing:
 
@@ -158,7 +182,7 @@ Default Docker routing:
 - frontend: `http://localhost:8080`
 - mock MeshGraphNet: `http://localhost:9001`
 - mock FNO: `http://localhost:9002`
-- mock PINN: `http://localhost:9003`
+- pinn-service: `http://localhost:9003`
 
 ## Quick Start
 
@@ -166,6 +190,14 @@ Run the whole stack:
 
 ```bash
 docker compose up --build
+```
+
+The repository includes a baseline `PINN` checkpoint under `pinn-service/artifacts/checkpoints/baseline`, so the compose stack is intended to be demo-ready without a separate training step.
+
+If you are upgrading from an older local setup that still had `mock-pinn`, run this once to clean old containers:
+
+```bash
+docker compose up -d --remove-orphans
 ```
 
 Then open:
@@ -283,7 +315,9 @@ Internal payload representations:
 
 ## Replacing Mock Services With Real Models
 
-By default, Docker uses the included mock services. To switch to real model hosts:
+By default, Docker uses mock services for `MeshGraphNet` and `FNO`, and the built-in checkpoint-based `PINN` service.
+
+To switch to external model hosts:
 
 1. Edit `.env`
 2. Point these variables to your real services:
@@ -335,6 +369,33 @@ Then open [http://localhost:8080](http://localhost:8080).
 
 The frontend expects the backend at `http://localhost:8000/api/v1` by default.
 
+## PINN Service
+
+The `PINN` route is now wired to a dedicated service instead of the old generic mock.
+
+That service:
+
+- auto-loads the best checkpoint from `/app/artifacts/checkpoints/baseline`
+- derives `E` and `nu` from `rho`, `Vp`, and `Vs` during inference
+- predicts `T, u, v, w`
+- converts the result into direction and field summary metrics
+
+If no checkpoint is present:
+
+- `GET /health` on the PINN service reports `ready: false`
+- `POST /predict` returns a clear `503` error instead of crashing
+
+To refresh the baseline checkpoint locally:
+
+```bash
+./pinn-service/train_baseline.sh
+```
+
+That helper script writes a stronger CPU-friendly baseline to:
+
+- `pinn-service/artifacts/checkpoints/baseline`
+- and the inference service auto-prefers `best_model.pth` over `model.pth`
+
 ## Error Handling
 
 The backend returns consistent JSON errors:
@@ -378,3 +439,27 @@ Suggested placeholders for your thesis report:
 - Domain structure is already ready for future 3D expansion
 - Mock services are synthetic and deterministic, not scientific solvers
 - The medium catalog is loaded from JSON, not hardcoded in route handlers
+
+## PINN Dataset Preparation
+
+The repository now includes a dedicated COMSOL CSV preprocessing step under [pinn-service/README.md](</Users/askarovi/Documents/New project/pinn-service/README.md:1>).
+
+Use it to turn the six COMSOL exports into:
+
+- a structured field dataset for research and inspection
+- an optional flattened training matrix for future PINN experiments
+
+Quick example:
+
+```bash
+pip install -r pinn-service/requirements.txt
+PYTHONPATH=pinn-service/src python3 -m pinn_service.cli \
+  --materials /path/to/data_materials.csv \
+  --temperature /path/to/data_temperature.csv \
+  --displacement /path/to/data_displacement.csv \
+  --stress1 /path/to/data_stress_1.csv \
+  --stress2 /path/to/data_stress_2.csv \
+  --stress3 /path/to/data_stress_3.csv \
+  --output-dir /path/to/output \
+  --build-training-matrix
+```

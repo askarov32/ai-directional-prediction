@@ -1,16 +1,21 @@
-const fallbackBaseUrl =
+const FALLBACK_BASE_URLS =
   window.location.protocol === "file:"
-    ? "http://localhost:8000/api/v1"
-    : `${window.location.protocol}//${window.location.hostname}:8000/api/v1`;
+    ? ["http://localhost:8000/api/v1"]
+    : [
+        window.THESIS_APP_CONFIG?.apiBaseUrl,
+        "/api/v1",
+        `${window.location.protocol}//${window.location.hostname}:8000/api/v1`,
+        "http://localhost:8000/api/v1",
+      ].filter(Boolean);
 
-export const API_BASE_URL = window.THESIS_APP_CONFIG?.apiBaseUrl || fallbackBaseUrl;
+export const API_BASE_URL = FALLBACK_BASE_URLS[0];
 
-async function request(path, options = {}) {
+async function rawRequest(baseUrl, path, options = {}) {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 15000);
 
   try {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
+    const response = await fetch(`${baseUrl}${path}`, {
       ...options,
       headers: {
         "Content-Type": "application/json",
@@ -58,6 +63,27 @@ async function request(path, options = {}) {
   } finally {
     window.clearTimeout(timeout);
   }
+}
+
+async function request(path, options = {}) {
+  let lastError = null;
+
+  for (const baseUrl of FALLBACK_BASE_URLS) {
+    try {
+      return await rawRequest(baseUrl, path, options);
+    } catch (error) {
+      lastError = error;
+      if (error?.code !== "NETWORK_ERROR" && error?.code !== "REQUEST_TIMEOUT") {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError || {
+    code: "NETWORK_ERROR",
+    message: "Unable to reach the backend API.",
+    details: {},
+  };
 }
 
 export function fetchMedia() {
