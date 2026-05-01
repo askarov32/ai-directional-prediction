@@ -1,0 +1,289 @@
+{
+  "title": "Granite directional prediction analytics",
+  "description": "Scenario pack for isolated analytics runs. The scripts are medium-parameterized and can be reused with other medium ids even though the default bundle is prepared for granite.",
+  "default_medium_id": "granite",
+  "default_model": "pinn",
+  "backend_api_base": "http://127.0.0.1:8000/api/v1",
+  "baseline_request": {
+    "scenario": {
+      "temperature_c": 180.0,
+      "pressure_mpa": 120.0,
+      "time_ms": 12.0
+    },
+    "source": {
+      "type": "thermal_pulse",
+      "x": 0.14,
+      "y": 0.18,
+      "z": 0.05,
+      "amplitude": 1.0,
+      "frequency_hz": 60.0,
+      "direction": [0.82, 0.32, 0.47]
+    },
+    "probe": {
+      "x": 0.78,
+      "y": 0.62,
+      "z": 0.18
+    },
+    "domain": {
+      "type": "rect_3d",
+      "size": {
+        "lx": 1.0,
+        "ly": 1.0,
+        "lz": 0.6
+      },
+      "resolution": {
+        "nx": 96,
+        "ny": 96,
+        "nz": 48
+      },
+      "boundary_conditions": {
+        "left": "fixed",
+        "right": "free",
+        "top": "insulated",
+        "bottom": "insulated",
+        "front": "free",
+        "back": "free"
+      }
+    }
+  },
+  "comparison_cases": [
+    {
+      "id": "baseline_2d",
+      "label": "Baseline 2D thermal pulse",
+      "notes": "Reference 2D granite scenario in the x-y plane.",
+      "overrides": {
+        "source": {
+          "z": 0.0,
+          "direction": [0.96, 0.28, 0.0]
+        },
+        "probe": {
+          "z": 0.0
+        },
+        "domain": {
+          "type": "rect_2d",
+          "size": {
+            "lx": 1.0,
+            "ly": 1.0,
+            "lz": 0.0
+          },
+          "resolution": {
+            "nx": 128,
+            "ny": 128,
+            "nz": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "baseline_3d",
+      "label": "Baseline 3D thermal pulse",
+      "notes": "Reference 3D granite scenario with non-zero z direction and probe depth.",
+      "overrides": {}
+    },
+    {
+      "id": "high_temperature_3d",
+      "label": "High-temperature 3D",
+      "notes": "Elevated thermal loading while preserving the same geometry.",
+      "overrides": {
+        "scenario": {
+          "temperature_c": 420.0
+        }
+      }
+    },
+    {
+      "id": "high_pressure_3d",
+      "label": "High-pressure 3D",
+      "notes": "Higher confining pressure with the same source and probe locations.",
+      "overrides": {
+        "scenario": {
+          "pressure_mpa": 900.0
+        }
+      }
+    },
+    {
+      "id": "point_force_3d",
+      "label": "3D point-force excitation",
+      "notes": "Directional forcing with stronger z contribution.",
+      "overrides": {
+        "source": {
+          "type": "point_force",
+          "amplitude": 1.4,
+          "frequency_hz": 90.0,
+          "direction": [0.25, 0.45, 0.86]
+        }
+      }
+    },
+    {
+      "id": "offset_probe_3d",
+      "label": "3D elevated probe",
+      "notes": "Probe moved closer to the top of the volume to verify elevation sensitivity.",
+      "overrides": {
+        "probe": {
+          "z": 0.46
+        }
+      }
+    }
+  ],
+  "sweeps": {
+    "amplitude_time_series": {
+      "description": "Time sweep for several source amplitudes in a 2D granite setup.",
+      "fixed_overrides": {
+        "source": {
+          "type": "thermal_pulse",
+          "z": 0.0,
+          "direction": [0.96, 0.28, 0.0],
+          "frequency_hz": 60.0
+        },
+        "probe": {
+          "z": 0.0
+        },
+        "domain": {
+          "type": "rect_2d",
+          "size": {
+            "lx": 1.0,
+            "ly": 1.0,
+            "lz": 0.0
+          },
+          "resolution": {
+            "nx": 128,
+            "ny": 128,
+            "nz": 1
+          }
+        }
+      },
+      "time_values_ms": [2.0, 6.0, 10.0, 14.0, 18.0, 22.0, 26.0],
+      "amplitudes": [0.6, 1.0, 1.4, 1.8]
+    },
+    "temperature_sensitivity": {
+      "description": "Temperature sweep in a 2D granite configuration.",
+      "fixed_overrides": {
+        "source": {
+          "z": 0.0,
+          "direction": [0.96, 0.28, 0.0]
+        },
+        "probe": {
+          "z": 0.0
+        },
+        "domain": {
+          "type": "rect_2d",
+          "size": {
+            "lx": 1.0,
+            "ly": 1.0,
+            "lz": 0.0
+          },
+          "resolution": {
+            "nx": 128,
+            "ny": 128,
+            "nz": 1
+          }
+        }
+      },
+      "temperatures_c": [-20.0, 40.0, 120.0, 200.0, 300.0, 400.0, 480.0]
+    },
+    "pressure_sensitivity": {
+      "description": "Pressure sweep in a 2D granite configuration.",
+      "fixed_overrides": {
+        "source": {
+          "z": 0.0,
+          "direction": [0.96, 0.28, 0.0]
+        },
+        "probe": {
+          "z": 0.0
+        },
+        "domain": {
+          "type": "rect_2d",
+          "size": {
+            "lx": 1.0,
+            "ly": 1.0,
+            "lz": 0.0
+          },
+          "resolution": {
+            "nx": 128,
+            "ny": 128,
+            "nz": 1
+          }
+        }
+      },
+      "pressures_mpa": [0.5, 25.0, 100.0, 250.0, 500.0, 1000.0, 1800.0]
+    },
+    "frequency_sensitivity": {
+      "description": "Frequency sweep in a 2D granite configuration.",
+      "fixed_overrides": {
+        "source": {
+          "z": 0.0,
+          "direction": [0.96, 0.28, 0.0]
+        },
+        "probe": {
+          "z": 0.0
+        },
+        "domain": {
+          "type": "rect_2d",
+          "size": {
+            "lx": 1.0,
+            "ly": 1.0,
+            "lz": 0.0
+          },
+          "resolution": {
+            "nx": 128,
+            "ny": 128,
+            "nz": 1
+          }
+        }
+      },
+      "frequencies_hz": [10.0, 25.0, 50.0, 80.0, 120.0, 180.0, 240.0]
+    },
+    "temperature_pressure_heatmap": {
+      "description": "Grid sweep for displacement response across temperature and pressure.",
+      "fixed_overrides": {
+        "source": {
+          "z": 0.0,
+          "direction": [0.96, 0.28, 0.0]
+        },
+        "probe": {
+          "z": 0.0
+        },
+        "domain": {
+          "type": "rect_2d",
+          "size": {
+            "lx": 1.0,
+            "ly": 1.0,
+            "lz": 0.0
+          },
+          "resolution": {
+            "nx": 128,
+            "ny": 128,
+            "nz": 1
+          }
+        }
+      },
+      "temperatures_c": [0.0, 100.0, 200.0, 300.0, 400.0, 500.0],
+      "pressures_mpa": [10.0, 100.0, 300.0, 600.0, 1000.0, 1500.0]
+    },
+    "three_d_surface": {
+      "description": "3D verification sweep using probe depth and time as axes and elevation angle as the target metric.",
+      "fixed_overrides": {
+        "source": {
+          "type": "thermal_pulse",
+          "z": 0.05,
+          "direction": [0.82, 0.32, 0.47],
+          "frequency_hz": 60.0
+        },
+        "domain": {
+          "type": "rect_3d",
+          "size": {
+            "lx": 1.0,
+            "ly": 1.0,
+            "lz": 0.6
+          },
+          "resolution": {
+            "nx": 96,
+            "ny": 96,
+            "nz": 48
+          }
+        }
+      },
+      "time_values_ms": [2.0, 5.0, 8.0, 11.0, 14.0, 17.0, 20.0, 23.0, 26.0],
+      "probe_z_values": [0.02, 0.10, 0.18, 0.26, 0.34, 0.42, 0.50]
+    }
+  }
+}

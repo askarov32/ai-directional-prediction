@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Granite analytics report</title>
+    <style>
+      body {
+        margin: 0;
+        background: #0f172a;
+        color: #f8fafc;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      .wrap {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 34px 24px 60px;
+      }
+      h1, h2, h3 {
+        margin: 0 0 12px;
+        font-weight: 650;
+      }
+      p {
+        margin: 0 0 14px;
+        line-height: 1.65;
+        color: #cbd5e1;
+      }
+      .lead {
+        color: #94a3b8;
+        max-width: 900px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+        margin: 22px 0 28px;
+      }
+      .metric, .panel {
+        background: #111827;
+        border: 1px solid #334155;
+        border-radius: 18px;
+      }
+      .metric {
+        padding: 18px;
+      }
+      .metric strong {
+        display: block;
+        margin-bottom: 8px;
+        color: #cbd5e1;
+      }
+      .metric span {
+        font-size: 24px;
+      }
+      .panel {
+        padding: 20px;
+        margin-bottom: 18px;
+      }
+      ul {
+        margin: 8px 0 0;
+        padding-left: 20px;
+        color: #e2e8f0;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+        font-size: 14px;
+      }
+      th, td {
+        padding: 12px 10px;
+        text-align: left;
+        border-bottom: 1px solid #1e293b;
+      }
+      th {
+        color: #cbd5e1;
+        font-weight: 600;
+      }
+      td {
+        color: #e2e8f0;
+      }
+      .gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 18px;
+      }
+      figure {
+        margin: 0;
+        background: #111827;
+        border: 1px solid #334155;
+        border-radius: 18px;
+        padding: 14px;
+      }
+      figure img {
+        width: 100%;
+        display: block;
+        border-radius: 12px;
+      }
+      figcaption {
+        margin-top: 12px;
+        color: #94a3b8;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      code {
+        color: #bfdbfe;
+      }
+      a {
+        color: #93c5fd;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Granite analytics report</h1>
+      <p class="lead">
+        Generated from the isolated <code>granite-analytics/</code> package on 2026-04-30T22:41:37.224667+00:00.
+        The scripts are medium-parameterized even though this report uses <strong>granite</strong> as the input medium.
+        Backend model route: <strong>pinn</strong>.
+      </p>
+
+      <div class="grid">
+        <div class="metric"><strong>Total predictions</strong><span>154</span></div>
+        <div class="metric"><strong>Errors</strong><span>0</span></div>
+        <div class="metric"><strong>Highest elevation</strong><span>50.45 deg</span></div>
+        <div class="metric"><strong>Shortest travel time</strong><span>0.128 ms</span></div>
+      </div>
+
+      <div class="panel">
+        <h2>Key findings</h2>
+        <ul><li>Temperature sweep changed max temperature perturbation by 0.846, while azimuth stayed comparatively stable in the 2D pulse setup.</li><li>Pressure sweep changed displacement by 0.000010, showing stronger impact on field intensity than on direction.</li><li>3D probe-depth sweep produced an elevation range of 13.60 degrees, which confirms that the current pipeline reacts to z-axis geometry.</li></ul>
+      </div>
+
+      <div class="panel">
+        <h2>Representative scenarios</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Scenario</th>
+              <th>Azimuth</th>
+              <th>Elevation</th>
+              <th>Travel time</th>
+              <th>Max displacement</th>
+              <th>Temp perturbation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Baseline 2D thermal pulse</td><td>25.10</td><td>0.00</td><td>0.134</td><td>0.000014</td><td>0.331204</td></tr><tr><td>Baseline 3D thermal pulse</td><td>27.57</td><td>37.45</td><td>0.136</td><td>0.000014</td><td>0.328917</td></tr><tr><td>High-temperature 3D</td><td>27.57</td><td>37.45</td><td>0.143</td><td>0.000014</td><td>0.767463</td></tr><tr><td>High-pressure 3D</td><td>27.57</td><td>37.45</td><td>0.128</td><td>0.000018</td><td>0.328917</td></tr><tr><td>3D point-force excitation</td><td>40.77</td><td>50.45</td><td>0.238</td><td>0.000024</td><td>0.460481</td></tr><tr><td>3D elevated probe</td><td>27.23</td><td>45.22</td><td>0.152</td><td>0.000013</td><td>0.310883</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 style="margin: 26px 0 14px;">Chart gallery</h2>
+      <div class="gallery">
+        <figure>
+          <img src="charts/amplitude_time_series.png" alt="Amplitude time series chart" />
+          <figcaption>Time-series sweep showing how peak displacement evolves with different source amplitudes.</figcaption>
+        </figure>
+        <figure>
+          <img src="charts/metrics_comparison.png" alt="Metrics comparison chart" />
+          <figcaption>Comparison of directional and field metrics across baseline, thermal, pressure and 3D perturbation cases.</figcaption>
+        </figure>
+        <figure>
+          <img src="charts/temperature_sensitivity.png" alt="Temperature sensitivity chart" />
+          <figcaption>Temperature sweep for granite in a 2D setup.</figcaption>
+        </figure>
+        <figure>
+          <img src="charts/pressure_sensitivity.png" alt="Pressure sensitivity chart" />
+          <figcaption>Pressure sweep emphasizing how the current model changes displacement and travel time.</figcaption>
+        </figure>
+        <figure>
+          <img src="charts/frequency_sensitivity.png" alt="Frequency sensitivity chart" />
+          <figcaption>Frequency sweep with magnitude, displacement and azimuth response.</figcaption>
+        </figure>
+        <figure>
+          <img src="charts/temperature_pressure_heatmap.png" alt="Temperature pressure heatmap" />
+          <figcaption>Heatmap of max displacement over the temperature-pressure grid.</figcaption>
+        </figure>
+        <figure>
+          <img src="charts/granite_3d_surface.png" alt="3D response surface" />
+          <figcaption>3D surface over probe depth and time. Interactive-free HTML companion: <a href="charts/granite_3d_surface.html">open standalone surface view</a>.</figcaption>
+        </figure>
+      </div>
+
+      <div class="panel" style="margin-top: 22px;">
+        <h2>Re-run commands</h2>
+        <p><code>python3 granite-analytics/scripts/run_granite_predictions.py --medium-id granite</code></p>
+        <p><code>python3 granite-analytics/scripts/generate_granite_charts.py</code></p>
+      </div>
+    </div>
+  </body>
+</html>
