@@ -1,0 +1,115 @@
+{
+  "generated_at": "2026-04-30T22:41:37.224667+00:00",
+  "medium_id": "granite",
+  "model": "pinn",
+  "medium_name": "Granite",
+  "total_predictions": 154,
+  "errors": 0,
+  "comparison_extremes": {
+    "highest_displacement": {
+      "scenario_id": "point_force_3d",
+      "label": "3D point-force excitation",
+      "value": 2.4e-05
+    },
+    "highest_elevation": {
+      "scenario_id": "point_force_3d",
+      "label": "3D point-force excitation",
+      "value": 50.45
+    },
+    "shortest_travel_time": {
+      "scenario_id": "high_pressure_3d",
+      "label": "High-pressure 3D",
+      "value": 0.128
+    }
+  },
+  "temperature_sensitivity": {
+    "displacement": {
+      "input_min": -20.0,
+      "input_max": 480.0,
+      "metric_min": 1.4e-05,
+      "metric_max": 1.5e-05,
+      "metric_delta": 1.0000000000000006e-06
+    },
+    "temperature_perturbation": {
+      "input_min": -20.0,
+      "input_max": 480.0,
+      "metric_min": 0.036806,
+      "metric_max": 0.883198,
+      "metric_delta": 0.846392
+    },
+    "travel_time": {
+      "input_min": -20.0,
+      "input_max": 480.0,
+      "metric_min": 0.129,
+      "metric_max": 0.143,
+      "metric_delta": 0.013999999999999985
+    }
+  },
+  "pressure_sensitivity": {
+    "magnitude": {
+      "input_min": 0.5,
+      "input_max": 1800.0,
+      "metric_min": 0.0254,
+      "metric_max": 0.0275,
+      "metric_delta": 0.002100000000000001
+    },
+    "displacement": {
+      "input_min": 0.5,
+      "input_max": 1800.0,
+      "metric_min": 1.3e-05,
+      "metric_max": 2.3e-05,
+      "metric_delta": 1e-05
+    },
+    "travel_time": {
+      "input_min": 0.5,
+      "input_max": 1800.0,
+      "metric_min": 0.118,
+      "metric_max": 0.135,
+      "metric_delta": 0.017000000000000015
+    }
+  },
+  "frequency_sensitivity": {
+    "magnitude": {
+      "input_min": 10.0,
+      "input_max": 240.0,
+      "metric_min": 0.0252,
+      "metric_max": 0.0264,
+      "metric_delta": 0.0011999999999999997
+    },
+    "displacement": {
+      "input_min": 10.0,
+      "input_max": 240.0,
+      "metric_min": 1.3e-05,
+      "metric_max": 1.8e-05,
+      "metric_delta": 5.000000000000001e-06
+    },
+    "azimuth": {
+      "input_min": 10.0,
+      "input_max": 240.0,
+      "metric_min": 25.1,
+      "metric_max": 25.1,
+      "metric_delta": 0.0
+    }
+  },
+  "three_d_check": {
+    "z_sensitive": true,
+    "elevation_range_deg": [
+      32.59,
+      46.19
+    ],
+    "probe_z_mean_elevations_deg": {
+      "0.02": 32.59,
+      "0.10": 35.03,
+      "0.18": 37.45,
+      "0.26": 39.82,
+      "0.34": 42.09,
+      "0.42": 44.21,
+      "0.50": 46.19
+    }
+  },
+  "key_findings": [
+    "Temperature sweep changed max temperature perturbation by 0.846, while azimuth stayed comparatively stable in the 2D pulse setup.",
+    "Pressure sweep changed displacement by 0.000010, showing stronger impact on field intensity than on direction.",
+    "3D probe-depth sweep produced an elevation range of 13.60 degrees, which confirms that the current pipeline reacts to z-axis geometry."
+  ]
+}
