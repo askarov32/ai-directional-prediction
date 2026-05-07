@@ -38,18 +38,23 @@ class PINNInferenceService:
         self.logger = logging.getLogger("pinn_service.inference")
         self._artifacts: LoadedInferenceArtifacts | None = None
         self._load_error: str | None = None
+        self._smoke_check: dict[str, Any] = {"status": "not_run"}
 
     def try_initialize(self) -> None:
         try:
-            self._artifacts = self._load_artifacts(self.config.checkpoint_path, self.config.device)
+            artifacts = self._load_artifacts(self.config.checkpoint_path, self.config.device)
+            self._run_smoke_check(artifacts)
+            self._artifacts = artifacts
             self._load_error = None
         except Exception as exc:  # noqa: BLE001
             self._artifacts = None
             self._load_error = str(exc)
+            if self._smoke_check.get("status") != "failed":
+                self._smoke_check = {"status": "not_run"}
             self.logger.warning("PINN checkpoint is not ready: %s", exc)
 
     def health_payload(self) -> dict[str, Any]:
-        return {
+        payload: dict[str, Any] = {
             "status": "ok",
             "service": "pinn-service",
             "ready": self._artifacts is not None,
@@ -57,14 +62,16 @@ class PINNInferenceService:
             "device": self.config.device,
             "load_error": self._load_error,
             "model_version": self.model_version if self._artifacts is not None else None,
+            "smoke_check": self._smoke_check,
         }
+        if self._artifacts is not None:
+            payload.update(self._checkpoint_metadata(self._artifacts))
+        return payload
 
     def readiness_payload(self) -> dict[str, Any]:
         payload = self.health_payload()
         ready = bool(payload["ready"])
         payload["status"] = "ready" if ready else "not_ready"
-        if self._artifacts is not None:
-            payload["active_feature_count"] = len(self._artifacts.input_feature_names)
         return payload
 
     @property
@@ -96,6 +103,31 @@ class PINNInferenceService:
             reference_temperature_k=self.config.reference_temperature_k,
         )
         payload["model_version"] = self.model_version
+        payload["model_outputs"] = {
+            "feature_names": artifacts.output_feature_names,
+            "values": [round(float(value), 9) for value in outputs.tolist()],
+        }
+        payload["postprocessed_prediction"] = {
+            key: payload[key]
+            for key in (
+                "direction_vector",
+                "azimuth_deg",
+                "elevation_deg",
+                "magnitude",
+                "wave_type",
+                "travel_time_ms",
+                "max_displacement",
+                "max_temperature_perturbation",
+            )
+        }
+        payload["diagnostics"] = {
+            **self._checkpoint_metadata(artifacts),
+            "smoke_check": self._smoke_check,
+            "postprocessing_note": (
+                "Flat response fields combine neural outputs with geometry/material postprocessing "
+                "to keep the MVP API backward-compatible."
+            ),
+        }
         return payload
 
     def _require_artifacts(self) -> LoadedInferenceArtifacts:
@@ -137,6 +169,118 @@ class PINNInferenceService:
             output_std=np.asarray(output_scaler["std"], dtype=np.float32),
             best_loss=float(checkpoint.get("best_loss", 0.0)),
             checkpoint_path=resolved_checkpoint,
+        )
+
+    def _run_smoke_check(self, artifacts: LoadedInferenceArtifacts) -> None:
+        request = self._build_smoke_request()
+        features = build_feature_vector(
+            request,
+            time_scale=self.config.time_scale,
+            expected_feature_names=artifacts.input_feature_names,
+        )
+        self._assert_feature_alignment(features.feature_names, artifacts.input_feature_names)
+
+        scaled = ((features.values - artifacts.input_mean) / artifacts.input_std).astype(np.float32)
+        tensor = torch.from_numpy(scaled[None, :]).to(artifacts.device)
+
+        artifacts.model.eval()
+        with torch.no_grad():
+            outputs_scaled = artifacts.model(tensor).cpu().numpy()[0]
+        outputs = outputs_scaled * artifacts.output_std + artifacts.output_mean
+
+        if outputs.shape[0] != len(artifacts.output_feature_names):
+            self._smoke_check = {
+                "status": "failed",
+                "reason": "unexpected_output_shape",
+                "expected": len(artifacts.output_feature_names),
+                "actual": int(outputs.shape[0]),
+            }
+            raise CheckpointNotReadyError("PINN smoke check failed: unexpected output shape.")
+        if outputs.shape[0] < 4 or not np.all(np.isfinite(outputs)):
+            self._smoke_check = {
+                "status": "failed",
+                "reason": "non_finite_or_insufficient_outputs",
+                "output_feature_count": int(outputs.shape[0]),
+            }
+            raise CheckpointNotReadyError("PINN smoke check failed: outputs are invalid.")
+
+        payload = build_prediction_payload(
+            request=request,
+            model_outputs=outputs,
+            reference_temperature_k=self.config.reference_temperature_k,
+        )
+        numeric_values: list[float] = [
+            float(payload["azimuth_deg"]),
+            float(payload["elevation_deg"]),
+            float(payload["magnitude"]),
+            float(payload["travel_time_ms"]),
+            float(payload["max_displacement"]),
+            float(payload["max_temperature_perturbation"]),
+            *[float(component) for component in payload["direction_vector"]],
+        ]
+        if not all(np.isfinite(value) for value in numeric_values):
+            self._smoke_check = {"status": "failed", "reason": "non_finite_postprocessed_payload"}
+            raise CheckpointNotReadyError("PINN smoke check failed: postprocessed payload is invalid.")
+
+        self._smoke_check = {
+            "status": "passed",
+            "output_feature_count": len(artifacts.output_feature_names),
+        }
+
+    def _checkpoint_metadata(self, artifacts: LoadedInferenceArtifacts) -> dict[str, Any]:
+        return {
+            "resolved_checkpoint_path": str(artifacts.checkpoint_path),
+            "active_feature_count": len(artifacts.input_feature_names),
+            "active_feature_names": artifacts.input_feature_names,
+            "output_feature_count": len(artifacts.output_feature_names),
+            "output_feature_names": artifacts.output_feature_names,
+            "best_loss": artifacts.best_loss,
+            "device": str(artifacts.device),
+        }
+
+    def _build_smoke_request(self) -> PINNPredictionRequest:
+        return PINNPredictionRequest.model_validate(
+            {
+                "medium": {
+                    "id": "smoke_sandstone",
+                    "name": "Smoke Sandstone",
+                    "category": "sedimentary",
+                    "properties": {
+                        "rho": 2684.0,
+                        "porosity_total": 0.34,
+                        "porosity_effective": 0.27,
+                        "vp": 6.17,
+                        "vs": 3.2,
+                        "thermal_conductivity": 2.5,
+                        "heat_capacity": 850.0,
+                        "thermal_expansion": 0.000012,
+                    },
+                },
+                "scenario": {"temperature_c": 120.0, "pressure_mpa": 35.0, "time_ms": 12.0},
+                "source": {
+                    "type": "thermal_pulse",
+                    "x": 0.15,
+                    "y": 0.4,
+                    "z": 0.0,
+                    "amplitude": 1.0,
+                    "frequency_hz": 50.0,
+                    "direction": [1.0, 0.0, 0.0],
+                },
+                "probe": {"x": 0.7, "y": 0.55, "z": 0.0},
+                "domain": {
+                    "type": "rect_2d",
+                    "size": {"lx": 1.0, "ly": 1.0, "lz": 0.0},
+                    "resolution": {"nx": 128, "ny": 128, "nz": 1},
+                    "boundary_conditions": {
+                        "left": "fixed",
+                        "right": "free",
+                        "top": "insulated",
+                        "bottom": "insulated",
+                    },
+                },
+                "representation": "physics_informed",
+                "routing_hint": "pinn",
+            }
         )
 
     def _assert_feature_alignment(self, request_feature_names: list[str], checkpoint_feature_names: list[str]) -> None:
