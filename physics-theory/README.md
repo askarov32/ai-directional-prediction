@@ -9,17 +9,17 @@
 
 ## Состав директории
 
-- [used_physical_data_ru.md](/Users/askarovi/Documents/New%20project/physics-theory/used_physical_data_ru.md:1)
+- [used_physical_data_ru.md](used_physical_data_ru.md)
   Полный список физических данных, которые используются в каталоге сред, в inference и в тренировочном датасете.
 
-- [physical_formulas_ru.md](/Users/askarovi/Documents/New%20project/physics-theory/physical_formulas_ru.md:1)
+- [physical_formulas_ru.md](physical_formulas_ru.md)
   Основные физические формулы:
   - теория термоупругости;
   - волновые скорости;
   - теплопроводность;
   - формулы, реально используемые в текущей реализации.
 
-- [granite_reference_ru.md](/Users/askarovi/Documents/New%20project/physics-theory/granite_reference_ru.md:1)
+- [granite_reference_ru.md](granite_reference_ru.md)
   Конкретно по граниту:
   - какие свойства сейчас зашиты в каталог;
   - что из них реально используется в `PINN`;

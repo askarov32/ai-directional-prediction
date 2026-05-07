@@ -38,16 +38,22 @@ Main user flow:
 ### Frontend
 
 - Vanilla HTML, CSS, and JavaScript only
-- responsive glassmorphism-style scientific UI
+- responsive minimalist dark scientific UI
 - SVG-based domain visualization
 - dynamic media/model loading from backend
-- inline validation and debug panel
+- typed API errors, inline validation, and debug panel
 
 ### Model Services
 
 - lightweight FastAPI mock services for `MeshGraphNet` and `FNO`
-- a real `PINN` inference service scaffold that loads a trained checkpoint
+- a checkpoint-based `PINN` inference service with readiness diagnostics
 - easy to replace each service host independently
+
+For scientific scope and known limitations, see:
+
+- [Model Card](docs/model_card.md)
+- [Demo Limitations](docs/demo_limitations.md)
+- [Physics Theory Notes](physics-theory/README.md)
 
 ## Project Structure
 
@@ -274,6 +280,26 @@ All API routes are versioned under `/api/v1`.
 - `GET /api/v1/models`
 - `POST /api/v1/predictions`
 
+## Automated Checks
+
+GitHub Actions runs a lightweight CI workflow on pull requests and pushes to `main`, `pinn`, and `codex/**` branches.
+
+The workflow checks:
+
+- backend tests;
+- PINN contract tests;
+- Docker Compose configuration syntax.
+
+Local equivalents:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python -m pytest
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=pinn-service/src python -m pytest pinn-service/tests
+docker compose config --quiet
+```
+
+CI intentionally does not train models or build the full Docker stack, because those steps are heavier and depend on model artifacts/hardware.
+
 ### Unified Prediction Request
 
 Example payload:
@@ -426,7 +452,7 @@ python -m http.server 8080
 
 Then open [http://localhost:8080](http://localhost:8080).
 
-The frontend expects the backend at `http://localhost:8000/api/v1` by default.
+When served through Docker/nginx, the frontend uses `/api/v1`. If opened directly from `file://`, it falls back to `http://localhost:8000/api/v1`.
 
 ## PINN Service
 
@@ -442,7 +468,10 @@ That service:
 If no checkpoint is present:
 
 - `GET /health` on the PINN service reports `ready: false`
+- `GET /ready` returns `503`
 - `POST /predict` returns a clear `503` error instead of crashing
+
+Current PINN responses are intentionally backward-compatible with the backend normalizer. The service also returns diagnostic fields such as `model_outputs`, `postprocessed_prediction`, and `diagnostics`; the backend ignores those extra fields for the normalized frontend response.
 
 To refresh the baseline checkpoint locally:
 
@@ -497,11 +526,12 @@ Suggested placeholders for your thesis report:
 - The project is intentionally 2D-first for MVP clarity
 - Domain structure is already ready for future 3D expansion
 - Mock services are synthetic and deterministic, not scientific solvers
+- PINN output combines neural-network inference with geometry/material postprocessing
 - The medium catalog is loaded from JSON, not hardcoded in route handlers
 
 ## PINN Dataset Preparation
 
-The repository now includes a dedicated COMSOL CSV preprocessing step under [pinn-service/README.md](</Users/askarovi/Documents/New project/pinn-service/README.md:1>).
+The repository now includes a dedicated COMSOL CSV preprocessing step under [pinn-service/README.md](pinn-service/README.md).
 
 Use it to turn the six COMSOL exports into:
 
