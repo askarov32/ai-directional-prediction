@@ -1,22 +1,13 @@
 from __future__ import annotations
 
-from typing import Protocol
-
 from app.core.exceptions import DomainValidationError
 from app.domain.entities.prediction import EnrichedPredictionRequest, RemotePredictionResponse
 from app.domain.enums.model_type import ModelType
-
-
-class PredictionClientProtocol(Protocol):
-    model_type: ModelType
-
-    async def predict(self, request: EnrichedPredictionRequest) -> RemotePredictionResponse: ...
-
-    def descriptor(self) -> dict[str, str]: ...
+from app.domain.ports import ModelClientPort
 
 
 class PredictionRouter:
-    def __init__(self, clients: list[PredictionClientProtocol]) -> None:
+    def __init__(self, clients: list[ModelClientPort]) -> None:
         self.clients = {client.model_type: client for client in clients}
 
     async def route(self, request: EnrichedPredictionRequest) -> RemotePredictionResponse:
@@ -40,3 +31,20 @@ class PredictionRouter:
                 )
             )
         return results
+
+    async def readiness(self) -> list[dict]:
+        checks: list[dict] = []
+        for model_type in ModelType:
+            client = self.clients.get(model_type)
+            if client is None:
+                checks.append(
+                    {
+                        "id": model_type.value,
+                        "name": model_type.label,
+                        "ready": False,
+                        "status": "not_configured",
+                    }
+                )
+                continue
+            checks.append(await client.readiness())
+        return checks

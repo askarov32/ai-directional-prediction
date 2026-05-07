@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from app.domain.entities.prediction import EnrichedPredictionRequest, UnifiedPredictionRequest
+from app.domain.ports import PredictionResponseNormalizerPort
 from app.domain.services.medium_catalog import MediumCatalogService
 from app.domain.services.prediction_router import PredictionRouter
-from app.infrastructure.adapters.response_normalizer import ResponseNormalizer
 
 
 class PredictDirectionUseCase:
@@ -11,7 +11,7 @@ class PredictDirectionUseCase:
         self,
         medium_catalog: MediumCatalogService,
         prediction_router: PredictionRouter,
-        response_normalizer: ResponseNormalizer,
+        response_normalizer: PredictionResponseNormalizerPort,
     ) -> None:
         self.medium_catalog = medium_catalog
         self.prediction_router = prediction_router

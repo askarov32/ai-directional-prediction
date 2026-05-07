@@ -59,6 +59,14 @@ class PINNInferenceService:
             "model_version": self.model_version if self._artifacts is not None else None,
         }
 
+    def readiness_payload(self) -> dict[str, Any]:
+        payload = self.health_payload()
+        ready = bool(payload["ready"])
+        payload["status"] = "ready" if ready else "not_ready"
+        if self._artifacts is not None:
+            payload["active_feature_count"] = len(self._artifacts.input_feature_names)
+        return payload
+
     @property
     def model_version(self) -> str:
         if self._artifacts is None:

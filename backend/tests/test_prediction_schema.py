@@ -77,3 +77,32 @@ def test_prediction_schema_rejects_negative_time(prediction_payload):
 
     with pytest.raises(ValidationError):
         PredictionRequestSchema.model_validate(prediction_payload)
+
+
+def test_prediction_schema_rejects_unbounded_resolution(prediction_payload):
+    prediction_payload["domain"]["resolution"]["nx"] = 4096
+
+    with pytest.raises(ValidationError):
+        PredictionRequestSchema.model_validate(prediction_payload)
+
+
+def test_prediction_schema_rejects_unbounded_frequency(prediction_payload):
+    prediction_payload["source"]["frequency_hz"] = 2_000_000
+
+    with pytest.raises(ValidationError):
+        PredictionRequestSchema.model_validate(prediction_payload)
+
+
+def test_prediction_schema_rejects_infinite_temperature(prediction_payload):
+    prediction_payload["scenario"]["temperature_c"] = float("inf")
+
+    with pytest.raises(ValidationError):
+        PredictionRequestSchema.model_validate(prediction_payload)
+
+
+def test_prediction_schema_normalizes_direction_on_entity(prediction_payload):
+    prediction_payload["source"]["direction"] = [2.0, 0.0, 0.0]
+
+    entity = PredictionRequestSchema.model_validate(prediction_payload).to_entity()
+
+    assert entity.source.direction == (1.0, 0.0, 0.0)

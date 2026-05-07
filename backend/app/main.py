@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from time import perf_counter
+from uuid import uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -38,7 +40,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -47,6 +49,27 @@ app.include_router(health_router, prefix=settings.api_prefix)
 app.include_router(media_router, prefix=settings.api_prefix)
 app.include_router(models_router, prefix=settings.api_prefix)
 app.include_router(predictions_router, prefix=settings.api_prefix)
+
+
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next):
+    request_id = request.headers.get("X-Request-ID") or str(uuid4())
+    request.state.request_id = request_id
+    started_at = perf_counter()
+
+    response = await call_next(request)
+    latency_ms = int((perf_counter() - started_at) * 1000)
+    response.headers["X-Request-ID"] = request_id
+
+    logging.getLogger("app.request").info(
+        "request completed request_id=%s method=%s path=%s status_code=%s latency_ms=%s",
+        request_id,
+        request.method,
+        request.url.path,
+        response.status_code,
+        latency_ms,
+    )
+    return response
 
 
 @app.exception_handler(AppError)

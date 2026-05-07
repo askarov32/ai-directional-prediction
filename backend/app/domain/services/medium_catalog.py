@@ -3,11 +3,11 @@ from __future__ import annotations
 from app.core.exceptions import DomainValidationError, ResourceNotFoundError
 from app.domain.entities.medium import Medium
 from app.domain.entities.prediction import Scenario
-from app.infrastructure.repositories.media_repository import MediaRepository
+from app.domain.ports import MediumRepositoryPort
 
 
 class MediumCatalogService:
-    def __init__(self, repository: MediaRepository) -> None:
+    def __init__(self, repository: MediumRepositoryPort) -> None:
         self.repository = repository
 
     def list_media(self) -> list[Medium]:

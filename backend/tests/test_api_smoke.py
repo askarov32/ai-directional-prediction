@@ -8,6 +8,22 @@ def test_health_endpoint(client):
     assert response.json() == {"status": "ok", "service": "thermoelastic-direction-api"}
 
 
+def test_ready_endpoint_returns_readiness_checks(client):
+    response = client.get("/api/v1/ready")
+
+    assert response.status_code == 503
+    payload = response.json()
+    assert payload["status"] == "not_ready"
+    assert payload["checks"]["media_catalog"]["ready"] is True
+    assert any(item["id"] == "meshgraphnet" and item["ready"] is True for item in payload["checks"]["models"])
+
+
+def test_request_id_header_is_preserved(client):
+    response = client.get("/api/v1/health", headers={"X-Request-ID": "demo-request-id"})
+
+    assert response.headers["X-Request-ID"] == "demo-request-id"
+
+
 def test_media_endpoint_returns_catalog(client):
     response = client.get("/api/v1/media")
 
@@ -72,3 +88,22 @@ def test_temperature_out_of_range_returns_controlled_error(client, prediction_pa
 
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "TEMPERATURE_OUT_OF_RANGE"
+
+
+def test_malformed_remote_response_returns_controlled_error(client_factory, prediction_payload):
+    malformed_remote_payload = {
+        "azimuth_deg": 34.7,
+        "elevation_deg": 0.0,
+        "magnitude": 1.0,
+        "wave_type": "dominant_p",
+        "travel_time_ms": 11.8,
+        "max_displacement": 0.0032,
+        "max_temperature_perturbation": 1.7,
+        "model_version": "fake-meshgraphnet-v1",
+    }
+
+    with client_factory(malformed_remote_payload) as client:
+        response = client.post("/api/v1/predictions", json=prediction_payload)
+
+    assert response.status_code == 502
+    assert response.json()["error"]["code"] == "MALFORMED_MODEL_RESPONSE"
