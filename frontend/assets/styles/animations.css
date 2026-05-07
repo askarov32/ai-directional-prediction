@@ -23,6 +23,8 @@
 }
 
 .hero,
+.overview-card,
+.status-card,
 .card {
   animation: fadeUp 260ms ease both;
 }
@@ -43,6 +45,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .hero,
+  .overview-card,
+  .status-card,
   .card,
   .result-card.is-live .result-content,
   .viz-arrow.is-active,

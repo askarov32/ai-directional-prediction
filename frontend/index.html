@@ -4,26 +4,102 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Thermoelastic Wave Direction Predictor</title>
-    <link rel="stylesheet" href="assets/styles/reset.css?v=20260501b" />
-    <link rel="stylesheet" href="assets/styles/variables.css?v=20260501b" />
-    <link rel="stylesheet" href="assets/styles/base.css?v=20260501b" />
-    <link rel="stylesheet" href="assets/styles/layout.css?v=20260501b" />
-    <link rel="stylesheet" href="assets/styles/components.css?v=20260501b" />
-    <link rel="stylesheet" href="assets/styles/animations.css?v=20260501b" />
+    <link rel="stylesheet" href="assets/styles/reset.css?v=20260507b" />
+    <link rel="stylesheet" href="assets/styles/variables.css?v=20260507b" />
+    <link rel="stylesheet" href="assets/styles/base.css?v=20260507b" />
+    <link rel="stylesheet" href="assets/styles/layout.css?v=20260507b" />
+    <link rel="stylesheet" href="assets/styles/components.css?v=20260507b" />
+    <link rel="stylesheet" href="assets/styles/animations.css?v=20260507b" />
   </head>
   <body>
-    <div class="page-shell">
-      <header class="hero">
-        <p class="eyebrow">Directional Prediction Workspace</p>
-        <h1>AI directional prediction of thermoelastic-wave propagation in geological media</h1>
-        <p class="hero__lead">
-          A calmer interface for configuring one thermoelastic scenario, routing it to MeshGraphNet, FNO, or PINN,
-          and reading the normalized response without unnecessary visual noise.
-        </p>
-      </header>
+    <div class="app-frame">
+      <aside class="app-sidebar" aria-label="Application navigation">
+        <a class="brand-mark" href="#overview" aria-label="Thermoelastic predictor overview">
+          <span class="brand-mark__symbol">TW</span>
+          <span>
+            <strong>ThermoWave</strong>
+            <small>Directional AI demo</small>
+          </span>
+        </a>
 
-      <main class="workspace">
-        <form id="prediction-form" class="card form-card">
+        <nav class="side-nav" aria-label="Primary sections">
+          <a href="#overview" class="side-nav__link is-active">Overview</a>
+          <a href="#new-prediction" class="side-nav__link">New Prediction</a>
+          <a href="#results" class="side-nav__link">Results</a>
+          <a href="#model-status" class="side-nav__link">Model Status</a>
+          <a href="#debug-panel" class="side-nav__link">Raw JSON</a>
+        </nav>
+
+        <div class="sidebar-panel">
+          <p class="eyebrow">Local stack</p>
+          <div class="status-stack">
+            <span class="status-badge status-badge--ready">Backend /ready</span>
+            <span class="status-badge status-badge--demo">MGN synthetic</span>
+            <span class="status-badge status-badge--demo">FNO synthetic</span>
+            <span class="status-badge status-badge--experimental">PINN experimental</span>
+          </div>
+        </div>
+      </aside>
+
+      <div class="app-main">
+        <header class="topbar">
+          <a class="brand-mark brand-mark--compact" href="#overview">
+            <span class="brand-mark__symbol">TW</span>
+            <span>ThermoWave</span>
+          </a>
+          <nav class="top-nav" aria-label="Compact navigation">
+            <a href="#new-prediction">Prediction</a>
+            <a href="#results">Results</a>
+            <a href="#model-status">Status</a>
+          </nav>
+        </header>
+
+        <div class="page-shell">
+          <header class="hero" id="overview">
+            <p class="eyebrow">Scientific ML demo panel</p>
+            <div class="hero__grid">
+              <div>
+                <h1>AI directional prediction of thermoelastic-wave propagation</h1>
+                <p class="hero__lead">
+                  Configure one geological scenario, route it through MeshGraphNet, FNO, or PINN, and review a
+                  normalized direction prediction. This is a thesis/demo workspace, not a validated production solver.
+                </p>
+              </div>
+              <div class="hero-summary-card">
+                <span class="status-badge status-badge--ready">API configured</span>
+                <strong>3 model routes</strong>
+                <p>MeshGraphNet and FNO are synthetic demo services. PINN uses an experimental checkpoint service.</p>
+              </div>
+            </div>
+          </header>
+
+          <section class="overview-grid" aria-label="System overview">
+            <article class="overview-card">
+              <span class="status-badge status-badge--demo">Synthetic</span>
+              <h2>MeshGraphNet</h2>
+              <p>Graph-oriented mock route for checking the full UI/backend flow.</p>
+            </article>
+            <article class="overview-card">
+              <span class="status-badge status-badge--demo">Synthetic</span>
+              <h2>FNO</h2>
+              <p>Grid-oriented mock route with deterministic demo response behavior.</p>
+            </article>
+            <article class="overview-card">
+              <span class="status-badge status-badge--experimental">Experimental</span>
+              <h2>PINN service</h2>
+              <p>Checkpoint-based inference service with readiness diagnostics.</p>
+            </article>
+          </section>
+
+          <main class="workspace">
+            <section class="page-section" id="new-prediction">
+              <div class="page-section__header">
+                <span class="section-kicker">Step shell 01</span>
+                <h2>New prediction</h2>
+                <p>Current working form is preserved here. The wizard will replace this section in later stages.</p>
+              </div>
+
+              <form id="prediction-form" class="card form-card">
           <div class="card__header">
             <div>
               <h2>Prediction setup</h2>
@@ -291,9 +367,17 @@
               <span class="button__loader" aria-hidden="true"></span>
             </button>
           </div>
-        </form>
+              </form>
+            </section>
 
-        <section class="card result-card" id="result-card">
+            <section class="page-section" id="results">
+              <div class="page-section__header">
+                <span class="section-kicker">Output</span>
+                <h2>Results</h2>
+                <p>The current result renderer stays intact for this shell stage.</p>
+              </div>
+
+              <section class="card result-card" id="result-card">
           <div class="card__header card__header--result">
             <div>
               <h2>Prediction result</h2>
@@ -372,9 +456,40 @@
 
             <div class="error-banner is-hidden" id="error-banner"></div>
           </div>
-        </section>
+              </section>
+            </section>
 
-        <details class="card debug-card" id="debug-panel">
+            <section class="page-section" id="model-status">
+              <div class="page-section__header">
+                <span class="section-kicker">Readiness</span>
+                <h2>Model status</h2>
+                <p>Live model-status cards will be wired in a later stage. Current labels reflect the local demo stack.</p>
+              </div>
+              <div class="status-grid">
+                <article class="status-card">
+                  <span class="status-badge status-badge--ready">Ready endpoint</span>
+                  <h3>Backend API</h3>
+                  <p>FastAPI orchestration under <code>/api/v1</code>.</p>
+                </article>
+                <article class="status-card">
+                  <span class="status-badge status-badge--demo">Synthetic</span>
+                  <h3>MeshGraphNet</h3>
+                  <p>Demo model service, not a validated solver.</p>
+                </article>
+                <article class="status-card">
+                  <span class="status-badge status-badge--demo">Synthetic</span>
+                  <h3>FNO</h3>
+                  <p>Demo model service, not a validated solver.</p>
+                </article>
+                <article class="status-card">
+                  <span class="status-badge status-badge--experimental">Experimental</span>
+                  <h3>PINN</h3>
+                  <p>Checkpoint-based service with smoke-check readiness.</p>
+                </article>
+              </div>
+            </section>
+
+            <details class="card debug-card" id="debug-panel">
           <summary>
             <span>Request / response debug</span>
             <span class="summary-meta">Collapsed by default</span>
@@ -394,8 +509,10 @@
               <pre id="response-json">No response received yet.</pre>
             </article>
           </div>
-        </details>
-      </main>
+            </details>
+          </main>
+        </div>
+      </div>
     </div>
 
     <script>
@@ -404,6 +521,6 @@
         requestTimeoutMs: 15000,
       };
     </script>
-    <script type="module" src="assets/scripts/app.js?v=20260507a"></script>
+    <script type="module" src="assets/scripts/app.js?v=20260507b"></script>
   </body>
 </html>

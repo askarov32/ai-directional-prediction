@@ -4,8 +4,10 @@
   --surface: #1e293b;
   --surface-soft: #1f2937;
   --surface-muted: #243041;
+  --surface-elevated: #253247;
   --border: #334155;
   --border-soft: rgba(148, 163, 184, 0.16);
+  --border-strong: rgba(148, 163, 184, 0.26);
   --text: #f8fafc;
   --text-soft: #cbd5e1;
   --muted: #94a3b8;
@@ -15,6 +17,7 @@
   --danger: #f2b0bc;
   --success: #a8d2bf;
   --shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+  --shadow-soft: 0 18px 60px rgba(2, 6, 23, 0.18);
   --radius-xl: 22px;
   --radius-lg: 18px;
   --radius-md: 14px;
