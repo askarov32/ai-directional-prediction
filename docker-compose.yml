@@ -6,6 +6,7 @@ services:
     environment:
       APP_NAME: ${APP_NAME:-Thermoelastic Direction API}
       APP_VERSION: ${APP_VERSION:-0.1.0}
+      ENVIRONMENT: ${ENVIRONMENT:-local}
       API_PREFIX: ${API_PREFIX:-/api/v1}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
@@ -27,7 +28,7 @@ services:
       pinn-service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/ready')"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -52,7 +53,7 @@ services:
     ports:
       - "${MOCK_MESHGRAPHNET_PORT:-9001}:9000"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/ready')"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -67,7 +68,7 @@ services:
     ports:
       - "${MOCK_FNO_PORT:-9002}:9000"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/ready')"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -89,7 +90,7 @@ services:
     ports:
       - "${PINN_SERVICE_PORT:-9003}:9000"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/ready')"]
       interval: 15s
       timeout: 5s
       retries: 5

@@ -7,7 +7,12 @@ from typing import Any
 
 import httpx
 
-from app.core.exceptions import MalformedRemoteResponseError, RemoteServiceTimeoutError, RemoteServiceUnavailableError
+from app.core.exceptions import (
+    MalformedRemoteResponseError,
+    RemoteServiceHTTPError,
+    RemoteServiceTimeoutError,
+    RemoteServiceUnavailableError,
+)
 from app.domain.entities.prediction import EnrichedPredictionRequest, RemotePredictionResponse
 from app.domain.enums.model_type import ModelType
 
@@ -36,7 +41,12 @@ class BaseModelClient(ABC):
         payload = self.build_payload(request)
         url = f"{self.base_url}{self.predict_path}"
         started_at = perf_counter()
-        self.logger.info("Calling remote model service %s", self.service_name)
+        self.logger.info(
+            "Calling remote model service service=%s model=%s url=%s",
+            self.service_name,
+            self.model_type.value,
+            url,
+        )
 
         try:
             async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
@@ -44,22 +54,113 @@ class BaseModelClient(ABC):
                 response.raise_for_status()
                 data = response.json()
         except httpx.TimeoutException as exc:
-            raise RemoteServiceTimeoutError(self.service_name, {"url": url}) from exc
+            raise RemoteServiceTimeoutError(self.service_name, {"url": url, "model": self.model_type.value}) from exc
         except httpx.ConnectError as exc:
-            raise RemoteServiceUnavailableError(self.service_name, {"url": url}) from exc
+            raise RemoteServiceUnavailableError(self.service_name, {"url": url, "model": self.model_type.value}) from exc
         except httpx.HTTPStatusError as exc:
-            raise RemoteServiceUnavailableError(
+            raise RemoteServiceHTTPError(
                 self.service_name,
-                {"url": url, "status_code": exc.response.status_code},
+                {
+                    "url": url,
+                    "model": self.model_type.value,
+                    "status_code": exc.response.status_code,
+                },
             ) from exc
         except ValueError as exc:
-            raise MalformedRemoteResponseError(self.service_name, {"url": url}) from exc
+            raise MalformedRemoteResponseError(
+                self.service_name,
+                {"url": url, "model": self.model_type.value, "reason": "response body is not valid JSON"},
+            ) from exc
 
         if not isinstance(data, dict):
-            raise MalformedRemoteResponseError(self.service_name, {"url": url, "reason": "response is not a JSON object"})
+            raise MalformedRemoteResponseError(
+                self.service_name,
+                {"url": url, "model": self.model_type.value, "reason": "response is not a JSON object"},
+            )
 
         latency_ms = int((perf_counter() - started_at) * 1000)
+        self.logger.info(
+            "Remote model service completed service=%s model=%s latency_ms=%s outcome=success",
+            self.service_name,
+            self.model_type.value,
+            latency_ms,
+        )
         return RemotePredictionResponse(service_name=self.service_name, payload=data, latency_ms=latency_ms)
+
+    async def readiness(self) -> dict[str, Any]:
+        if not self.base_url:
+            return self._readiness_payload(False, "not_configured")
+
+        timeout = min(self.timeout_seconds, 3.0)
+        for path in ("/ready", "/health"):
+            url = f"{self.base_url}{path}"
+            started_at = perf_counter()
+            try:
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    response = await client.get(url)
+            except httpx.TimeoutException:
+                return self._readiness_payload(False, "timeout", endpoint=path)
+            except httpx.ConnectError:
+                return self._readiness_payload(False, "unavailable", endpoint=path)
+            except httpx.RequestError:
+                return self._readiness_payload(False, "request_error", endpoint=path)
+
+            latency_ms = int((perf_counter() - started_at) * 1000)
+            if path == "/ready" and response.status_code == 404:
+                continue
+            if response.status_code >= 400:
+                return self._readiness_payload(
+                    False,
+                    "http_error",
+                    endpoint=path,
+                    latency_ms=latency_ms,
+                    details={"status_code": response.status_code},
+                )
+
+            body: dict[str, Any] = {}
+            try:
+                parsed = response.json()
+                if isinstance(parsed, dict):
+                    body = parsed
+            except ValueError:
+                body = {}
+
+            ready = bool(body.get("ready", body.get("status") == "ok"))
+            return self._readiness_payload(
+                ready,
+                "ready" if ready else "not_ready",
+                endpoint=path,
+                latency_ms=latency_ms,
+                details={
+                    "service_status": body.get("status"),
+                    "model_version": body.get("model_version"),
+                },
+            )
+
+        return self._readiness_payload(False, "not_ready")
+
+    def _readiness_payload(
+        self,
+        ready: bool,
+        status: str,
+        *,
+        endpoint: str | None = None,
+        latency_ms: int | None = None,
+        details: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "id": self.model_type.value,
+            "name": self.model_type.label,
+            "ready": ready,
+            "status": status,
+        }
+        if endpoint is not None:
+            payload["endpoint"] = endpoint
+        if latency_ms is not None:
+            payload["latency_ms"] = latency_ms
+        if details:
+            payload["details"] = {key: value for key, value in details.items() if value is not None}
+        return payload
 
     def descriptor(self) -> dict[str, str]:
         return {

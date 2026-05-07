@@ -26,6 +26,16 @@ async def health() -> dict[str, str]:
     return {"status": "ok", "service": service_kind}
 
 
+@app.get("/ready")
+async def ready() -> dict[str, object]:
+    return {
+        "status": "ready",
+        "service": service_kind,
+        "ready": True,
+        "model_version": f"mock-{service_kind}-v1",
+    }
+
+
 @app.post("/predict")
 async def predict(payload: GenericPayload) -> dict:
     return generate_prediction(service_kind, payload.model_dump())

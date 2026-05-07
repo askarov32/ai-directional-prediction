@@ -4,6 +4,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 
 from pinn_service.inference_config import get_inference_config
 from pinn_service.inference_service import CheckpointNotReadyError, PINNInferenceService
@@ -30,6 +31,12 @@ app = FastAPI(title="PINN Inference Service", version="0.1.0", lifespan=lifespan
 @app.get("/health")
 async def health() -> dict:
     return service.health_payload()
+
+
+@app.get("/ready")
+async def ready() -> JSONResponse:
+    payload = service.readiness_payload()
+    return JSONResponse(status_code=200 if payload["ready"] else 503, content=payload)
 
 
 @app.post("/predict")

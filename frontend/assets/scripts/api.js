@@ -1,89 +1,131 @@
-const FALLBACK_BASE_URLS =
-  window.location.protocol === "file:"
-    ? ["http://localhost:8000/api/v1"]
-    : [
-        window.THESIS_APP_CONFIG?.apiBaseUrl,
-        "/api/v1",
-        `${window.location.protocol}//${window.location.hostname}:8000/api/v1`,
-        "http://localhost:8000/api/v1",
-      ].filter(Boolean);
+const DEFAULT_API_BASE_URL = window.location.protocol === "file:" ? "http://localhost:8000/api/v1" : "/api/v1";
+const REQUEST_TIMEOUT_MS = Number(window.THESIS_APP_CONFIG?.requestTimeoutMs || 15000);
 
-export const API_BASE_URL = FALLBACK_BASE_URLS[0];
+export const API_BASE_URL = normalizeBaseUrl(window.THESIS_APP_CONFIG?.apiBaseUrl || DEFAULT_API_BASE_URL);
 
-async function rawRequest(baseUrl, path, options = {}) {
+export class ApiError extends Error {
+  constructor({ status = 0, code = "REQUEST_FAILED", message = "Request failed.", details = {}, requestId = null }) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+    this.details = details;
+    this.requestId = requestId;
+  }
+
+  toJSON() {
+    return {
+      name: this.name,
+      status: this.status,
+      code: this.code,
+      message: this.message,
+      requestId: this.requestId,
+      details: this.details,
+    };
+  }
+}
+
+function normalizeBaseUrl(value) {
+  return String(value || "").replace(/\/$/, "");
+}
+
+function buildRequestId() {
+  if (window.crypto?.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+  return `frontend-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function parseErrorMessage(code, fallbackMessage) {
+  const messages = {
+    MODEL_TIMEOUT: "The selected model service timed out. Try again or choose another model.",
+    MODEL_UNAVAILABLE: "The selected model service is unavailable. Check Docker readiness or the model host URL.",
+    MODEL_HTTP_ERROR: "The selected model service returned an error.",
+    MALFORMED_MODEL_RESPONSE: "The selected model returned an invalid response shape.",
+    CHECKPOINT_NOT_READY: "PINN checkpoint is not ready yet. Wait for the service or check the checkpoint path.",
+    VALIDATION_ERROR: "Some input values are invalid. Review the highlighted fields and debug details.",
+    TEMPERATURE_OUT_OF_RANGE: "Temperature is outside the selected medium range.",
+    PRESSURE_OUT_OF_RANGE: "Pressure is outside the selected medium range.",
+    REQUEST_TIMEOUT: "The backend request timed out.",
+    NETWORK_ERROR: "Unable to reach the backend API. Check that Docker Compose is running and nginx proxies /api.",
+  };
+  return messages[code] || fallbackMessage || "Request failed.";
+}
+
+async function parseJsonResponse(response) {
+  const text = await response.text();
+  if (!text) {
+    return {};
+  }
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    throw new ApiError({
+      status: response.status,
+      code: "INVALID_JSON_RESPONSE",
+      message: "Backend returned a non-JSON response.",
+      requestId: response.headers.get("X-Request-ID"),
+    });
+  }
+}
+
+async function request(path, options = {}) {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 15000);
+  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const requestId = buildRequestId();
 
   try {
-    const response = await fetch(`${baseUrl}${path}`, {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
       headers: {
         "Content-Type": "application/json",
+        "X-Request-ID": requestId,
         ...(options.headers || {}),
       },
       signal: controller.signal,
     });
 
-    const text = await response.text();
-    let data = null;
-    if (text) {
-      try {
-        data = JSON.parse(text);
-      } catch (parseError) {
-        data = null;
-      }
-    }
+    const data = await parseJsonResponse(response);
+    const responseRequestId = response.headers.get("X-Request-ID") || requestId;
 
     if (!response.ok) {
-      throw {
+      const code = data?.error?.code || "REQUEST_FAILED";
+      throw new ApiError({
         status: response.status,
-        code: data?.error?.code || "REQUEST_FAILED",
-        message: data?.error?.message || `Request failed with status ${response.status}`,
+        code,
+        message: parseErrorMessage(code, data?.error?.message || `Request failed with status ${response.status}`),
         details: data?.error?.details || {},
-      };
+        requestId: responseRequestId,
+      });
     }
 
-    return data || {};
+    return data;
   } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
     if (error.name === "AbortError") {
-      throw {
+      throw new ApiError({
         code: "REQUEST_TIMEOUT",
-        message: "The request took too long and was cancelled in the browser.",
-        details: {},
-      };
+        message: parseErrorMessage("REQUEST_TIMEOUT"),
+        requestId,
+      });
     }
     if (error instanceof TypeError) {
-      throw {
+      throw new ApiError({
         code: "NETWORK_ERROR",
-        message: "Unable to reach the backend API.",
-        details: {},
-      };
+        message: parseErrorMessage("NETWORK_ERROR"),
+        requestId,
+      });
     }
-    throw error;
+    throw new ApiError({
+      code: "UNEXPECTED_FRONTEND_ERROR",
+      message: error?.message || "Unexpected frontend request failure.",
+      requestId,
+    });
   } finally {
     window.clearTimeout(timeout);
   }
-}
-
-async function request(path, options = {}) {
-  let lastError = null;
-
-  for (const baseUrl of FALLBACK_BASE_URLS) {
-    try {
-      return await rawRequest(baseUrl, path, options);
-    } catch (error) {
-      lastError = error;
-      if (error?.code !== "NETWORK_ERROR" && error?.code !== "REQUEST_TIMEOUT") {
-        throw error;
-      }
-    }
-  }
-
-  throw lastError || {
-    code: "NETWORK_ERROR",
-    message: "Unable to reach the backend API.",
-    details: {},
-  };
 }
 
 export function fetchMedia() {

@@ -9,9 +9,13 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY src ./src
-COPY README.md ./README.md
-COPY artifacts ./artifacts
+RUN useradd --create-home --shell /usr/sbin/nologin appuser
+
+COPY --chown=appuser:appuser src ./src
+COPY --chown=appuser:appuser README.md ./README.md
+COPY --chown=appuser:appuser artifacts ./artifacts
+
+USER appuser
 
 EXPOSE 9000
 

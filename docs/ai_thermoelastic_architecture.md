@@ -1,374 +1,202 @@
 # AI Thermoelastic Prediction Architecture
 
-## 1. What follows directly from the presentation
+This document describes the current MVP implementation, not an aspirational API.
 
-From the slides, the core physically meaningful inputs are:
+## Service Map
 
-- geological medium class
-- density `rho`
-- porosity
-- `Vp`
-- `Vs`
-- thermal conductivity `k`
-- heat capacity `cp`
-- thermal expansion coefficient `alpha`
-- temperature
-- object coordinates in the domain
+The local Docker stack contains:
 
-The target outputs are:
+- `frontend`: nginx-served vanilla HTML/CSS/JavaScript UI on `localhost:8080`
+- `backend`: FastAPI orchestration/API gateway on `localhost:8000`
+- `mock-meshgraphnet`: synthetic MeshGraphNet-compatible service on `localhost:9001`
+- `mock-fno`: synthetic FNO-compatible service on `localhost:9002`
+- `pinn-service`: checkpoint-based PINN inference service on `localhost:9003`
 
-- predicted propagation direction
-- approximate thermoelastic-wave response summary
+The frontend calls backend through nginx at `/api/v1`. The backend calls model services through Docker service names:
 
-## 2. Recommended product scope
+- `http://mock-meshgraphnet:9000/predict`
+- `http://mock-fno:9000/predict`
+- `http://pinn-service:9000/predict`
 
-For a usable MVP, it is better to separate inputs into three levels.
+## Backend Layers
 
-### Level A: required for the first demo
+The backend is organized as a small clean architecture:
 
-These are the minimum inputs the frontend should collect:
+- `api/routes`: HTTP routes and request/response schema binding
+- `schemas`: Pydantic API contracts
+- `domain/entities`: medium and prediction entities
+- `domain/services`: catalog and model routing logic
+- `domain/use_cases`: `PredictDirectionUseCase`
+- `domain/ports`: protocols used by domain/application code
+- `infrastructure/clients`: HTTP clients for model services
+- `infrastructure/repositories`: JSON media catalog repository
+- `infrastructure/adapters`: remote response validation and normalization
 
-- `rock_type_id`
-- `temperature_c`
-- `point.x`
-- `point.y`
-- `point.z`
-- `model_type` (`meshgraphnet`, `fno`, `pinn`)
+Dependency direction is:
 
-These are the minimum physical values the backend must resolve before model inference:
-
-- `rho`
-- `porosity_total`
-- `porosity_effective`
-- `vp`
-- `vs`
-- `thermal_conductivity`
-- `heat_capacity`
-- `thermal_expansion`
-
-### Level B: strongly recommended for realistic prediction
-
-Without these, “directional propagation” will be too underspecified:
-
-- `pressure_mpa`
-- `source_type` (`point`, `line`, `plane`)
-- `source_point`
-- `source_direction`
-- `wave_mode` (`p`, `s`, `coupled`)
-- `reference_temperature_c`
-
-### Level C: useful for research mode
-
-- `domain_size`
-- `time_horizon_ms`
-- `time_step_ms`
-- `boundary_condition`
-- `anisotropy_tensor`
-- `fluid_saturation`
-- `sample_id`
-
-## 3. Frontend data model
-
-For the native frontend, the cleanest approach is:
-
-- mobile UI in `SwiftUI` or `Jetpack Compose`
-- shared API contract generated from OpenAPI
-- local catalog cache for rock presets
-
-The screen should expose:
-
-1. Rock type picker
-2. Temperature input
-3. Pressure input
-4. Coordinate inputs `x/y/z`
-5. Source configuration
-6. Model selector
-7. Predict button
-8. Result card with direction, confidence, and response values
-
-### Frontend payload to FastAPI
-
-```json
-{
-  "model_type": "meshgraphnet",
-  "scenario_name": "sandstone_test_01",
-  "rock_type_id": "sandstone_medium",
-  "temperature_c": 120.0,
-  "pressure_mpa": 35.0,
-  "reference_temperature_c": 20.0,
-  "point": { "x": 12.5, "y": 8.0, "z": 3.0 },
-  "source": {
-    "source_type": "point",
-    "source_point": { "x": 10.0, "y": 8.0, "z": 3.0 },
-    "source_direction": { "x": 1.0, "y": 0.0, "z": 0.0 },
-    "wave_mode": "coupled"
-  }
-}
+```text
+api -> use_cases/domain services -> domain ports
+infrastructure -> implements domain ports
 ```
 
-## 4. How to store geological media
+## Actual API Endpoints
 
-Recommended approach for the first version:
+All backend endpoints are under `/api/v1`.
 
-- store preset rock classes in `config/rock_catalog.json`
-- each record contains a stable `id`, display name, default physical parameters, value ranges, and metadata source
-- backend loads this catalog on startup
-- frontend reads available rocks from `GET /catalog/rocks`
+- `GET /api/v1/health`: liveness
+- `GET /api/v1/ready`: readiness for catalog and model services
+- `GET /api/v1/media`: geological medium catalog
+- `GET /api/v1/media/{medium_id}`: one medium preset
+- `GET /api/v1/models`: configured model routes
+- `POST /api/v1/predictions`: unified prediction request
 
-Why JSON first:
-
-- easy to version in Git
-- easy to seed into Docker
-- easy for non-backend teammates to edit
-- later can be moved into Postgres without changing the public API
-
-### Suggested rock record shape
-
-```json
-{
-  "id": "sandstone_medium",
-  "name": "Sandstone (medium)",
-  "category": "sedimentary",
-  "properties": {
-    "rho": 2684.0,
-    "porosity_total": 0.34,
-    "porosity_effective": 0.27,
-    "vp": 6.17,
-    "vs": 3.20,
-    "thermal_conductivity": 2.5,
-    "heat_capacity": 850.0,
-    "thermal_expansion": 0.000012
-  },
-  "ranges": {
-    "temperature_c": [-20, 300],
-    "pressure_mpa": [0.1, 1500]
-  },
-  "metadata": {
-    "source": "presentation_seed",
-    "notes": "Starter preset derived from slides and should be refined with lab/reference data."
-  }
-}
-```
-
-## 5. Backend contract design
-
-The backend should not let each model define its own public API. Instead:
-
-- frontend sends one canonical request to FastAPI
-- FastAPI enriches the request with rock properties from the catalog
-- FastAPI transforms the canonical request into model-specific payloads
-- each model service stays behind an adapter layer
-
-### Canonical backend request
-
-```json
-{
-  "model_type": "fno",
-  "rock": {
-    "id": "sandstone_medium",
-    "rho": 2684.0,
-    "porosity_total": 0.34,
-    "porosity_effective": 0.27,
-    "vp": 6.17,
-    "vs": 3.20,
-    "thermal_conductivity": 2.5,
-    "heat_capacity": 850.0,
-    "thermal_expansion": 0.000012
-  },
-  "scenario": {
-    "temperature_c": 120.0,
-    "reference_temperature_c": 20.0,
-    "pressure_mpa": 35.0,
-    "point": { "x": 12.5, "y": 8.0, "z": 3.0 },
-    "source": {
-      "source_type": "point",
-      "source_point": { "x": 10.0, "y": 8.0, "z": 3.0 },
-      "source_direction": { "x": 1.0, "y": 0.0, "z": 0.0 },
-      "wave_mode": "coupled"
-    }
-  }
-}
-```
-
-### Unified response from FastAPI
-
-```json
-{
-  "model_type": "fno",
-  "prediction": {
-    "direction_vector": { "x": 0.92, "y": 0.31, "z": 0.21 },
-    "direction_azimuth_deg": 18.6,
-    "direction_elevation_deg": 12.1,
-    "response_amplitude": 0.71,
-    "response_time_ms": 4.8,
-    "confidence": 0.84
-  },
-  "meta": {
-    "rock_type_id": "sandstone_medium",
-    "served_by": "fno-service",
-    "model_version": "v1",
-    "request_id": "uuid"
-  }
-}
-```
-
-## 6. What each model actually needs
-
-The public API should be unified, but internal model inputs should differ.
-
-### MeshGraphNet
-
-Best when the medium is represented as a mesh or graph.
-
-Internal input:
-
-- node coordinates
-- node features:
-  - temperature
-  - pressure
-  - `rho`
-  - porosity
-  - `Vp`
-  - `Vs`
-  - `k`
-  - `cp`
-  - `alpha`
-- edge index
-- edge features:
-  - distance
-  - relative orientation
-  - material contrast
-- source node or nearest source location
-
-Use when:
-
-- geometry is irregular
-- you care about local heterogeneity
-- you already have mesh-based simulation data
-
-### FNO
-
-Best when the problem is placed on a regular grid.
-
-Internal input:
-
-- tensor grid `X x Y x Z`
-- per-cell channels:
-  - temperature
-  - pressure
-  - `rho`
-  - porosity
-  - `Vp`
-  - `Vs`
-  - `k`
-  - `cp`
-  - `alpha`
-- optional source mask channel
-- optional coordinate channels
-
-Use when:
-
-- the domain can be rasterized
-- you want fast operator-style inference
-- training data is generated on regular grids
-
-### PINN
-
-Best when you want direct physics constraints in training/inference.
-
-Internal input:
-
-- continuous coordinates `(x, y, z, t)`
-- rock/material parameters:
-  - `rho`
-  - `lambda`
-  - `mu`
-  - `k`
-  - `cp`
-  - `alpha`
-- initial and boundary conditions
-- source terms
-
-Use when:
-
-- physical consistency matters more than raw throughput
-- data is limited
-- you need interpolation at arbitrary coordinates
-
-## 7. Recommended backend adapters
-
-Use this internal adapter split:
-
-- `catalog_service`: returns available rock types and defaults
-- `scenario_service`: validates and enriches requests
-- `model_router`: picks target model host
-- `meshgraphnet_adapter`
-- `fno_adapter`
-- `pinn_adapter`
-
-Each adapter should accept the same canonical Python object and map it to the target model payload.
-
-## 8. FastAPI endpoints
-
-Recommended API surface:
+Model services expose:
 
 - `GET /health`
-- `GET /catalog/rocks`
-- `GET /catalog/rocks/{rock_id}`
+- `GET /ready`
 - `POST /predict`
-- `POST /predict/batch`
-- `GET /models`
 
-### `GET /models`
+## Geological Media Storage
 
-Should return which model services are configured and reachable:
+The current catalog lives at:
 
-```json
-{
-  "models": [
-    { "type": "meshgraphnet", "base_url": "http://meshgraphnet:8001", "healthy": true },
-    { "type": "fno", "base_url": "http://fno:8002", "healthy": true },
-    { "type": "pinn", "base_url": "http://pinn:8003", "healthy": true }
-  ]
-}
+```text
+backend/data/media/catalog.json
 ```
 
-## 9. Docker architecture
+Each medium contains:
 
-Recommended local setup:
+- stable `id`
+- display `name`
+- `category`
+- physical `properties`
+- valid scenario `ranges`
+- metadata notes/source
 
-- `api` container for FastAPI gateway
-- `meshgraphnet` container
-- `fno` container
-- `pinn` container
-- optional `postgres` later
+The backend repository loads this JSON file and exposes it through `GET /api/v1/media`.
 
-For the first phase, the model host URLs should come from environment variables:
+## Unified Prediction Contract
 
-- `MESHGRAPHNET_URL`
-- `FNO_URL`
-- `PINN_URL`
+The frontend sends one canonical payload to:
 
-This lets teammates replace model services without changing application code.
+```text
+POST /api/v1/predictions
+```
 
-## 10. Final recommendation for the MVP
+Top-level fields:
 
-If you want the fastest path to a strong demo:
+- `model`: `meshgraphnet`, `fno`, or `pinn`
+- `medium_id`
+- `scenario`
+- `source`
+- `probe`
+- `domain`
 
-1. Keep rock presets in JSON
-2. Build one canonical `POST /predict`
-3. Let FastAPI enrich the scenario with preset physics
-4. Start with one common response format
-5. Hide model-specific differences behind adapters
-6. Treat `MeshGraphNet` as the first real model, and keep `FNO`/`PINN` behind mock or placeholder services until trained models are ready
+The backend:
 
-## 11. Important scientific note
+1. validates the payload;
+2. resolves the selected medium;
+3. checks temperature/pressure against medium ranges;
+4. merges medium properties into the model request;
+5. routes by `model`;
+6. calls the configured service;
+7. validates the remote model response;
+8. normalizes it into the frontend response.
 
-Based on the presentation alone, `temperature + coordinates` is not enough for a physically credible directional prediction. At minimum, add:
+## Model Routing
 
-- pressure
-- source location
-- source direction or excitation type
-- wave mode
+Routing is implemented in `PredictionRouter`.
 
-Otherwise, the model will be forced to invent missing physics from too little context.
+- `meshgraphnet` routes to `MeshGraphNetClient`
+- `fno` routes to `FNOClient`
+- `pinn` routes to `PINNClient`
+
+The model-specific adapters currently set:
+
+- MeshGraphNet: `representation = "graph"`
+- FNO: `representation = "grid"`
+- PINN: `representation = "physics_informed"`, `routing_hint = "pinn"`
+
+## Model Service Status
+
+`GET /api/v1/models` returns configured model routes.
+
+`GET /api/v1/ready` actively checks model service readiness. For the PINN service, readiness means:
+
+- checkpoint path resolved;
+- checkpoint loaded;
+- deterministic smoke inference passed;
+- output shape and finite values verified.
+
+## PINN Implementation Notes
+
+The current PINN service is a pragmatic hybrid baseline:
+
+- checkpoint model input features: `x, y, z, t, E, nu, rho, alpha, k, Cp`
+- neural outputs: `temperature_k`, `disp_x`, `disp_y`, `disp_z`
+- final API prediction: neural outputs plus geometry/material postprocessing
+
+The service returns extra diagnostics:
+
+- `model_outputs`
+- `postprocessed_prediction`
+- `diagnostics`
+
+The backend normalized response remains stable and ignores extra fields.
+
+## Docker Architecture
+
+The Compose stack is demo-oriented:
+
+- backend waits for model services to be healthy;
+- frontend waits for backend readiness;
+- readiness endpoints are used by healthchecks;
+- Python service containers run as non-root `appuser`;
+- nginx serves static assets and proxies `/api/` to backend.
+
+Run:
+
+```bash
+docker compose up --build
+```
+
+Smoke checks:
+
+```bash
+docker compose config --quiet
+curl -s http://localhost:8000/api/v1/ready
+curl -s http://localhost:9003/ready
+curl -s http://localhost:8080/api/v1/models
+```
+
+## What Is Mock vs Real
+
+- MeshGraphNet is mocked by `mock-services`.
+- FNO is mocked by `mock-services`.
+- PINN uses a real PyTorch checkpoint when available.
+- The current PINN prediction is not a full real-time PDE solver; it is a hybrid neural + physics-informed + postprocessed MVP baseline.
+
+For a thesis/demo-safe statement, use:
+
+> The application demonstrates an extensible orchestration layer and a checkpoint-based PINN baseline for directional thermoelastic-wave prediction. MeshGraphNet and FNO services are currently represented by deterministic mock services unless replaced by real model hosts.
+
+## Scientific Minimum Inputs
+
+Temperature alone is not enough for directional propagation. The current MVP uses:
+
+- medium physical properties;
+- temperature;
+- pressure;
+- source type, position, amplitude, frequency, direction;
+- probe coordinates;
+- domain size, resolution, and boundary conditions;
+- observation time.
+
+Future scientific improvements should add:
+
+- anisotropy tensors;
+- heterogeneous spatial material fields;
+- fluid saturation;
+- source time functions;
+- validated train/validation/test split;
+- independent experimental or high-fidelity numerical validation.

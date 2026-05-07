@@ -8,8 +8,12 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app ./app
-COPY data ./data
+RUN useradd --create-home --shell /usr/sbin/nologin appuser
+
+COPY --chown=appuser:appuser app ./app
+COPY --chown=appuser:appuser data ./data
+
+USER appuser
 
 EXPOSE 8000
 

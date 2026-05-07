@@ -204,7 +204,9 @@ export function createUI() {
       return;
     }
 
-    refs.errorBanner.textContent = `${error.code || "ERROR"}: ${error.message || "Something went wrong."}`;
+    const status = error.status ? `HTTP ${error.status}` : "Frontend";
+    const requestId = error.requestId ? ` · Request ${error.requestId}` : "";
+    refs.errorBanner.textContent = `${error.code || "ERROR"} · ${status}: ${error.message || "Something went wrong."}${requestId}`;
     refs.errorBanner.classList.remove("is-hidden");
   }
 
@@ -213,7 +215,7 @@ export function createUI() {
     refs.responseJson.textContent = responsePayload
       ? JSON.stringify(responsePayload, null, 2)
       : errorPayload
-        ? JSON.stringify(errorPayload, null, 2)
+        ? JSON.stringify(typeof errorPayload.toJSON === "function" ? errorPayload.toJSON() : errorPayload, null, 2)
         : "No response received yet.";
   }
 

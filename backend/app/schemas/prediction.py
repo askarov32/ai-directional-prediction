@@ -19,6 +19,8 @@ from app.domain.enums.model_type import ModelType
 
 
 def _normalize_vector(direction: list[float]) -> tuple[float, float, float]:
+    if any(not math.isfinite(component) for component in direction):
+        raise ValueError("Direction vector components must be finite.")
     magnitude = math.sqrt(sum(component * component for component in direction))
     if magnitude == 0:
         raise ValueError("Direction vector magnitude must be greater than zero.")
@@ -28,20 +30,20 @@ def _normalize_vector(direction: list[float]) -> tuple[float, float, float]:
 class ScenarioRequestSchema(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    temperature_c: float
-    pressure_mpa: float = Field(..., gt=0)
-    time_ms: float = Field(..., gt=0)
+    temperature_c: float = Field(..., ge=-273.15, le=2000, allow_inf_nan=False)
+    pressure_mpa: float = Field(..., gt=0, le=5000, allow_inf_nan=False)
+    time_ms: float = Field(..., gt=0, le=60_000, allow_inf_nan=False)
 
 
 class SourceRequestSchema(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     type: str = Field(..., min_length=2, max_length=64)
-    x: float
-    y: float
-    z: float = 0.0
-    amplitude: float = Field(..., gt=0)
-    frequency_hz: float = Field(..., gt=0)
+    x: float = Field(..., ge=0, allow_inf_nan=False)
+    y: float = Field(..., ge=0, allow_inf_nan=False)
+    z: float = Field(default=0.0, ge=0, allow_inf_nan=False)
+    amplitude: float = Field(..., gt=0, le=1_000_000, allow_inf_nan=False)
+    frequency_hz: float = Field(..., gt=0, le=1_000_000, allow_inf_nan=False)
     direction: list[float]
 
     @field_validator("direction")
@@ -56,25 +58,25 @@ class SourceRequestSchema(BaseModel):
 class ProbeRequestSchema(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    x: float
-    y: float
-    z: float = 0.0
+    x: float = Field(..., ge=0, allow_inf_nan=False)
+    y: float = Field(..., ge=0, allow_inf_nan=False)
+    z: float = Field(default=0.0, ge=0, allow_inf_nan=False)
 
 
 class DomainSizeSchema(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    lx: float = Field(..., gt=0)
-    ly: float = Field(..., gt=0)
-    lz: float = Field(..., ge=0)
+    lx: float = Field(..., gt=0, le=10_000, allow_inf_nan=False)
+    ly: float = Field(..., gt=0, le=10_000, allow_inf_nan=False)
+    lz: float = Field(..., ge=0, le=10_000, allow_inf_nan=False)
 
 
 class DomainResolutionSchema(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    nx: int = Field(..., ge=2)
-    ny: int = Field(..., ge=2)
-    nz: int = Field(..., ge=1)
+    nx: int = Field(..., ge=2, le=2048)
+    ny: int = Field(..., ge=2, le=2048)
+    nz: int = Field(..., ge=1, le=512)
 
 
 class BoundaryConditionsSchema(BaseModel):

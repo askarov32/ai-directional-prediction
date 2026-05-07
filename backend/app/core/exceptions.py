@@ -45,6 +45,16 @@ class RemoteServiceTimeoutError(AppError):
         )
 
 
+class RemoteServiceHTTPError(AppError):
+    def __init__(self, service_name: str, details: dict[str, Any] | None = None) -> None:
+        super().__init__(
+            code="MODEL_HTTP_ERROR",
+            message=f"{service_name} service returned an unsuccessful HTTP response",
+            status_code=502,
+            details=details or {},
+        )
+
+
 class MalformedRemoteResponseError(AppError):
     def __init__(self, service_name: str, details: dict[str, Any] | None = None) -> None:
         super().__init__(
