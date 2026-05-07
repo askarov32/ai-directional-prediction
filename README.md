@@ -205,11 +205,70 @@ Then open:
 - Frontend: [http://localhost:8080](http://localhost:8080)
 - Backend OpenAPI: [http://localhost:8000/docs](http://localhost:8000/docs)
 
+Quick smoke checks:
+
+```bash
+docker compose config --quiet
+curl -s http://localhost:8000/api/v1/ready
+curl -s http://localhost:9003/ready
+curl -s http://localhost:8080/api/v1/models
+```
+
+Sample prediction through the frontend nginx proxy:
+
+```bash
+curl -s -X POST http://localhost:8080/api/v1/predictions \
+  -H "Content-Type: application/json" \
+  --data '{
+    "model": "pinn",
+    "medium_id": "sandstone_medium",
+    "scenario": {
+      "temperature_c": 120.0,
+      "pressure_mpa": 35.0,
+      "time_ms": 12.0
+    },
+    "source": {
+      "type": "thermal_pulse",
+      "x": 0.15,
+      "y": 0.4,
+      "z": 0.0,
+      "amplitude": 1.0,
+      "frequency_hz": 50.0,
+      "direction": [1.0, 0.0, 0.0]
+    },
+    "probe": {
+      "x": 0.7,
+      "y": 0.55,
+      "z": 0.0
+    },
+    "domain": {
+      "type": "rect_2d",
+      "size": {
+        "lx": 1.0,
+        "ly": 1.0,
+        "lz": 0.0
+      },
+      "resolution": {
+        "nx": 128,
+        "ny": 128,
+        "nz": 1
+      },
+      "boundary_conditions": {
+        "left": "fixed",
+        "right": "free",
+        "top": "insulated",
+        "bottom": "insulated"
+      }
+    }
+  }'
+```
+
 ## API Endpoints
 
 All API routes are versioned under `/api/v1`.
 
 - `GET /api/v1/health`
+- `GET /api/v1/ready`
 - `GET /api/v1/media`
 - `GET /api/v1/media/{medium_id}`
 - `GET /api/v1/models`

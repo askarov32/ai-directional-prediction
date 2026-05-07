@@ -1,4 +1,4 @@
-import { createPrediction, fetchMedia, fetchModels } from "./api.js";
+import { ApiError, createPrediction, fetchMedia, fetchModels } from "./api.js";
 import { renderDomain } from "./charts.js";
 import { buildDemoPayload, fillForm, readPayloadFromForm } from "./form.js";
 import { getState, setState, subscribe } from "./state.js";
@@ -110,7 +110,7 @@ async function handleSubmit(event) {
   } catch (error) {
     setState({
       loading: false,
-      error,
+      error: error instanceof ApiError ? error : new ApiError({ code: "PREDICTION_FAILED", message: error.message }),
       lastResponse: null,
     });
   }
@@ -131,11 +131,13 @@ async function bootstrap() {
     hydrateFormWithDemo();
   } catch (error) {
     setState({
-      error: {
-        code: error.code || "BOOTSTRAP_FAILED",
-        message: error.message || "Failed to load initial application data.",
-        details: error.details || {},
-      },
+      error:
+        error instanceof ApiError
+          ? error
+          : new ApiError({
+              code: "BOOTSTRAP_FAILED",
+              message: error.message || "Failed to load initial application data.",
+            }),
     });
   }
 }

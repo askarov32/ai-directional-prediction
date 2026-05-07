@@ -398,6 +398,12 @@
       </main>
     </div>
 
-    <script type="module" src="assets/scripts/app.js?v=20260501b"></script>
+    <script>
+      window.THESIS_APP_CONFIG = {
+        apiBaseUrl: window.location.protocol === "file:" ? "http://localhost:8000/api/v1" : "/api/v1",
+        requestTimeoutMs: 15000,
+      };
+    </script>
+    <script type="module" src="assets/scripts/app.js?v=20260507a"></script>
   </body>
 </html>
