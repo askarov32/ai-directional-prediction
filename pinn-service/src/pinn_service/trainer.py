@@ -62,6 +62,7 @@ def train_pinn(config: TrainingConfig) -> TrainingArtifacts:
         aggregates = {
             "supervised_loss": 0.0,
             "velocity_consistency_loss": 0.0,
+            "wave_residual_loss": 0.0,
             "thermal_residual_loss": 0.0,
             "total_loss": 0.0,
         }
@@ -84,7 +85,10 @@ def train_pinn(config: TrainingConfig) -> TrainingArtifacts:
                 output_scaler_std=output_std,
                 supervised_weight=config.supervised_weight,
                 velocity_weight=config.velocity_weight,
+                wave_residual_weight=config.wave_residual_weight,
                 thermal_residual_weight=config.thermal_residual_weight,
+                reference_temperature_k=config.reference_temperature_k,
+                physics_mode=config.physics_mode,
             )
             loss.backward()
             optimizer.step()

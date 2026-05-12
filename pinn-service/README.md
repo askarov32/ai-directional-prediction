@@ -52,7 +52,7 @@ PYTHONPATH=pinn-service/src python3 -m pinn_service.cli \
 
 ## Train The First PINN Baseline
 
-After building `training_samples.npz`, train the first hybrid baseline:
+After building `training_samples.npz`, train the coupled thermoelastic PINN baseline:
 
 ```bash
 PYTHONPATH=pinn-service/src python3 -m pinn_service.train \
@@ -60,7 +60,11 @@ PYTHONPATH=pinn-service/src python3 -m pinn_service.train \
   --output-dir pinn-service/artifacts/checkpoints/baseline \
   --epochs 25 \
   --batch-size 4096 \
-  --device cpu
+  --device cpu \
+  --wave-residual-weight 0.1 \
+  --thermal-residual-weight 0.05 \
+  --reference-temperature-k 293.15 \
+  --physics-mode coupled_thermoelastic
 ```
 
 Artifacts:
@@ -83,11 +87,20 @@ Default baseline script settings:
 - `batch_size=8192`
 - `sample_limit=120000`
 - `device=cpu`
+- `supervised_weight=1.0`
+- `velocity_weight=0.25`
+- `wave_residual_weight=0.1`
+- `thermal_residual_weight=0.05`
+- `reference_temperature_k=293.15`
+- `physics_mode=coupled_thermoelastic`
 
 Override them with environment variables:
 
 ```bash
-EPOCHS=2000 BATCH_SIZE=8192 SAMPLE_LIMIT=120000 DEVICE=cpu ./pinn-service/train_baseline.sh
+EPOCHS=2000 BATCH_SIZE=8192 SAMPLE_LIMIT=120000 DEVICE=cpu \
+WAVE_RESIDUAL_WEIGHT=0.1 THERMAL_RESIDUAL_WEIGHT=0.05 \
+REFERENCE_TEMPERATURE_K=293.15 PHYSICS_MODE=coupled_thermoelastic \
+./pinn-service/train_baseline.sh
 ```
 
 ## Run The Inference Service
@@ -121,15 +134,28 @@ If `PINN_CHECKPOINT_PATH` points to a directory, the service auto-picks:
 
 ## Current PINN Strategy
 
-This first version is a pragmatic hybrid PINN baseline:
+This version trains a hybrid coupled thermoelastic PINN baseline:
 
 - input: `x, y, z, t, E, nu, rho, alpha, k, Cp`
 - model output: `T, u, v, w`
 - supervised loss on COMSOL reference fields
 - velocity-consistency loss using `ut, vt, wt`
-- thermal residual regularization using a diffusion-style residual
+- elastic wave residual from the divergence of the thermoelastic stress tensor
+- coupled thermal residual with the `gamma * T0 * d(eps_kk)/dt` thermoelastic coupling term
 
-This is intentionally a first trainable step, not yet the final fully coupled thermoelastic PINN formulation.
+Material parameters are treated as locally homogeneous pointwise features. The current loss does not take spatial derivatives of `E`, `nu`, `rho`, `alpha`, `k`, or `Cp`, because the current training matrix provides them as independent features rather than differentiable material fields.
+
+The total training objective is:
+
+```text
+loss_total =
+  supervised_weight * loss_supervised
+  + velocity_weight * loss_velocity
+  + wave_residual_weight * loss_wave
+  + thermal_residual_weight * loss_thermal
+```
+
+For backward compatibility, `--physics-mode simple_heat` keeps the older heat-equation residual and disables the wave residual contribution.
 
 ## Inference Readiness And Diagnostics
 

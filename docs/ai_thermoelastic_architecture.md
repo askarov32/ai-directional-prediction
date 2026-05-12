@@ -130,10 +130,11 @@ The model-specific adapters currently set:
 
 ## PINN Implementation Notes
 
-The current PINN service is a pragmatic hybrid baseline:
+The current PINN service is a hybrid coupled thermoelastic baseline:
 
 - checkpoint model input features: `x, y, z, t, E, nu, rho, alpha, k, Cp`
 - neural outputs: `temperature_k`, `disp_x`, `disp_y`, `disp_z`
+- training loss: supervised field loss, velocity consistency, elastic wave residual, and coupled thermal residual
 - final API prediction: neural outputs plus geometry/material postprocessing
 
 The service returns extra diagnostics:
@@ -174,7 +175,7 @@ curl -s http://localhost:8080/api/v1/models
 - MeshGraphNet is mocked by `mock-services`.
 - FNO is mocked by `mock-services`.
 - PINN uses a real PyTorch checkpoint when available.
-- The current PINN prediction is not a full real-time PDE solver; it is a hybrid neural + physics-informed + postprocessed MVP baseline.
+- The current PINN prediction is not a full real-time PDE solver; it is a hybrid neural + coupled physics-informed + postprocessed MVP baseline.
 
 For a thesis/demo-safe statement, use:
 

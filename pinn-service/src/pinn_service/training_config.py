@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Literal
 
 
 @dataclass(frozen=True)
@@ -18,7 +19,10 @@ class TrainingConfig:
     activation: str = "tanh"
     supervised_weight: float = 1.0
     velocity_weight: float = 0.25
+    wave_residual_weight: float = 0.1
     thermal_residual_weight: float = 0.05
+    reference_temperature_k: float = 293.15
+    physics_mode: Literal["coupled_thermoelastic", "simple_heat"] = "coupled_thermoelastic"
     sample_limit: int | None = None
     seed: int = 42
 

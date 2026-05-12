@@ -21,7 +21,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--activation", choices=("tanh", "silu", "gelu", "relu"), default="tanh")
     parser.add_argument("--supervised-weight", type=float, default=1.0)
     parser.add_argument("--velocity-weight", type=float, default=0.25)
+    parser.add_argument("--wave-residual-weight", type=float, default=0.1)
     parser.add_argument("--thermal-residual-weight", type=float, default=0.05)
+    parser.add_argument("--reference-temperature-k", type=float, default=293.15)
+    parser.add_argument(
+        "--physics-mode",
+        choices=("coupled_thermoelastic", "simple_heat"),
+        default="coupled_thermoelastic",
+    )
     parser.add_argument("--sample-limit", type=int, default=None)
     parser.add_argument("--seed", type=int, default=42)
     return parser
@@ -42,7 +49,10 @@ def main() -> None:
         activation=args.activation,
         supervised_weight=args.supervised_weight,
         velocity_weight=args.velocity_weight,
+        wave_residual_weight=args.wave_residual_weight,
         thermal_residual_weight=args.thermal_residual_weight,
+        reference_temperature_k=args.reference_temperature_k,
+        physics_mode=args.physics_mode,
         sample_limit=args.sample_limit,
         seed=args.seed,
     )
