@@ -56,7 +56,11 @@ class LoadedTrainingData:
         return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, drop_last=False)
 
 
-def load_training_data(dataset_path: str | Path, sample_limit: int | None = None) -> LoadedTrainingData:
+def load_training_data(
+    dataset_path: str | Path,
+    sample_limit: int | None = None,
+    seed: int = 42,
+) -> LoadedTrainingData:
     npz_path = Path(dataset_path).expanduser().resolve()
     payload = np.load(npz_path)
 
@@ -66,7 +70,7 @@ def load_training_data(dataset_path: str | Path, sample_limit: int | None = None
     target_feature_names = payload["target_feature_names"].tolist()
 
     if sample_limit is not None and sample_limit < len(inputs):
-        rng = np.random.default_rng(42)
+        rng = np.random.default_rng(seed)
         indices = rng.choice(len(inputs), size=sample_limit, replace=False)
         inputs = inputs[indices]
         targets = targets[indices]

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import json
 import random
 from dataclasses import dataclass
@@ -20,14 +21,27 @@ class TrainingArtifacts:
     checkpoint_path: Path
     best_checkpoint_path: Path
     metrics_path: Path
+    metrics_csv_path: Path
     config_path: Path
     scalers_path: Path
+
+
+METRIC_FIELDS = [
+    "epoch",
+    "learning_rate",
+    "grad_norm",
+    "supervised_loss",
+    "velocity_consistency_loss",
+    "wave_residual_loss",
+    "thermal_residual_loss",
+    "total_loss",
+]
 
 
 def train_pinn(config: TrainingConfig) -> TrainingArtifacts:
     _set_seed(config.seed)
 
-    data = load_training_data(config.dataset_path, sample_limit=config.sample_limit)
+    data = load_training_data(config.dataset_path, sample_limit=config.sample_limit, seed=config.seed)
     loader = data.make_loader(batch_size=config.batch_size, shuffle=True)
 
     output_dir = config.output_dir.expanduser().resolve()
@@ -65,6 +79,7 @@ def train_pinn(config: TrainingConfig) -> TrainingArtifacts:
             "wave_residual_loss": 0.0,
             "thermal_residual_loss": 0.0,
             "total_loss": 0.0,
+            "grad_norm": 0.0,
         }
         batch_count = 0
 
@@ -91,14 +106,17 @@ def train_pinn(config: TrainingConfig) -> TrainingArtifacts:
                 physics_mode=config.physics_mode,
             )
             loss.backward()
+            grad_norm = _clip_gradients(model, config.max_grad_norm)
             optimizer.step()
 
             for key, value in metrics.items():
                 aggregates[key] += value
+            aggregates["grad_norm"] += grad_norm
             batch_count += 1
 
         epoch_metrics = {key: value / max(batch_count, 1) for key, value in aggregates.items()}
         epoch_metrics["epoch"] = float(epoch)
+        epoch_metrics["learning_rate"] = float(optimizer.param_groups[0]["lr"])
         history.append(epoch_metrics)
 
         if epoch_metrics["total_loss"] < best_loss:
@@ -123,6 +141,9 @@ def train_pinn(config: TrainingConfig) -> TrainingArtifacts:
     metrics_path = output_dir / "metrics.json"
     metrics_path.write_text(json.dumps({"history": history, "best_loss": best_loss}, indent=2), encoding="utf-8")
 
+    metrics_csv_path = output_dir / "metrics.csv"
+    _write_metrics_csv(metrics_csv_path, history)
+
     config_path = output_dir / "training_config.json"
     config_path.write_text(json.dumps(config.to_dict(), indent=2), encoding="utf-8")
 
@@ -131,6 +152,7 @@ def train_pinn(config: TrainingConfig) -> TrainingArtifacts:
         checkpoint_path=checkpoint_path,
         best_checkpoint_path=best_checkpoint_path,
         metrics_path=metrics_path,
+        metrics_csv_path=metrics_csv_path,
         config_path=config_path,
         scalers_path=scalers_path,
     )
@@ -142,3 +164,25 @@ def _set_seed(seed: int) -> None:
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+
+
+def _clip_gradients(model: torch.nn.Module, max_grad_norm: float | None) -> float:
+    parameters = [parameter for parameter in model.parameters() if parameter.grad is not None]
+    if not parameters:
+        return 0.0
+    if max_grad_norm is not None and max_grad_norm > 0:
+        norm = torch.nn.utils.clip_grad_norm_(parameters, max_grad_norm)
+        return float(norm.detach().cpu())
+
+    total = torch.zeros((), device=parameters[0].grad.device)
+    for parameter in parameters:
+        total = total + parameter.grad.detach().pow(2).sum()
+    return float(torch.sqrt(total).cpu())
+
+
+def _write_metrics_csv(path: Path, history: list[dict[str, float]]) -> None:
+    with path.open("w", newline="", encoding="utf-8") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=METRIC_FIELDS)
+        writer.writeheader()
+        for row in history:
+            writer.writerow({field: row.get(field, "") for field in METRIC_FIELDS})

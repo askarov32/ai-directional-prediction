@@ -14,6 +14,7 @@ WAVE_RESIDUAL_WEIGHT="${WAVE_RESIDUAL_WEIGHT:-0.1}"
 THERMAL_RESIDUAL_WEIGHT="${THERMAL_RESIDUAL_WEIGHT:-0.05}"
 REFERENCE_TEMPERATURE_K="${REFERENCE_TEMPERATURE_K:-293.15}"
 PHYSICS_MODE="${PHYSICS_MODE:-coupled_thermoelastic}"
+MAX_GRAD_NORM="${MAX_GRAD_NORM:-1.0}"
 
 PYTHONPATH="$ROOT_DIR/pinn-service/src" "$ROOT_DIR/.venv-pinn/bin/python" -m pinn_service.train \
   --dataset "$DATASET_PATH" \
@@ -27,4 +28,5 @@ PYTHONPATH="$ROOT_DIR/pinn-service/src" "$ROOT_DIR/.venv-pinn/bin/python" -m pin
   --wave-residual-weight "$WAVE_RESIDUAL_WEIGHT" \
   --thermal-residual-weight "$THERMAL_RESIDUAL_WEIGHT" \
   --reference-temperature-k "$REFERENCE_TEMPERATURE_K" \
+  --max-grad-norm "$MAX_GRAD_NORM" \
   --physics-mode "$PHYSICS_MODE"

@@ -25,6 +25,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--thermal-residual-weight", type=float, default=0.05)
     parser.add_argument("--reference-temperature-k", type=float, default=293.15)
     parser.add_argument(
+        "--max-grad-norm",
+        type=float,
+        default=1.0,
+        help="Clip gradients to this norm before optimizer step. Use 0 or a negative value to disable clipping.",
+    )
+    parser.add_argument(
         "--physics-mode",
         choices=("coupled_thermoelastic", "simple_heat"),
         default="coupled_thermoelastic",
@@ -52,6 +58,7 @@ def main() -> None:
         wave_residual_weight=args.wave_residual_weight,
         thermal_residual_weight=args.thermal_residual_weight,
         reference_temperature_k=args.reference_temperature_k,
+        max_grad_norm=args.max_grad_norm,
         physics_mode=args.physics_mode,
         sample_limit=args.sample_limit,
         seed=args.seed,
@@ -60,6 +67,7 @@ def main() -> None:
     print("Checkpoint:", artifacts.checkpoint_path)
     print("Best checkpoint:", artifacts.best_checkpoint_path)
     print("Metrics:", artifacts.metrics_path)
+    print("Metrics CSV:", artifacts.metrics_csv_path)
     print("Config:", artifacts.config_path)
     print("Scalers:", artifacts.scalers_path)
 

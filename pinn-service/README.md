@@ -64,6 +64,7 @@ PYTHONPATH=pinn-service/src python3 -m pinn_service.train \
   --wave-residual-weight 0.1 \
   --thermal-residual-weight 0.05 \
   --reference-temperature-k 293.15 \
+  --max-grad-norm 1.0 \
   --physics-mode coupled_thermoelastic
 ```
 
@@ -72,6 +73,7 @@ Artifacts:
 - `model.pth`
 - `best_model.pth`
 - `metrics.json`
+- `metrics.csv`
 - `training_config.json`
 - `scalers.json`
 
@@ -92,6 +94,7 @@ Default baseline script settings:
 - `wave_residual_weight=0.1`
 - `thermal_residual_weight=0.05`
 - `reference_temperature_k=293.15`
+- `max_grad_norm=1.0`
 - `physics_mode=coupled_thermoelastic`
 
 Override them with environment variables:
@@ -100,8 +103,11 @@ Override them with environment variables:
 EPOCHS=2000 BATCH_SIZE=8192 SAMPLE_LIMIT=120000 DEVICE=cpu \
 WAVE_RESIDUAL_WEIGHT=0.1 THERMAL_RESIDUAL_WEIGHT=0.05 \
 REFERENCE_TEMPERATURE_K=293.15 PHYSICS_MODE=coupled_thermoelastic \
+MAX_GRAD_NORM=1.0 \
 ./pinn-service/train_baseline.sh
 ```
+
+`metrics.csv` is written next to `metrics.json` for quick plotting. It includes per-epoch `supervised_loss`, `velocity_consistency_loss`, `wave_residual_loss`, `thermal_residual_loss`, `total_loss`, `grad_norm`, and `learning_rate`. `max_grad_norm` clips gradients before the optimizer step; set it to `0` to disable clipping.
 
 ## Run The Inference Service
 

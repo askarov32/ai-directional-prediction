@@ -23,6 +23,7 @@ class TrainingConfig:
     thermal_residual_weight: float = 0.05
     reference_temperature_k: float = 293.15
     physics_mode: Literal["coupled_thermoelastic", "simple_heat"] = "coupled_thermoelastic"
+    max_grad_norm: float | None = 1.0
     sample_limit: int | None = None
     seed: int = 42
 
