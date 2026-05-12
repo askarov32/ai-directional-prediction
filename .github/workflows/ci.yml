@@ -38,7 +38,7 @@ jobs:
           python -m pip install -r backend/requirements.txt
 
       - name: Run backend tests
-        run: python -m pytest
+        run: python -m pytest backend/tests
 
   pinn-tests:
     name: PINN contract tests
