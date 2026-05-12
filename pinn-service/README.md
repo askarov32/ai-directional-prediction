@@ -10,7 +10,7 @@ This folder contains the standalone PINN data, training, and inference stack:
 
 ## Supported COMSOL exports
 
-The current pipeline expects the six exports you shared:
+The current pipeline expects the core COMSOL exports:
 
 - `data_materials.csv`
 - `data_temperature.csv`
@@ -18,6 +18,13 @@ The current pipeline expects the six exports you shared:
 - `data_stress_1.csv`
 - `data_stress_2.csv`
 - `data_stress_3.csv`
+
+It can also consume optional experiment files:
+
+- `data_strain.csv` for full normal and shear strain components
+- `<rock>_mesh.csv` or `<rock>.mphtxt`, stored in metadata only
+
+For the rod experiments, `data_displacement.csv` may have fewer exported rows than the other files. Use `--coordinate-policy intersection` to align all fields by common coordinates and record dropped duplicate rows in `dataset_metadata.json`.
 
 ## Output artifacts
 
@@ -46,9 +53,23 @@ PYTHONPATH=pinn-service/src python3 -m pinn_service.cli \
   --stress1 /path/to/data_stress_1.csv \
   --stress2 /path/to/data_stress_2.csv \
   --stress3 /path/to/data_stress_3.csv \
+  --strain /path/to/data_strain.csv \
+  --rock-id granite \
+  --experiment-id granite_rod \
+  --coordinate-policy intersection \
   --output-dir pinn-service/artifacts/demo \
   --build-training-matrix
 ```
+
+To build all four rod experiments from `~/Downloads`:
+
+```bash
+PYTHONPATH=pinn-service/src python3 pinn-service/scripts/build_rod_experiments.py \
+  --raw-root ~/Downloads \
+  --output-dir pinn-service/artifacts/rod_experiments
+```
+
+This writes one processed folder per rock, a shared `manifest.json`, and a combined `training_samples_all_rocks.npz` for multi-medium PINN training.
 
 ## Train The First PINN Baseline
 
@@ -60,6 +81,22 @@ PYTHONPATH=pinn-service/src python3 -m pinn_service.train \
   --output-dir pinn-service/artifacts/checkpoints/baseline \
   --epochs 25 \
   --batch-size 4096 \
+  --device cpu \
+  --wave-residual-weight 0.1 \
+  --thermal-residual-weight 0.05 \
+  --reference-temperature-k 293.15 \
+  --max-grad-norm 1.0 \
+  --physics-mode coupled_thermoelastic
+```
+
+For the four-rock rod dataset, use:
+
+```bash
+PYTHONPATH=pinn-service/src python3 -m pinn_service.train \
+  --dataset pinn-service/artifacts/rod_experiments/training_samples_all_rocks.npz \
+  --output-dir pinn-service/artifacts/checkpoints/rod_all_rocks_baseline \
+  --epochs 2000 \
+  --batch-size 8192 \
   --device cpu \
   --wave-residual-weight 0.1 \
   --thermal-residual-weight 0.05 \
@@ -195,6 +232,7 @@ The final directional prediction combines neural outputs with geometry/material 
 
 - the six files belong to one consistent COMSOL simulation family
 - all files share the same node order and the same time grid
+- rod experiment files can be aligned by common coordinates with `--coordinate-policy intersection`
 - the current dataset is 3D and single-scenario
 - materials appear effectively time-invariant and are reduced to static node-wise fields
 
@@ -232,3 +270,6 @@ Targets:
 - `strain_x`
 - `strain_y`
 - `strain_z`
+- `strain_xy`
+- `strain_yz`
+- `strain_xz`

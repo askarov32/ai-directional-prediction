@@ -15,7 +15,25 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--displacement", required=True, help="Path to data_displacement.csv")
     parser.add_argument("--stress1", required=True, help="Path to data_stress_1.csv")
     parser.add_argument("--stress2", required=True, help="Path to data_stress_2.csv")
-    parser.add_argument("--stress3", required=True, help="Path to data_stress_3.csv")
+    parser.add_argument(
+        "--stress3",
+        default=None,
+        help="Path to data_stress_3.csv. Used as a normal-strain fallback when --strain is not provided.",
+    )
+    parser.add_argument(
+        "--strain",
+        default=None,
+        help="Optional path to data_strain.csv with full normal and shear strain components.",
+    )
+    parser.add_argument("--mesh", default=None, help="Optional mesh export path stored in dataset metadata.")
+    parser.add_argument("--rock-id", default=None, help="Optional rock id stored in dataset metadata, for example granite.")
+    parser.add_argument("--experiment-id", default=None, help="Optional experiment id stored in dataset metadata.")
+    parser.add_argument(
+        "--coordinate-policy",
+        choices=("strict", "intersection"),
+        default="strict",
+        help="strict requires identical node coordinates; intersection aligns exports by common coordinates.",
+    )
     parser.add_argument("--output-dir", required=True, help="Directory where processed artifacts will be written")
     parser.add_argument(
         "--dtype",
@@ -40,6 +58,11 @@ def main() -> None:
         stress1_path=args.stress1,
         stress2_path=args.stress2,
         stress3_path=args.stress3,
+        strain_path=args.strain,
+        mesh_path=args.mesh,
+        rock_id=args.rock_id,
+        experiment_id=args.experiment_id,
+        coordinate_policy=args.coordinate_policy,
         output_dir=args.output_dir,
         dtype=args.dtype,
         build_training_matrix=args.build_training_matrix,
