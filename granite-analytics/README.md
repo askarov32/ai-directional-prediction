@@ -48,7 +48,7 @@ python3 granite-analytics/scripts/generate_granite_charts.py
 The analytics package is not hardcoded to granite in the scripts. The input medium can be changed at runtime:
 
 ```bash
-python3 granite-analytics/scripts/run_granite_predictions.py --medium-id quartzite
+python3 granite-analytics/scripts/run_granite_predictions.py --medium-id basalt
 ```
 
 The output files still stay inside `granite-analytics/`, which makes it easy to compare multiple runs while keeping the main app untouched.
