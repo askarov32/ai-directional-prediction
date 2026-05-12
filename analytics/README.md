@@ -1,6 +1,6 @@
 # Model Comparison Analytics
 
-This folder contains a lightweight analytics pipeline for comparing MeshGraphNet, FNO, and PINN predictions across the four geological media:
+This folder contains a lightweight analytics pipeline for comparing MeshGraphNet, FNO, Transformer, and PINN predictions across the four geological media:
 
 - `granite`
 - `limestone`

@@ -38,7 +38,7 @@ def test_models_endpoint_returns_supported_models(client):
 
     assert response.status_code == 200
     model_ids = {item["id"] for item in response.json()}
-    assert {"meshgraphnet", "fno", "pinn"}.issubset(model_ids)
+    assert {"meshgraphnet", "fno", "transformer", "pinn"}.issubset(model_ids)
 
 
 def test_prediction_happy_path_uses_mocked_model_client(client, prediction_payload):

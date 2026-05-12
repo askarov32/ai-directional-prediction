@@ -6,7 +6,7 @@ The project ships a full local stack:
 
 - `FastAPI` backend orchestrator
 - native `HTML/CSS/JavaScript` frontend
-- mock model services for `MeshGraphNet` and `FNO`
+- mock model services for `MeshGraphNet`, `FNO`, and `Transformer`
 - a dedicated checkpoint-based `PINN` service
 - `Docker Compose` startup for quick local demos
 
@@ -19,7 +19,7 @@ Main user flow:
 1. Choose a geological medium from the JSON preset catalog
 2. Inspect physical properties
 3. Configure the thermoelastic scenario, source, probe, and domain
-4. Select the model route: `meshgraphnet`, `fno`, or `pinn`
+4. Select the model route: `meshgraphnet`, `fno`, `transformer`, or `pinn`
 5. Run prediction
 6. Inspect normalized direction metrics and the 2D visualization
 
@@ -31,7 +31,7 @@ Main user flow:
 - domain use case `PredictDirectionUseCase`
 - JSON-based media repository
 - dedicated `PredictionRouter`
-- separate model clients for `MeshGraphNet`, `FNO`, `PINN`
+- separate model clients for `MeshGraphNet`, `FNO`, `Transformer`, `PINN`
 - response normalization layer
 - consistent JSON error payloads
 
@@ -45,7 +45,7 @@ Main user flow:
 
 ### Model Services
 
-- lightweight FastAPI mock services for `MeshGraphNet` and `FNO`
+- lightweight FastAPI mock services for `MeshGraphNet`, `FNO`, and `Transformer`
 - a checkpoint-based `PINN` inference service with readiness diagnostics
 - easy to replace each service host independently
 
@@ -96,7 +96,8 @@ For scientific scope and known limitations, see:
 │   │   │   │   ├── base.py
 │   │   │   │   ├── fno_client.py
 │   │   │   │   ├── meshgraphnet_client.py
-│   │   │   │   └── pinn_client.py
+│   │   │   │   ├── pinn_client.py
+│   │   │   │   └── transformer_client.py
 │   │   │   └── repositories
 │   │   │       └── media_repository.py
 │   │   └── schemas
@@ -169,12 +170,15 @@ Important variables:
 - `FRONTEND_PORT`
 - `MOCK_MESHGRAPHNET_PORT`
 - `MOCK_FNO_PORT`
+- `MOCK_TRANSFORMER_PORT`
 - `PINN_SERVICE_PORT`
 - `MODEL_MESHGRAPHNET_URL`
 - `MODEL_FNO_URL`
+- `MODEL_TRANSFORMER_URL`
 - `MODEL_PINN_URL`
 - `MODEL_MESHGRAPHNET_PREDICT_PATH`
 - `MODEL_FNO_PREDICT_PATH`
+- `MODEL_TRANSFORMER_PREDICT_PATH`
 - `MODEL_PINN_PREDICT_PATH`
 - `REMOTE_MODEL_TIMEOUT_SECONDS`
 - `CORS_ORIGINS`
@@ -188,6 +192,8 @@ Default Docker routing:
 - frontend: `http://localhost:8080`
 - mock MeshGraphNet: `http://localhost:9001`
 - mock FNO: `http://localhost:9002`
+- mock Transformer: `http://localhost:9004`
+- pinn-service: `http://localhost:9003`
 - pinn-service: `http://localhost:9003`
 
 ## Quick Start
@@ -307,7 +313,7 @@ The prediction screen is organized around one unified request, regardless of the
 User-facing inputs:
 
 - `Geological medium`: a preset loaded from `backend/data/media/catalog.json`; the current demo catalog includes sandstone, limestone, basalt, and granite.
-- `Model route`: `meshgraphnet`, `fno`, or `pinn`.
+- `Model route`: `meshgraphnet`, `fno`, `transformer`, or `pinn`.
 - `Scenario`: temperature, pressure, and observation time.
 - `Source`: excitation type, coordinates, amplitude, frequency, and initial direction vector.
 - `Probe`: observation point where the response is evaluated.
@@ -321,6 +327,7 @@ The backend does not forward only the raw form values. It first resolves the sel
 - model-specific routing hints:
   - `meshgraphnet` receives `representation: "graph"`;
   - `fno` receives `representation: "grid"`;
+  - `transformer` receives `representation: "sequence"`;
   - `pinn` receives `representation: "physics_informed"`.
 
 The frontend displays the normalized prediction response:
@@ -433,11 +440,12 @@ Internal payload representations:
 
 - `meshgraphnet` -> `representation: "graph"`
 - `fno` -> `representation: "grid"`
+- `transformer` -> `representation: "sequence"`
 - `pinn` -> `representation: "physics_informed"`
 
 ## Replacing Mock Services With Real Models
 
-By default, Docker uses mock services for `MeshGraphNet` and `FNO`, and the built-in checkpoint-based `PINN` service.
+By default, Docker uses mock services for `MeshGraphNet`, `FNO`, and `Transformer`, and the built-in checkpoint-based `PINN` service.
 
 To switch to external model hosts:
 
@@ -447,6 +455,7 @@ To switch to external model hosts:
 ```bash
 MODEL_MESHGRAPHNET_URL=http://your-meshgraphnet-host:8001
 MODEL_FNO_URL=http://your-fno-host:8002
+MODEL_TRANSFORMER_URL=http://your-transformer-host:8004
 MODEL_PINN_URL=http://your-pinn-host:8003
 ```
 
@@ -455,6 +464,7 @@ MODEL_PINN_URL=http://your-pinn-host:8003
 ```bash
 MODEL_MESHGRAPHNET_PREDICT_PATH=/your-endpoint
 MODEL_FNO_PREDICT_PATH=/your-endpoint
+MODEL_TRANSFORMER_PREDICT_PATH=/your-endpoint
 MODEL_PINN_PREDICT_PATH=/your-endpoint
 ```
 
@@ -476,6 +486,7 @@ If you do this outside Docker, make sure the model URLs point to reachable hosts
 ```bash
 export MODEL_MESHGRAPHNET_URL=http://localhost:9001
 export MODEL_FNO_URL=http://localhost:9002
+export MODEL_TRANSFORMER_URL=http://localhost:9004
 export MODEL_PINN_URL=http://localhost:9003
 ```
 

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 
-MODELS = ["meshgraphnet", "fno", "pinn"]
+MODELS = ["meshgraphnet", "fno", "transformer", "pinn"]
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -25,7 +25,7 @@ def main() -> None:
     media = json.loads(catalog_path.read_text(encoding="utf-8"))
     scenarios = build_scenarios(media)
     payload = {
-        "description": "Comparable thermoelastic prediction scenarios for MeshGraphNet, FNO, and PINN across four geological media.",
+        "description": "Comparable thermoelastic prediction scenarios for MeshGraphNet, FNO, Transformer, and PINN across four geological media.",
         "scenario_count": len(scenarios),
         "models": MODELS,
         "medium_ids": [item["id"] for item in media],

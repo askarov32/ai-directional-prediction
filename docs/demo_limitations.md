@@ -46,11 +46,11 @@ You can claim:
 
 - the system supports a unified prediction request contract;
 - the backend resolves geological media from JSON presets;
-- the backend routes requests to MeshGraphNet, FNO, and PINN services;
+- the backend routes requests to MeshGraphNet, FNO, Transformer, and PINN services;
 - remote model responses are validated and normalized;
 - local Docker setup is one-command demo-ready;
 - PINN service loads a real checkpoint and exposes readiness diagnostics;
-- MeshGraphNet/FNO can be replaced by real model hosts via environment variables.
+- MeshGraphNet/FNO/Transformer can be replaced by real model hosts via environment variables.
 
 ## Current Validation Level
 
@@ -75,6 +75,6 @@ Scientific validation:
 - Prepare separate validation data from COMSOL or experiments.
 - Report angular error for direction prediction.
 - Report travel-time error.
-- Compare PINN, MeshGraphNet, and FNO on the same fixed scenarios.
-- Replace mock MeshGraphNet and FNO services with trained services.
+- Compare PINN, MeshGraphNet, FNO, and Transformer on the same fixed scenarios.
+- Replace mock MeshGraphNet, FNO, and Transformer services with trained services.
 - Validate medium presets against references or lab measurements.

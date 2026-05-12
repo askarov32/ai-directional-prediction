@@ -140,7 +140,7 @@ Recommended next metrics:
 
 ## Known Limitations
 
-- MeshGraphNet and FNO are mocks in the default local stack.
+- MeshGraphNet, FNO, and Transformer are mocks in the default local stack.
 - PINN is a first baseline, not a complete coupled thermoelastic PDE solver.
 - Medium presets are starter values and should be replaced with validated references.
 - Current MVP is 2D-first in the UI, though the request shape supports 3D.
@@ -151,4 +151,4 @@ Recommended next metrics:
 
 Use this wording:
 
-> The MVP demonstrates a clean full-stack architecture for thermoelastic-wave direction prediction with model routing to MeshGraphNet, FNO, and PINN services. MeshGraphNet and FNO are currently deterministic mock services, while PINN uses a real checkpoint-based baseline with readiness diagnostics. The current prediction output is suitable for architecture and thesis-demo illustration, not final scientific validation.
+> The MVP demonstrates a clean full-stack architecture for thermoelastic-wave direction prediction with model routing to MeshGraphNet, FNO, Transformer, and PINN services. MeshGraphNet, FNO, and Transformer are currently deterministic mock services, while PINN uses a real checkpoint-based baseline with readiness diagnostics. The current prediction output is suitable for architecture and thesis-demo illustration, not final scientific validation.

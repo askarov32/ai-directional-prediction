@@ -292,6 +292,10 @@ select:focus {
   color: #d6e0ea;
 }
 
+.model-pill[data-model="transformer"] {
+  color: #dfd7f7;
+}
+
 .model-pill[data-model="pinn"] {
   color: #eadbc8;
 }

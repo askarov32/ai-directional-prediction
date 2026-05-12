@@ -85,7 +85,7 @@ POST /api/v1/predictions
 
 Top-level fields:
 
-- `model`: `meshgraphnet`, `fno`, or `pinn`
+- `model`: `meshgraphnet`, `fno`, `transformer`, or `pinn`
 - `medium_id`
 - `scenario`
 - `source`
@@ -174,12 +174,13 @@ curl -s http://localhost:8080/api/v1/models
 
 - MeshGraphNet is mocked by `mock-services`.
 - FNO is mocked by `mock-services`.
+- Transformer is mocked by `mock-services`.
 - PINN uses a real PyTorch checkpoint when available.
 - The current PINN prediction is not a full real-time PDE solver; it is a hybrid neural + coupled physics-informed + postprocessed MVP baseline.
 
 For a thesis/demo-safe statement, use:
 
-> The application demonstrates an extensible orchestration layer and a checkpoint-based PINN baseline for directional thermoelastic-wave prediction. MeshGraphNet and FNO services are currently represented by deterministic mock services unless replaced by real model hosts.
+> The application demonstrates an extensible orchestration layer and a checkpoint-based PINN baseline for directional thermoelastic-wave prediction. MeshGraphNet, FNO, and Transformer services are currently represented by deterministic mock services unless replaced by real model hosts.
 
 ## Scientific Minimum Inputs
 

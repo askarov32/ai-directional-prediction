@@ -27,7 +27,7 @@ Top-level fields:
 Allowed values:
 
 ```json
-"meshgraphnet" | "fno" | "pinn"
+"meshgraphnet" | "fno" | "transformer" | "pinn"
 ```
 
 ### `medium_id`

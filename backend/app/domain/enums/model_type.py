@@ -6,6 +6,7 @@ from enum import Enum
 class ModelType(str, Enum):
     MESHGRAPHNET = "meshgraphnet"
     FNO = "fno"
+    TRANSFORMER = "transformer"
     PINN = "pinn"
 
     @property
@@ -13,5 +14,6 @@ class ModelType(str, Enum):
         return {
             ModelType.MESHGRAPHNET: "MeshGraphNet",
             ModelType.FNO: "FNO",
+            ModelType.TRANSFORMER: "Transformer",
             ModelType.PINN: "PINN",
         }[self]

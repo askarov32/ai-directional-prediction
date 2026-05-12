@@ -12,6 +12,7 @@ from typing import Iterable
 MODEL_COLORS = {
     "meshgraphnet": "#60a5fa",
     "fno": "#34d399",
+    "transformer": "#c084fc",
     "pinn": "#fbbf24",
 }
 
