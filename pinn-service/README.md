@@ -71,6 +71,31 @@ PYTHONPATH=pinn-service/src python3 pinn-service/scripts/build_rod_experiments.p
 
 This writes one processed folder per rock, a shared `manifest.json`, and a combined `training_samples_all_rocks.npz` for multi-medium PINN training.
 
+## Training Readiness Reports
+
+Before long training runs, generate quality, split, and initial loss-scale diagnostics:
+
+```bash
+PYTHONPATH=pinn-service/src python3 pinn-service/scripts/generate_data_quality_report.py
+
+PYTHONPATH=pinn-service/src python3 pinn-service/scripts/create_train_val_split.py \
+  --val-fraction 0.1 \
+  --seed 42
+
+PYTHONPATH=pinn-service/src python3 pinn-service/scripts/estimate_loss_scales.py \
+  --dataset pinn-service/artifacts/rod_experiments/splits/train_samples.npz \
+  --sample-limit 8192 \
+  --batch-size 512 \
+  --device cpu
+```
+
+Outputs are written under:
+
+```text
+pinn-service/artifacts/rod_experiments/reports/
+pinn-service/artifacts/rod_experiments/splits/
+```
+
 ## Train The First PINN Baseline
 
 After building `training_samples.npz`, train the coupled thermoelastic PINN baseline:
