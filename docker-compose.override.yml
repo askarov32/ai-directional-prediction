@@ -1,0 +1,40 @@
+services:
+  meshgraphnet-service:
+    build:
+      context: ./meshgraphnet-service
+      dockerfile: Dockerfile
+    container_name: meshgraphnet-service
+    gpus:
+      - driver: nvidia
+        count: all
+        capabilities:
+          - gpu
+    environment:
+      MGN_DATASET_ID: ${MGN_DATASET_ID:-sandstone_comsol_real}
+      MGN_CONFIG_PATH: ${MGN_CONFIG_PATH:-configs/inference.yaml}
+      MGN_CHECKPOINT_PATH: ${MGN_CHECKPOINT_PATH:-outputs/checkpoints_finetuned/best_model.pt}
+      MGN_DEVICE: ${MGN_DEVICE:-cuda}
+      MGN_PREDICT_TIMEOUT_SECONDS: ${MGN_PREDICT_TIMEOUT_SECONDS:-600}
+      MGN_ROLLOUT_STEPS: ${MGN_ROLLOUT_STEPS:-5}
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+    volumes:
+      - ./meshgraphnet-service/datasets:/app/datasets
+      - ./meshgraphnet-service/outputs:/app/outputs
+    ports:
+      - "${MESHGRAPHNET_SERVICE_PORT:-9011}:9000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/ready')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  backend:
+    environment:
+      MODEL_MESHGRAPHNET_URL: http://meshgraphnet-service:9000
+      MODEL_MESHGRAPHNET_PREDICT_PATH: /predict
+      REMOTE_MODEL_TIMEOUT_SECONDS: ${REMOTE_MODEL_TIMEOUT_SECONDS:-120}
+    depends_on:
+      meshgraphnet-service:
+        condition: service_healthy
