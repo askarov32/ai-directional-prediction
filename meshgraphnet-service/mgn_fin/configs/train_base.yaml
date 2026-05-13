@@ -1,3 +1,0 @@
-include: configs/base.yaml
-train:
-  dataset_ids: []   # пусто = взять все datasets/*/processed
