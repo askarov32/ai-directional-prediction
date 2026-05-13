@@ -1,0 +1,47 @@
+dataset_id: limestone_comsol_real
+rock_type: limestone
+physics:
+  type: thermoelastic_wave
+  heat_transfer: true
+  solid_mechanics: true
+  thermal_expansion: true
+geometry:
+  mesh_file: limestone_mesh.mphtxt
+  dimension: 3
+  graph_source: mesh
+scenario:
+  type: heated_rod
+  initial_temperature: 773.15
+  background_temperature: 293.15
+  source_center: &id001
+  - 0.5
+  - 0.5
+  - 0.5
+  source_radius: 0.05
+material:
+  source: data_materials.csv
+  has_nodewise_materials: true
+  young_modulus: 55689437065.14864
+  poisson_ratio: 0.2538034998945815
+  density: 3099.2093611638206
+  thermal_expansion: 8.332806240775882e-06
+  thermal_conductivity: 6.559603626396796
+  heat_capacity: 860.6337760910816
+time:
+  start: 0.0
+  end: 0.01
+  step: 0.0001
+training:
+  target_mode: delta
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15
+boundary_conditions:
+  mechanical: unknown
+  thermal: unknown
+source:
+  type: heated_rod
+  initial_temperature: 773.15
+  background_temperature: 293.15
+  center: *id001
+  radius: 0.05
