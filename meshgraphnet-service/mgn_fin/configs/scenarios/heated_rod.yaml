@@ -1,0 +1,29 @@
+dataset_id: example_heated_rod
+rock_type: sandstone
+physics:
+  type: thermoelastic_wave
+  heat_transfer: true
+  solid_mechanics: true
+  thermal_expansion: true
+geometry:
+  mesh_file: sandstone.mphtxt
+  dimension: 3
+  graph_source: mesh
+scenario:
+  type: heated_rod
+  initial_temperature: 773.15
+  background_temperature: 293.15
+  source_center: [0.0, 0.0, 0.0]
+  source_radius: 0.01
+material:
+  source: data_materials.csv
+  has_nodewise_materials: true
+time:
+  start: 0.0
+  end: 0.01
+  step: 0.0001
+training:
+  target_mode: delta
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15
