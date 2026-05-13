@@ -12,6 +12,10 @@ For a Windows-specific copy-paste training flow, see:
 
 - [Windows PINN Training Guide](../docs/windows_pinn_training.md)
 
+For the concrete PINN network and loss architecture, see:
+
+- [PINN Architecture Details](../docs/pinn_architecture_details.md)
+
 ## Supported COMSOL exports
 
 The current pipeline expects the core COMSOL exports:

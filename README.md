@@ -54,6 +54,7 @@ For scientific scope and known limitations, see:
 - [Model Card](docs/model_card.md)
 - [Demo Limitations](docs/demo_limitations.md)
 - [New Model Integration Guide](docs/model_integration_guide.md)
+- [PINN Architecture Details](docs/pinn_architecture_details.md)
 - [Windows PINN Training Guide](docs/windows_pinn_training.md)
 - [Physics Theory Notes](physics-theory/README.md)
 
