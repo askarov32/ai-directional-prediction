@@ -1,0 +1,31 @@
+dataset_id: example_impact
+rock_type: basalt
+physics:
+  type: thermoelastic_wave
+  heat_transfer: false
+  solid_mechanics: true
+  thermal_expansion: false
+geometry:
+  mesh_file: basalt_mesh.mphtxt
+  dimension: 3
+  graph_source: mesh
+scenario:
+  type: impact
+  impact_location: [0.5, 0.5, 1.0]
+  impact_radius: 0.05
+  impact_force: 1000000.0
+  impact_duration: 0.0001
+  impact_direction: [0.0, 0.0, -1.0]
+  initial_velocity: 0.0
+material:
+  source: data_materials.csv
+  has_nodewise_materials: true
+time:
+  start: 0.0
+  end: 0.01
+  step: 0.0001
+training:
+  target_mode: delta
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15
