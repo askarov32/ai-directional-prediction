@@ -20,7 +20,7 @@ def get_inference_config() -> InferenceConfig:
         checkpoint_path=Path(
             os.getenv("PINN_CHECKPOINT_PATH", "/app/artifacts/checkpoints/baseline/model.pth")
         ).expanduser(),
-        device=os.getenv("PINN_DEVICE", "cpu"),
+        device=os.getenv("PINN_DEVICE", "cuda"),
         log_level=os.getenv("PINN_LOG_LEVEL", "INFO"),
         service_port=int(os.getenv("PINN_SERVICE_PORT", "9000")),
         reference_temperature_k=float(os.getenv("PINN_REFERENCE_TEMPERATURE_K", "293.15")),

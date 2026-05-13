@@ -21,7 +21,7 @@ The following parts are implemented in a production-oriented MVP style:
 
 The following parts are intentionally demo/MVP level:
 
-- MeshGraphNet service is mocked;
+- MeshGraphNet service may run in fallback mode until real dataset/checkpoint artifacts are configured;
 - FNO service is mocked;
 - medium catalog values are starter presets;
 - PINN baseline is not yet independently validated;
@@ -49,8 +49,9 @@ You can claim:
 - the backend routes requests to MeshGraphNet, FNO, and PINN services;
 - remote model responses are validated and normalized;
 - local Docker setup is one-command demo-ready;
+- MeshGraphNet route is wired to a dedicated service;
 - PINN service loads a real checkpoint and exposes readiness diagnostics;
-- MeshGraphNet/FNO can be replaced by real model hosts via environment variables.
+- FNO can be replaced by a real model host via environment variables.
 
 ## Current Validation Level
 
@@ -76,5 +77,5 @@ Scientific validation:
 - Report angular error for direction prediction.
 - Report travel-time error.
 - Compare PINN, MeshGraphNet, and FNO on the same fixed scenarios.
-- Replace mock MeshGraphNet and FNO services with trained services.
+- Configure MeshGraphNet with trained artifacts and replace mock FNO with a trained service.
 - Validate medium presets against references or lab measurements.

@@ -2,6 +2,44 @@
 
 Это рабочее исследовательское ядро для AI-прогнозирования термоупругих и механических волн в геологических средах. Проект рассчитан на реальные COMSOL-выгрузки, а не на synthetic pipeline.
 
+## 0. Интеграция с основным MVP
+
+В основном `docker-compose.yml` этот сервис подключен как route для модели `meshgraphnet`.
+
+По умолчанию backend ходит сюда:
+
+```text
+http://mgn-service:9000/predict
+```
+
+Локально сервис открыт на:
+
+```text
+http://localhost:9001
+```
+
+Сервис поддерживает:
+
+```text
+GET /health
+GET /ready
+POST /predict
+```
+
+Если реальные `datasets/` и `outputs/checkpoints/best_model.pt` еще не подготовлены, `MGN_ALLOW_FALLBACK=true` позволяет сервису вернуть валидный demo-response для frontend/backend. Когда dataset и checkpoint появятся, `/predict` запускает реальный `scripts/run_prediction.py`.
+
+Основные переменные:
+
+```bash
+MGN_DATASET_ID=sandstone_comsol_real
+MGN_CONFIG_PATH=configs/inference.yaml
+MGN_CHECKPOINT_PATH=outputs/checkpoints/best_model.pt
+MGN_DEVICE=cuda
+MGN_PREDICT_TIMEOUT_SECONDS=600
+MGN_ROLLOUT_STEPS=5
+MGN_ALLOW_FALLBACK=true
+```
+
 ## 1. Формат нового датасета
 
 Каждый датасет кладётся так:
