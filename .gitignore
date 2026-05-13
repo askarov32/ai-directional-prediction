@@ -13,3 +13,4 @@ analytics/charts/
 analytics
 pinn-service/artifacts
 *.pt
+.venv-pinn
