@@ -5,7 +5,6 @@ from typing import Any
 
 
 SERVICE_OFFSETS = {
-    "meshgraphnet": 0.12,
     "fno": -0.08,
 }
 
@@ -52,7 +51,6 @@ def generate_prediction(service_kind: str, payload: dict[str, Any]) -> dict[str,
     max_temperature_perturbation = 0.7 + temperature / 120.0 + abs(offset) * 2.2
 
     wave_type = {
-        "meshgraphnet": "dominant_p",
         "fno": "coupled_field",
     }.get(service_kind, "dominant_p")
 

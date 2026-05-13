@@ -17,7 +17,7 @@ class GenericPayload(BaseModel):
     representation: str
 
 
-service_kind = os.getenv("SERVICE_KIND", "meshgraphnet")
+service_kind = os.getenv("SERVICE_KIND", "fno")
 app = FastAPI(title=f"Mock {service_kind.title()} Service", version="0.1.0")
 
 
