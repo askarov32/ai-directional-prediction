@@ -1,0 +1,44 @@
+{
+  "model": "meshgraphnet",
+  "medium_id": "sandstone_medium",
+  "scenario": {
+    "temperature_c": 120.0,
+    "pressure_mpa": 35.0,
+    "time_ms": 12.0
+  },
+  "source": {
+    "type": "thermal_pulse",
+    "x": 0.15,
+    "y": 0.4,
+    "z": 0.0,
+    "amplitude": 1.0,
+    "frequency_hz": 50.0,
+    "direction": [1.0, 0.0, 0.0]
+  },
+  "probe": {
+    "x": 0.7,
+    "y": 0.55,
+    "z": 0.0
+  },
+  "domain": {
+    "type": "rect_2d",
+    "size": {
+      "lx": 1.0,
+      "ly": 1.0,
+      "lz": 0.0
+    },
+    "resolution": {
+      "nx": 128,
+      "ny": 128,
+      "nz": 1
+    },
+    "boundary_conditions": {
+      "left": "fixed",
+      "right": "free",
+      "top": "insulated",
+      "bottom": "insulated",
+      "front": "free",
+      "back": "free"
+    }
+  }
+}
