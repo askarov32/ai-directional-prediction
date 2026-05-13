@@ -120,10 +120,12 @@ For the four-rock rod dataset, use:
 
 ```bash
 PYTHONPATH=pinn-service/src python3 -m pinn_service.train \
-  --dataset pinn-service/artifacts/rod_experiments/training_samples_all_rocks.npz \
+  --dataset pinn-service/artifacts/rod_experiments/splits/train_samples.npz \
+  --val-dataset pinn-service/artifacts/rod_experiments/splits/val_samples.npz \
   --output-dir pinn-service/artifacts/checkpoints/rod_all_rocks_baseline \
   --epochs 2000 \
   --batch-size 8192 \
+  --validation-batch-size 8192 \
   --device cpu \
   --wave-residual-weight 0.1 \
   --thermal-residual-weight 0.05 \
@@ -142,6 +144,8 @@ Artifacts:
 - `metrics.csv`
 - `training_config.json`
 - `scalers.json`
+
+When `--val-dataset` is provided, `best_model.pth` is selected by `val_total_loss`. Without validation data, it falls back to training `total_loss`. `model.pth` always stores the final epoch state.
 
 For a stronger reusable baseline, use the helper script:
 
@@ -168,6 +172,8 @@ Override them with environment variables:
 
 ```bash
 EPOCHS=2000 BATCH_SIZE=8192 SAMPLE_LIMIT=120000 DEVICE=cpu \
+VAL_DATASET_PATH=pinn-service/artifacts/rod_experiments/splits/val_samples.npz \
+VALIDATION_BATCH_SIZE=8192 VALIDATION_SAMPLE_LIMIT=120000 \
 WAVE_RESIDUAL_WEIGHT=0.1 THERMAL_RESIDUAL_WEIGHT=0.05 \
 LOSS_BALANCE_MODE=normalize \
 LOSS_SCALE_REPORT=pinn-service/artifacts/rod_experiments/reports/loss_scale_report.json \
@@ -193,6 +199,8 @@ PYTHONPATH=pinn-service/src python3 -m pinn_service.train \
 ```
 
 `metrics.csv` is written next to `metrics.json` for quick plotting. It includes per-epoch raw losses (`supervised_loss`, `velocity_consistency_loss`, `wave_residual_loss`, `thermal_residual_loss`), normalized losses (`normalized_supervised_loss`, `normalized_velocity_consistency_loss`, `normalized_wave_residual_loss`, `normalized_thermal_residual_loss`), `total_loss`, `grad_norm`, and `learning_rate`. `max_grad_norm` clips gradients before the optimizer step; set it to `0` to disable clipping.
+
+With validation enabled, the CSV also includes `val_*` loss columns. Validation uses the training scalers, so it measures generalization on the same normalized feature space rather than fitting fresh statistics on the validation split.
 
 ## Run The Inference Service
 

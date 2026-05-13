@@ -9,9 +9,11 @@ from typing import Literal
 class TrainingConfig:
     dataset_path: Path
     output_dir: Path
+    val_dataset_path: Path | None = None
     device: str = "cpu"
     epochs: int = 25
     batch_size: int = 4096
+    validation_batch_size: int | None = None
     learning_rate: float = 1e-3
     weight_decay: float = 1e-6
     hidden_dim: int = 192
@@ -30,10 +32,12 @@ class TrainingConfig:
     thermal_residual_loss_scale: float = 1.0
     max_grad_norm: float | None = 1.0
     sample_limit: int | None = None
+    validation_sample_limit: int | None = None
     seed: int = 42
 
     def to_dict(self) -> dict:
         payload = asdict(self)
         payload["dataset_path"] = str(self.dataset_path)
         payload["output_dir"] = str(self.output_dir)
+        payload["val_dataset_path"] = str(self.val_dataset_path) if self.val_dataset_path else None
         return payload

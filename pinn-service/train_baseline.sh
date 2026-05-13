@@ -4,9 +4,12 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
 DATASET_PATH="${1:-$ROOT_DIR/pinn-service/artifacts/demo/training_samples.npz}"
 OUTPUT_DIR="${2:-$ROOT_DIR/pinn-service/artifacts/checkpoints/baseline}"
+VAL_DATASET_PATH="${VAL_DATASET_PATH:-}"
 EPOCHS="${EPOCHS:-8}"
 BATCH_SIZE="${BATCH_SIZE:-8192}"
+VALIDATION_BATCH_SIZE="${VALIDATION_BATCH_SIZE:-}"
 SAMPLE_LIMIT="${SAMPLE_LIMIT:-120000}"
+VALIDATION_SAMPLE_LIMIT="${VALIDATION_SAMPLE_LIMIT:-}"
 DEVICE="${DEVICE:-cpu}"
 SUPERVISED_WEIGHT="${SUPERVISED_WEIGHT:-1.0}"
 VELOCITY_WEIGHT="${VELOCITY_WEIGHT:-0.25}"
@@ -39,6 +42,15 @@ TRAIN_ARGS=(
   --physics-mode "$PHYSICS_MODE"
 )
 
+if [[ -n "$VAL_DATASET_PATH" ]]; then
+  TRAIN_ARGS+=(--val-dataset "$VAL_DATASET_PATH")
+fi
+if [[ -n "$VALIDATION_BATCH_SIZE" ]]; then
+  TRAIN_ARGS+=(--validation-batch-size "$VALIDATION_BATCH_SIZE")
+fi
+if [[ -n "$VALIDATION_SAMPLE_LIMIT" ]]; then
+  TRAIN_ARGS+=(--validation-sample-limit "$VALIDATION_SAMPLE_LIMIT")
+fi
 if [[ -n "$LOSS_SCALE_REPORT" ]]; then
   TRAIN_ARGS+=(--loss-scale-report "$LOSS_SCALE_REPORT")
 fi

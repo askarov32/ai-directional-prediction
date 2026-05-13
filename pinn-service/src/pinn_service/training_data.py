@@ -60,6 +60,8 @@ def load_training_data(
     dataset_path: str | Path,
     sample_limit: int | None = None,
     seed: int = 42,
+    input_scaler: StandardScaler | None = None,
+    output_scaler: StandardScaler | None = None,
 ) -> LoadedTrainingData:
     npz_path = Path(dataset_path).expanduser().resolve()
     payload = np.load(npz_path)
@@ -81,8 +83,8 @@ def load_training_data(
     primary_targets = targets[:, primary_indices]
     velocity_targets = targets[:, velocity_indices]
 
-    input_scaler = StandardScaler.fit(inputs)
-    output_scaler = StandardScaler.fit(primary_targets)
+    input_scaler = input_scaler or StandardScaler.fit(inputs)
+    output_scaler = output_scaler or StandardScaler.fit(primary_targets)
 
     return LoadedTrainingData(
         inputs=inputs,

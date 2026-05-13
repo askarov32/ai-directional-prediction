@@ -11,10 +11,12 @@ from pinn_service.training_config import TrainingConfig
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Train the first hybrid PINN baseline on prepared COMSOL data.")
     parser.add_argument("--dataset", required=True, help="Path to training_samples.npz")
+    parser.add_argument("--val-dataset", default=None, help="Optional validation samples npz used for best checkpoint selection.")
     parser.add_argument("--output-dir", required=True, help="Directory for checkpoint and metrics")
     parser.add_argument("--device", default="cpu", help="Torch device, for example cpu or cuda")
     parser.add_argument("--epochs", type=int, default=25)
     parser.add_argument("--batch-size", type=int, default=4096)
+    parser.add_argument("--validation-batch-size", type=int, default=None)
     parser.add_argument("--learning-rate", type=float, default=1e-3)
     parser.add_argument("--weight-decay", type=float, default=1e-6)
     parser.add_argument("--hidden-dim", type=int, default=192)
@@ -52,6 +54,7 @@ def build_parser() -> argparse.ArgumentParser:
         default="coupled_thermoelastic",
     )
     parser.add_argument("--sample-limit", type=int, default=None)
+    parser.add_argument("--validation-sample-limit", type=int, default=None)
     parser.add_argument("--seed", type=int, default=42)
     return parser
 
@@ -61,10 +64,12 @@ def main() -> None:
     loss_scales = resolve_loss_scales(args)
     config = TrainingConfig(
         dataset_path=Path(args.dataset),
+        val_dataset_path=Path(args.val_dataset) if args.val_dataset else None,
         output_dir=Path(args.output_dir),
         device=args.device,
         epochs=args.epochs,
         batch_size=args.batch_size,
+        validation_batch_size=args.validation_batch_size,
         learning_rate=args.learning_rate,
         weight_decay=args.weight_decay,
         hidden_dim=args.hidden_dim,
@@ -83,6 +88,7 @@ def main() -> None:
         max_grad_norm=args.max_grad_norm,
         physics_mode=args.physics_mode,
         sample_limit=args.sample_limit,
+        validation_sample_limit=args.validation_sample_limit,
         seed=args.seed,
     )
     artifacts = train_pinn(config)
