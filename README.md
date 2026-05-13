@@ -53,6 +53,7 @@ For scientific scope and known limitations, see:
 
 - [Model Card](docs/model_card.md)
 - [Demo Limitations](docs/demo_limitations.md)
+- [New Model Integration Guide](docs/model_integration_guide.md)
 - [Physics Theory Notes](physics-theory/README.md)
 
 ## Project Structure
@@ -300,6 +301,43 @@ docker compose config --quiet
 
 CI intentionally does not train models or build the full Docker stack, because those steps are heavier and depend on model artifacts/hardware.
 
+## Prediction Input And Output
+
+The prediction screen is organized around one unified request, regardless of the selected model route.
+
+User-facing inputs:
+
+- `Geological medium`: a preset loaded from `backend/data/media/catalog.json`; the current demo catalog includes sandstone, limestone, basalt, and granite.
+- `Model route`: `meshgraphnet`, `fno`, or `pinn`.
+- `Scenario`: temperature, pressure, and observation time.
+- `Source`: excitation type, coordinates, amplitude, frequency, and initial direction vector.
+- `Probe`: observation point where the response is evaluated.
+- `Domain`: 2D/3D rectangular domain, physical size, numerical resolution, and boundary condition labels.
+
+The backend does not forward only the raw form values. It first resolves the selected medium, validates the scenario against medium-specific ranges, and builds an enriched payload:
+
+- medium summary: `id`, `name`, `category`;
+- medium physics: `rho`, porosity, `vp`, `vs`, thermal conductivity, heat capacity, thermal expansion;
+- scenario/source/probe/domain values from the user;
+- model-specific routing hints:
+  - `meshgraphnet` receives `representation: "graph"`;
+  - `fno` receives `representation: "grid"`;
+  - `pinn` receives `representation: "physics_informed"`.
+
+The frontend displays the normalized prediction response:
+
+- propagation direction as a 3-component vector;
+- azimuth angle in degrees;
+- elevation angle in degrees;
+- response magnitude;
+- predicted wave/response type;
+- estimated travel time;
+- maximum displacement summary;
+- maximum temperature perturbation summary;
+- model version, latency, and request id;
+- SVG domain preview with source point, probe point, and direction arrow;
+- optional request/response debug JSON.
+
 ### Unified Prediction Request
 
 Example payload:
@@ -483,6 +521,86 @@ That helper script writes a stronger CPU-friendly baseline to:
 
 - `pinn-service/artifacts/checkpoints/baseline`
 - and the inference service auto-prefers `best_model.pth` over `model.pth`
+
+## Current PINN Training Objective
+
+The current checkpoint is a hybrid supervised PINN baseline, not yet a full coupled thermoelastic PDE solver.
+
+Training input:
+
+```text
+X = [x, y, z, t, E, nu, rho, alpha, k, Cp]
+```
+
+Primary neural-network output:
+
+```text
+Y = [T, u, v, w]
+```
+
+The total objective is:
+
+```latex
+\mathcal{L}_{total}
+= \lambda_{sup}\mathcal{L}_{sup}
++ \lambda_{vel}\mathcal{L}_{vel}
++ \lambda_{temp}\mathcal{L}_{temp}
+```
+
+with the current default weights:
+
+```latex
+\lambda_{sup}=1.0,\qquad
+\lambda_{vel}=0.25,\qquad
+\lambda_{temp}=0.05
+```
+
+The supervised data loss is:
+
+```latex
+\mathcal{L}_{sup}
+= \operatorname{MSE}
+\left(
+[\hat{T},\hat{u},\hat{v},\hat{w}],
+[T,u,v,w]
+\right)
+```
+
+The velocity consistency loss compares time derivatives of predicted displacement with COMSOL velocity targets:
+
+```latex
+\mathcal{L}_{vel}
+= \operatorname{MSE}
+\left(
+\left[
+\frac{\partial \hat{u}}{\partial t},
+\frac{\partial \hat{v}}{\partial t},
+\frac{\partial \hat{w}}{\partial t}
+\right],
+[u_t,v_t,w_t]
+\right)
+```
+
+The thermal residual uses a diffusion-style heat equation:
+
+```latex
+a = \frac{k}{\rho C_p}
+```
+
+```latex
+R_T =
+\frac{\partial \hat{T}}{\partial t}
+- a
+\left(
+\frac{\partial^2 \hat{T}}{\partial x^2}
++ \frac{\partial^2 \hat{T}}{\partial y^2}
++ \frac{\partial^2 \hat{T}}{\partial z^2}
+\right)
+```
+
+```latex
+\mathcal{L}_{temp} = \operatorname{mean}(R_T^2)
+```
 
 ## Error Handling
 
