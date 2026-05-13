@@ -33,7 +33,7 @@ data/
     ...
 ```
 
-If you need to rebuild the processed PINN datasets from these raw CSV files, run:
+If you need to rebuild the processed PINN datasets from these raw CSV files, run the full preparation block in section 6.
 
 ```powershell
 $env:PYTHONPATH="pinn-service/src"
@@ -108,7 +108,53 @@ Expected result:
 
 If it prints `False`, do not start the long training run yet.
 
-## 6. Optional Dry Run
+## 6. Prepare The PINN Datasets
+
+Run this before `--dry-run` or full training on a fresh Windows machine.
+
+This block:
+
+- builds processed per-rock artifacts from `data/granite`, `data/limestone`, `data/sandstone`, and `data/basalt`;
+- creates `training_samples_all_rocks.npz`;
+- creates deterministic `train_samples.npz` and `val_samples.npz`;
+- creates the data quality report;
+- creates the initial loss-scale report used by normalized training.
+
+```powershell
+$env:PYTHONPATH="pinn-service/src"
+
+python pinn-service/scripts/build_rod_experiments.py `
+  --raw-root data `
+  --output-dir pinn-service/artifacts/rod_experiments
+
+python pinn-service/scripts/create_train_val_split.py `
+  --dataset pinn-service/artifacts/rod_experiments/training_samples_all_rocks.npz `
+  --metadata pinn-service/artifacts/rod_experiments/training_samples_all_rocks_metadata.json `
+  --output-dir pinn-service/artifacts/rod_experiments/splits `
+  --val-fraction 0.1 `
+  --seed 42
+
+python pinn-service/scripts/generate_data_quality_report.py `
+  --manifest pinn-service/artifacts/rod_experiments/manifest.json `
+  --output-dir pinn-service/artifacts/rod_experiments/reports
+
+python pinn-service/scripts/estimate_loss_scales.py `
+  --dataset pinn-service/artifacts/rod_experiments/splits/train_samples.npz `
+  --output-dir pinn-service/artifacts/rod_experiments/reports `
+  --sample-limit 8192 `
+  --batch-size 512 `
+  --device cuda
+```
+
+Expected files after this block:
+
+- `pinn-service/artifacts/rod_experiments/training_samples_all_rocks.npz`
+- `pinn-service/artifacts/rod_experiments/splits/train_samples.npz`
+- `pinn-service/artifacts/rod_experiments/splits/val_samples.npz`
+- `pinn-service/artifacts/rod_experiments/reports/data_quality_report.html`
+- `pinn-service/artifacts/rod_experiments/reports/loss_scale_report.json`
+
+## 7. Optional Dry Run
 
 This validates the dataset paths, validation split, loss-scale report, and resolved config without launching training.
 
@@ -124,7 +170,7 @@ python pinn-service/scripts/run_training_experiment.py `
   --dry-run
 ```
 
-## 7. Main Training Command For GPU
+## 8. Main Training Command For GPU
 
 This is the main copy-paste command for the full four-rock PINN run:
 
@@ -152,7 +198,7 @@ It also automatically:
 - saves `metrics.json`, `metrics.csv`, `training_config.json`, `scalers.json`;
 - generates the HTML training report after training.
 
-## 8. If GPU Memory Is Not Enough
+## 9. If GPU Memory Is Not Enough
 
 Use a smaller batch size:
 
@@ -180,7 +226,7 @@ python pinn-service/scripts/run_training_experiment.py `
   --device cuda
 ```
 
-## 9. CPU Fallback Command
+## 10. CPU Fallback Command
 
 If CUDA is unavailable, training can still run on CPU, but it will be much slower:
 
@@ -195,7 +241,7 @@ python pinn-service/scripts/run_training_experiment.py `
   --device cpu
 ```
 
-## 10. Quick Smoke Training
+## 11. Quick Smoke Training
 
 If you want to make sure the training loop works before the long run:
 
@@ -211,7 +257,7 @@ python pinn-service/scripts/run_training_experiment.py `
   --device cuda
 ```
 
-## 11. Where To Look After Training
+## 12. Where To Look After Training
 
 Main outputs:
 
@@ -234,7 +280,20 @@ Training report:
 pinn-service/artifacts/checkpoints/rod_all_rocks_2000/report/training_report.html
 ```
 
-## 12. Common Problems
+## 13. Common Problems
+
+### `train_samples.npz` was not found
+
+This means the train/validation split has not been created yet.
+
+Run section 6 first:
+
+```powershell
+$env:PYTHONPATH="pinn-service/src"
+python pinn-service/scripts/build_rod_experiments.py --raw-root data --output-dir pinn-service/artifacts/rod_experiments
+python pinn-service/scripts/create_train_val_split.py --dataset pinn-service/artifacts/rod_experiments/training_samples_all_rocks.npz --metadata pinn-service/artifacts/rod_experiments/training_samples_all_rocks_metadata.json --output-dir pinn-service/artifacts/rod_experiments/splits --val-fraction 0.1 --seed 42
+python pinn-service/scripts/estimate_loss_scales.py --dataset pinn-service/artifacts/rod_experiments/splits/train_samples.npz --output-dir pinn-service/artifacts/rod_experiments/reports --sample-limit 8192 --batch-size 512 --device cuda
+```
 
 ### `torch.cuda.is_available()` is `False`
 
@@ -277,7 +336,7 @@ Check that:
 - batch size is not too small;
 - no other heavy GPU workload is running.
 
-## 13. Minimal Copy-Paste Block
+## 14. Minimal Copy-Paste Block
 
 If you just want the shortest possible setup, use this:
 
@@ -290,6 +349,10 @@ pip install -r pinn-service/requirements.txt
 pip install --force-reinstall torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124
 $env:PYTHONPATH="pinn-service/src"
 python -c "import torch; print(torch.cuda.is_available()); print(torch.version.cuda); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'no cuda')"
+python pinn-service/scripts/build_rod_experiments.py --raw-root data --output-dir pinn-service/artifacts/rod_experiments
+python pinn-service/scripts/create_train_val_split.py --dataset pinn-service/artifacts/rod_experiments/training_samples_all_rocks.npz --metadata pinn-service/artifacts/rod_experiments/training_samples_all_rocks_metadata.json --output-dir pinn-service/artifacts/rod_experiments/splits --val-fraction 0.1 --seed 42
+python pinn-service/scripts/generate_data_quality_report.py --manifest pinn-service/artifacts/rod_experiments/manifest.json --output-dir pinn-service/artifacts/rod_experiments/reports
+python pinn-service/scripts/estimate_loss_scales.py --dataset pinn-service/artifacts/rod_experiments/splits/train_samples.npz --output-dir pinn-service/artifacts/rod_experiments/reports --sample-limit 8192 --batch-size 512 --device cuda
 python pinn-service/scripts/run_training_experiment.py `
   --output-dir pinn-service/artifacts/checkpoints/rod_all_rocks_2000 `
   --epochs 2000 `
