@@ -23,6 +23,11 @@ class TrainingConfig:
     thermal_residual_weight: float = 0.05
     reference_temperature_k: float = 293.15
     physics_mode: Literal["coupled_thermoelastic", "simple_heat"] = "coupled_thermoelastic"
+    loss_balance_mode: Literal["fixed", "normalize"] = "fixed"
+    supervised_loss_scale: float = 1.0
+    velocity_loss_scale: float = 1.0
+    wave_residual_loss_scale: float = 1.0
+    thermal_residual_loss_scale: float = 1.0
     max_grad_norm: float | None = 1.0
     sample_limit: int | None = None
     seed: int = 42

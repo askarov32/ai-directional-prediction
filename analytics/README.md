@@ -76,6 +76,26 @@ analytics/charts/model_comparison_dashboard.html
 
 The chart generator uses only the Python standard library and writes SVG/HTML artifacts, so it works without installing plotting libraries.
 
+## 4. Generate Evaluation Summary
+
+```bash
+python3 analytics/scripts/generate_evaluation_summary.py
+```
+
+Outputs:
+
+```text
+analytics/outputs/evaluation_summary.json
+analytics/outputs/evaluation_summary.html
+```
+
+The summary report aggregates all successful prediction rows and highlights:
+
+- average response metrics per model;
+- baseline comparisons for each geological medium;
+- sensitivity ranking for temperature, pressure, and frequency sweeps;
+- quick demo-ready highlights such as fastest backend model and shortest average travel time.
+
 ## PINN Data Readiness Reports
 
 Before long training runs, generate data and loss diagnostics:

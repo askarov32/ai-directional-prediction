@@ -96,6 +96,8 @@ pinn-service/artifacts/rod_experiments/reports/
 pinn-service/artifacts/rod_experiments/splits/
 ```
 
+The loss-scale report is meant to drive the new normalized training mode. It estimates raw component magnitudes at random initialization so we do not have to guess `wave` and `thermal` balancing for long runs.
+
 ## Train The First PINN Baseline
 
 After building `training_samples.npz`, train the coupled thermoelastic PINN baseline:
@@ -126,6 +128,8 @@ PYTHONPATH=pinn-service/src python3 -m pinn_service.train \
   --wave-residual-weight 0.1 \
   --thermal-residual-weight 0.05 \
   --reference-temperature-k 293.15 \
+  --loss-balance-mode normalize \
+  --loss-scale-report pinn-service/artifacts/rod_experiments/reports/loss_scale_report.json \
   --max-grad-norm 1.0 \
   --physics-mode coupled_thermoelastic
 ```
@@ -156,6 +160,7 @@ Default baseline script settings:
 - `wave_residual_weight=0.1`
 - `thermal_residual_weight=0.05`
 - `reference_temperature_k=293.15`
+- `loss_balance_mode=fixed`
 - `max_grad_norm=1.0`
 - `physics_mode=coupled_thermoelastic`
 
@@ -164,12 +169,30 @@ Override them with environment variables:
 ```bash
 EPOCHS=2000 BATCH_SIZE=8192 SAMPLE_LIMIT=120000 DEVICE=cpu \
 WAVE_RESIDUAL_WEIGHT=0.1 THERMAL_RESIDUAL_WEIGHT=0.05 \
+LOSS_BALANCE_MODE=normalize \
+LOSS_SCALE_REPORT=pinn-service/artifacts/rod_experiments/reports/loss_scale_report.json \
 REFERENCE_TEMPERATURE_K=293.15 PHYSICS_MODE=coupled_thermoelastic \
 MAX_GRAD_NORM=1.0 \
 ./pinn-service/train_baseline.sh
 ```
 
-`metrics.csv` is written next to `metrics.json` for quick plotting. It includes per-epoch `supervised_loss`, `velocity_consistency_loss`, `wave_residual_loss`, `thermal_residual_loss`, `total_loss`, `grad_norm`, and `learning_rate`. `max_grad_norm` clips gradients before the optimizer step; set it to `0` to disable clipping.
+If you already know your preferred scales, you can pass them directly instead of a report:
+
+```bash
+PYTHONPATH=pinn-service/src python3 -m pinn_service.train \
+  --dataset pinn-service/artifacts/rod_experiments/splits/train_samples.npz \
+  --output-dir pinn-service/artifacts/checkpoints/rod_all_rocks_manual_scales \
+  --epochs 2000 \
+  --batch-size 8192 \
+  --device cpu \
+  --loss-balance-mode normalize \
+  --supervised-loss-scale 1.0 \
+  --velocity-loss-scale 95.69 \
+  --wave-residual-loss-scale 3.93e13 \
+  --thermal-residual-loss-scale 5.03e17
+```
+
+`metrics.csv` is written next to `metrics.json` for quick plotting. It includes per-epoch raw losses (`supervised_loss`, `velocity_consistency_loss`, `wave_residual_loss`, `thermal_residual_loss`), normalized losses (`normalized_supervised_loss`, `normalized_velocity_consistency_loss`, `normalized_wave_residual_loss`, `normalized_thermal_residual_loss`), `total_loss`, `grad_norm`, and `learning_rate`. `max_grad_norm` clips gradients before the optimizer step; set it to `0` to disable clipping.
 
 ## Run The Inference Service
 
@@ -217,11 +240,22 @@ The total training objective is:
 
 ```text
 loss_total =
-  supervised_weight * loss_supervised
-  + velocity_weight * loss_velocity
-  + wave_residual_weight * loss_wave
-  + thermal_residual_weight * loss_thermal
+  supervised_weight * balanced(loss_supervised)
+  + velocity_weight * balanced(loss_velocity)
+  + wave_residual_weight * balanced(loss_wave)
+  + thermal_residual_weight * balanced(loss_thermal)
 ```
+
+Where:
+
+- `balanced(loss) = loss` in `loss_balance_mode=fixed`
+- `balanced(loss) = loss / component_scale` in `loss_balance_mode=normalize`
+
+Typical normalized training flow:
+
+1. generate `loss_scale_report.json`;
+2. start training with `--loss-balance-mode normalize --loss-scale-report ...`;
+3. keep interpretable high-level weights such as `wave_residual_weight=0.1` and `thermal_residual_weight=0.05`, while the component scales absorb the raw unit mismatch.
 
 For backward compatibility, `--physics-mode simple_heat` keeps the older heat-equation residual and disables the wave residual contribution.
 

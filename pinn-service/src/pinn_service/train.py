@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 from pinn_service.trainer import train_pinn
@@ -25,6 +26,21 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--thermal-residual-weight", type=float, default=0.05)
     parser.add_argument("--reference-temperature-k", type=float, default=293.15)
     parser.add_argument(
+        "--loss-balance-mode",
+        choices=("fixed", "normalize"),
+        default="fixed",
+        help="Use raw component losses or normalize them by precomputed scale factors.",
+    )
+    parser.add_argument(
+        "--loss-scale-report",
+        default=None,
+        help="Optional loss_scale_report.json used to auto-fill component scales for normalized training.",
+    )
+    parser.add_argument("--supervised-loss-scale", type=float, default=None)
+    parser.add_argument("--velocity-loss-scale", type=float, default=None)
+    parser.add_argument("--wave-residual-loss-scale", type=float, default=None)
+    parser.add_argument("--thermal-residual-loss-scale", type=float, default=None)
+    parser.add_argument(
         "--max-grad-norm",
         type=float,
         default=1.0,
@@ -42,6 +58,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> None:
     args = build_parser().parse_args()
+    loss_scales = resolve_loss_scales(args)
     config = TrainingConfig(
         dataset_path=Path(args.dataset),
         output_dir=Path(args.output_dir),
@@ -58,6 +75,11 @@ def main() -> None:
         wave_residual_weight=args.wave_residual_weight,
         thermal_residual_weight=args.thermal_residual_weight,
         reference_temperature_k=args.reference_temperature_k,
+        loss_balance_mode=args.loss_balance_mode,
+        supervised_loss_scale=loss_scales["supervised_loss_scale"],
+        velocity_loss_scale=loss_scales["velocity_loss_scale"],
+        wave_residual_loss_scale=loss_scales["wave_residual_loss_scale"],
+        thermal_residual_loss_scale=loss_scales["thermal_residual_loss_scale"],
         max_grad_norm=args.max_grad_norm,
         physics_mode=args.physics_mode,
         sample_limit=args.sample_limit,
@@ -70,6 +92,37 @@ def main() -> None:
     print("Metrics CSV:", artifacts.metrics_csv_path)
     print("Config:", artifacts.config_path)
     print("Scalers:", artifacts.scalers_path)
+
+
+def resolve_loss_scales(args: argparse.Namespace) -> dict[str, float]:
+    manual = {
+        "supervised_loss_scale": args.supervised_loss_scale,
+        "velocity_loss_scale": args.velocity_loss_scale,
+        "wave_residual_loss_scale": args.wave_residual_loss_scale,
+        "thermal_residual_loss_scale": args.thermal_residual_loss_scale,
+    }
+    report_values = load_loss_scales_from_report(args.loss_scale_report) if args.loss_scale_report else {}
+    resolved = {}
+    for key in manual:
+        candidate = manual[key]
+        if candidate is None:
+            candidate = report_values.get(key)
+        if candidate is None:
+            candidate = 1.0
+        resolved[key] = float(candidate)
+    return resolved
+
+
+def load_loss_scales_from_report(path_value: str) -> dict[str, float]:
+    path = Path(path_value).expanduser().resolve()
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    averages = payload.get("loss_averages", {})
+    return {
+        "supervised_loss_scale": float(averages.get("supervised_loss", 1.0)),
+        "velocity_loss_scale": float(averages.get("velocity_consistency_loss", 1.0)),
+        "wave_residual_loss_scale": float(averages.get("wave_residual_loss", 1.0)),
+        "thermal_residual_loss_scale": float(averages.get("thermal_residual_loss", 1.0)),
+    }
 
 
 if __name__ == "__main__":

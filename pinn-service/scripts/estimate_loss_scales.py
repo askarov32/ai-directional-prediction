@@ -102,6 +102,7 @@ def estimate_loss_scales(args: argparse.Namespace) -> dict:
             thermal_residual_weight=args.thermal_residual_weight,
             reference_temperature_k=args.reference_temperature_k,
             physics_mode=args.physics_mode,
+            loss_balance_mode="fixed",
         )
         del loss
         for key, value in metrics.items():

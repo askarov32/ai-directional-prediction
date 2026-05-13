@@ -34,6 +34,7 @@ INPUT_FEATURE_INDEXES = {
 
 
 PhysicsMode = Literal["coupled_thermoelastic", "simple_heat"]
+LossBalanceMode = Literal["fixed", "normalize"]
 
 
 def compute_hybrid_pinn_loss(
@@ -52,6 +53,11 @@ def compute_hybrid_pinn_loss(
     thermal_residual_weight: float,
     reference_temperature_k: float,
     physics_mode: PhysicsMode = "coupled_thermoelastic",
+    loss_balance_mode: LossBalanceMode = "fixed",
+    supervised_loss_scale: float = 1.0,
+    velocity_loss_scale: float = 1.0,
+    wave_residual_loss_scale: float = 1.0,
+    thermal_residual_loss_scale: float = 1.0,
 ) -> tuple[Tensor, dict[str, float]]:
     _validate_training_shapes(inputs_scaled, primary_targets_scaled, input_scaler_mean, input_scaler_std)
 
@@ -138,11 +144,23 @@ def compute_hybrid_pinn_loss(
         velocity_targets=velocity_targets,
     )
 
+    normalized_losses = _normalize_loss_components(
+        supervised_loss=supervised_loss,
+        velocity_consistency_loss=velocity_consistency_loss,
+        wave_residual_loss=wave_residual_loss,
+        thermal_residual_loss=thermal_residual_loss,
+        loss_balance_mode=loss_balance_mode,
+        supervised_loss_scale=supervised_loss_scale,
+        velocity_loss_scale=velocity_loss_scale,
+        wave_residual_loss_scale=wave_residual_loss_scale,
+        thermal_residual_loss_scale=thermal_residual_loss_scale,
+    )
+
     total_loss = (
-        supervised_weight * supervised_loss
-        + velocity_weight * velocity_consistency_loss
-        + wave_residual_weight * wave_residual_loss
-        + thermal_residual_weight * thermal_residual_loss
+        supervised_weight * normalized_losses["supervised_loss"]
+        + velocity_weight * normalized_losses["velocity_consistency_loss"]
+        + wave_residual_weight * normalized_losses["wave_residual_loss"]
+        + thermal_residual_weight * normalized_losses["thermal_residual_loss"]
     )
 
     metrics = {
@@ -150,6 +168,10 @@ def compute_hybrid_pinn_loss(
         "velocity_consistency_loss": float(velocity_consistency_loss.detach().cpu()),
         "wave_residual_loss": float(wave_residual_loss.detach().cpu()),
         "thermal_residual_loss": float(thermal_residual_loss.detach().cpu()),
+        "normalized_supervised_loss": float(normalized_losses["supervised_loss"].detach().cpu()),
+        "normalized_velocity_consistency_loss": float(normalized_losses["velocity_consistency_loss"].detach().cpu()),
+        "normalized_wave_residual_loss": float(normalized_losses["wave_residual_loss"].detach().cpu()),
+        "normalized_thermal_residual_loss": float(normalized_losses["thermal_residual_loss"].detach().cpu()),
         "total_loss": float(total_loss.detach().cpu()),
     }
     return total_loss, metrics
@@ -197,3 +219,38 @@ def _validate_training_shapes(
         raise ValueError("primary_targets_scaled must contain [T, u, v, w].")
     if input_scaler_mean.numel() < len(INPUT_FEATURE_INDEXES) or input_scaler_std.numel() < len(INPUT_FEATURE_INDEXES):
         raise ValueError("input scaler statistics must contain all 10 PINN input features.")
+
+
+def _normalize_loss_components(
+    *,
+    supervised_loss: Tensor,
+    velocity_consistency_loss: Tensor,
+    wave_residual_loss: Tensor,
+    thermal_residual_loss: Tensor,
+    loss_balance_mode: LossBalanceMode,
+    supervised_loss_scale: float,
+    velocity_loss_scale: float,
+    wave_residual_loss_scale: float,
+    thermal_residual_loss_scale: float,
+) -> dict[str, Tensor]:
+    components = {
+        "supervised_loss": supervised_loss,
+        "velocity_consistency_loss": velocity_consistency_loss,
+        "wave_residual_loss": wave_residual_loss,
+        "thermal_residual_loss": thermal_residual_loss,
+    }
+    if loss_balance_mode == "fixed":
+        return components
+    if loss_balance_mode != "normalize":
+        raise ValueError(f"Unsupported loss_balance_mode: {loss_balance_mode}")
+
+    return {
+        "supervised_loss": supervised_loss / _safe_scale(supervised_loss_scale),
+        "velocity_consistency_loss": velocity_consistency_loss / _safe_scale(velocity_loss_scale),
+        "wave_residual_loss": wave_residual_loss / _safe_scale(wave_residual_loss_scale),
+        "thermal_residual_loss": thermal_residual_loss / _safe_scale(thermal_residual_loss_scale),
+    }
+
+
+def _safe_scale(value: float) -> float:
+    return value if value > 1e-12 else 1.0

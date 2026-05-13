@@ -34,6 +34,10 @@ METRIC_FIELDS = [
     "velocity_consistency_loss",
     "wave_residual_loss",
     "thermal_residual_loss",
+    "normalized_supervised_loss",
+    "normalized_velocity_consistency_loss",
+    "normalized_wave_residual_loss",
+    "normalized_thermal_residual_loss",
     "total_loss",
 ]
 
@@ -78,6 +82,10 @@ def train_pinn(config: TrainingConfig) -> TrainingArtifacts:
             "velocity_consistency_loss": 0.0,
             "wave_residual_loss": 0.0,
             "thermal_residual_loss": 0.0,
+            "normalized_supervised_loss": 0.0,
+            "normalized_velocity_consistency_loss": 0.0,
+            "normalized_wave_residual_loss": 0.0,
+            "normalized_thermal_residual_loss": 0.0,
             "total_loss": 0.0,
             "grad_norm": 0.0,
         }
@@ -104,6 +112,11 @@ def train_pinn(config: TrainingConfig) -> TrainingArtifacts:
                 thermal_residual_weight=config.thermal_residual_weight,
                 reference_temperature_k=config.reference_temperature_k,
                 physics_mode=config.physics_mode,
+                loss_balance_mode=config.loss_balance_mode,
+                supervised_loss_scale=config.supervised_loss_scale,
+                velocity_loss_scale=config.velocity_loss_scale,
+                wave_residual_loss_scale=config.wave_residual_loss_scale,
+                thermal_residual_loss_scale=config.thermal_residual_loss_scale,
             )
             loss.backward()
             grad_norm = _clip_gradients(model, config.max_grad_norm)
