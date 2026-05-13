@@ -6,7 +6,8 @@ The project ships a full local stack:
 
 - `FastAPI` backend orchestrator
 - native `HTML/CSS/JavaScript` frontend
-- mock model services for `MeshGraphNet` and `FNO`
+- integrated `MeshGraphNet` service with demo fallback mode
+- mock model service for `FNO`
 - a dedicated checkpoint-based `PINN` service
 - `Docker Compose` startup for quick local demos
 
@@ -45,7 +46,8 @@ Main user flow:
 
 ### Model Services
 
-- lightweight FastAPI mock services for `MeshGraphNet` and `FNO`
+- integrated FastAPI `MeshGraphNet` service under `mgn-service`
+- lightweight FastAPI mock service for `FNO`
 - a checkpoint-based `PINN` inference service with readiness diagnostics
 - easy to replace each service host independently
 
@@ -134,6 +136,14 @@ For scientific scope and known limitations, see:
 │   ├── requirements.txt
 │   └── common
 │       └── predictor.py
+├── mgn-service
+│   ├── Dockerfile
+│   ├── README.md
+│   ├── configs
+│   ├── scripts
+│   └── src
+│       └── service
+│           └── api.py
 └── pinn-service
     ├── Dockerfile
     ├── README.md
@@ -168,7 +178,7 @@ Important variables:
 
 - `BACKEND_PORT`
 - `FRONTEND_PORT`
-- `MOCK_MESHGRAPHNET_PORT`
+- `MGN_SERVICE_PORT`
 - `MOCK_FNO_PORT`
 - `PINN_SERVICE_PORT`
 - `MODEL_MESHGRAPHNET_URL`
@@ -179,6 +189,10 @@ Important variables:
 - `MODEL_PINN_PREDICT_PATH`
 - `REMOTE_MODEL_TIMEOUT_SECONDS`
 - `CORS_ORIGINS`
+- `MGN_DATASET_ID`
+- `MGN_CHECKPOINT_PATH`
+- `MGN_DEVICE`
+- `MGN_ALLOW_FALLBACK`
 - `PINN_CHECKPOINT_PATH`
 - `PINN_DEVICE`
 - `PINN_TIME_SCALE`
@@ -187,7 +201,7 @@ Default Docker routing:
 
 - backend: `http://localhost:8000`
 - frontend: `http://localhost:8080`
-- mock MeshGraphNet: `http://localhost:9001`
+- MeshGraphNet service: `http://localhost:9001`
 - mock FNO: `http://localhost:9002`
 - pinn-service: `http://localhost:9003`
 
@@ -410,7 +424,7 @@ Example payload:
     "max_temperature_perturbation": 1.7
   },
   "meta": {
-    "model_version": "mock-meshgraphnet-v1",
+    "model_version": "mgn-service-fallback-v1",
     "latency_ms": 48,
     "request_id": "uuid"
   }
@@ -438,7 +452,7 @@ Internal payload representations:
 
 ## Replacing Mock Services With Real Models
 
-By default, Docker uses mock services for `MeshGraphNet` and `FNO`, and the built-in checkpoint-based `PINN` service.
+By default, Docker uses the integrated `mgn-service` for `MeshGraphNet`, a mock service for `FNO`, and the checkpoint-based `PINN` service. `mgn-service` can run in fallback mode when a real MeshGraphNet dataset/checkpoint is not available yet, so local demos still start cleanly.
 
 To switch to external model hosts:
 
@@ -460,6 +474,26 @@ MODEL_PINN_PREDICT_PATH=/your-endpoint
 ```
 
 No backend code changes are required for that swap.
+
+## MeshGraphNet Service
+
+The `MeshGraphNet` route is wired to `mgn-service`.
+
+That service:
+
+- exposes `GET /health`, `GET /ready`, and `POST /predict`;
+- can run a real rollout when `MGN_DATASET_ID` and `MGN_CHECKPOINT_PATH` point to prepared artifacts;
+- returns a valid fallback directional response when `MGN_ALLOW_FALLBACK=true` and artifacts are not present;
+- keeps the same backend-normalized response contract as other model routes.
+
+Useful variables:
+
+```bash
+MGN_DATASET_ID=sandstone_comsol_real
+MGN_CHECKPOINT_PATH=outputs/checkpoints/best_model.pt
+MGN_DEVICE=cuda
+MGN_ALLOW_FALLBACK=true
+```
 
 ## Running Backend Separately
 
@@ -612,7 +646,7 @@ The backend returns consistent JSON errors:
     "code": "MODEL_UNAVAILABLE",
     "message": "MeshGraphNet service is unavailable",
     "details": {
-      "url": "http://mock-meshgraphnet:9000/predict"
+      "url": "http://mgn-service:9000/predict"
     }
   }
 }

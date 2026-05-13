@@ -12,7 +12,7 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
       MEDIA_CATALOG_PATH: /app/data/media/catalog.json
       REMOTE_MODEL_TIMEOUT_SECONDS: ${REMOTE_MODEL_TIMEOUT_SECONDS:-12}
-      MODEL_MESHGRAPHNET_URL: ${MODEL_MESHGRAPHNET_URL:-http://mock-meshgraphnet:9000}
+      MODEL_MESHGRAPHNET_URL: ${MODEL_MESHGRAPHNET_URL:-http://mgn-service:9000}
       MODEL_FNO_URL: ${MODEL_FNO_URL:-http://mock-fno:9000}
       MODEL_PINN_URL: ${MODEL_PINN_URL:-http://pinn-service:9000}
       MODEL_MESHGRAPHNET_PREDICT_PATH: ${MODEL_MESHGRAPHNET_PREDICT_PATH:-/predict}
@@ -21,7 +21,7 @@ services:
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
-      mock-meshgraphnet:
+      mgn-service:
         condition: service_healthy
       mock-fno:
         condition: service_healthy
@@ -44,14 +44,23 @@ services:
       backend:
         condition: service_healthy
 
-  mock-meshgraphnet:
+  mgn-service:
     build:
-      context: ./mock-services
-    container_name: mock-meshgraphnet
+      context: ./mgn-service
+    container_name: mgn-service
     environment:
-      SERVICE_KIND: meshgraphnet
+      MGN_DATASET_ID: ${MGN_DATASET_ID:-sandstone_comsol_real}
+      MGN_CONFIG_PATH: ${MGN_CONFIG_PATH:-configs/inference.yaml}
+      MGN_CHECKPOINT_PATH: ${MGN_CHECKPOINT_PATH:-outputs/checkpoints/best_model.pt}
+      MGN_DEVICE: ${MGN_DEVICE:-cuda}
+      MGN_PREDICT_TIMEOUT_SECONDS: ${MGN_PREDICT_TIMEOUT_SECONDS:-600}
+      MGN_ROLLOUT_STEPS: ${MGN_ROLLOUT_STEPS:-5}
+      MGN_ALLOW_FALLBACK: ${MGN_ALLOW_FALLBACK:-true}
+    volumes:
+      - ./mgn-service/datasets:/app/datasets
+      - ./mgn-service/outputs:/app/outputs
     ports:
-      - "${MOCK_MESHGRAPHNET_PORT:-9001}:9000"
+      - "${MGN_SERVICE_PORT:-9001}:9000"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/ready')"]
       interval: 15s
@@ -80,7 +89,7 @@ services:
     container_name: pinn-service
     environment:
       PINN_CHECKPOINT_PATH: ${PINN_CHECKPOINT_PATH:-/app/artifacts/checkpoints/baseline}
-      PINN_DEVICE: ${PINN_DEVICE:-cpu}
+      PINN_DEVICE: ${PINN_DEVICE:-cuda}
       PINN_LOG_LEVEL: ${PINN_LOG_LEVEL:-INFO}
       PINN_SERVICE_PORT: 9000
       PINN_REFERENCE_TEMPERATURE_K: ${PINN_REFERENCE_TEMPERATURE_K:-293.15}

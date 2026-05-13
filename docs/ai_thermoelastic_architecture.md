@@ -8,13 +8,13 @@ The local Docker stack contains:
 
 - `frontend`: nginx-served vanilla HTML/CSS/JavaScript UI on `localhost:8080`
 - `backend`: FastAPI orchestration/API gateway on `localhost:8000`
-- `mock-meshgraphnet`: synthetic MeshGraphNet-compatible service on `localhost:9001`
+- `mgn-service`: MeshGraphNet-compatible service on `localhost:9001`
 - `mock-fno`: synthetic FNO-compatible service on `localhost:9002`
 - `pinn-service`: checkpoint-based PINN inference service on `localhost:9003`
 
 The frontend calls backend through nginx at `/api/v1`. The backend calls model services through Docker service names:
 
-- `http://mock-meshgraphnet:9000/predict`
+- `http://mgn-service:9000/predict`
 - `http://mock-fno:9000/predict`
 - `http://pinn-service:9000/predict`
 
@@ -171,14 +171,14 @@ curl -s http://localhost:8080/api/v1/models
 
 ## What Is Mock vs Real
 
-- MeshGraphNet is mocked by `mock-services`.
+- MeshGraphNet is served by `mgn-service`; it runs real rollout when artifacts are present and demo fallback when `MGN_ALLOW_FALLBACK=true`.
 - FNO is mocked by `mock-services`.
 - PINN uses a real PyTorch checkpoint when available.
 - The current PINN prediction is not a full real-time PDE solver; it is a hybrid neural + physics-informed + postprocessed MVP baseline.
 
 For a thesis/demo-safe statement, use:
 
-> The application demonstrates an extensible orchestration layer and a checkpoint-based PINN baseline for directional thermoelastic-wave prediction. MeshGraphNet and FNO services are currently represented by deterministic mock services unless replaced by real model hosts.
+> The application demonstrates an extensible orchestration layer for directional thermoelastic-wave prediction. MeshGraphNet is wired through a dedicated service with real-rollout support and demo fallback mode, FNO is currently represented by a deterministic mock service, and PINN uses a checkpoint-based baseline with readiness diagnostics.
 
 To add another model route, see [New Model Integration Guide](model_integration_guide.md).
 
