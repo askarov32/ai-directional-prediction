@@ -12,3 +12,5 @@ analytics/outputs/
 analytics/charts/
 .idea
 clean-data
+analytics
+pinn-service/artifacts
