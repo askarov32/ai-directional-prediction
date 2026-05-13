@@ -182,6 +182,8 @@ For a thesis/demo-safe statement, use:
 
 > The application demonstrates an extensible orchestration layer and a checkpoint-based PINN baseline for directional thermoelastic-wave prediction. MeshGraphNet, FNO, and Transformer services are currently represented by deterministic mock services unless replaced by real model hosts.
 
+To add another model route, see [New Model Integration Guide](model_integration_guide.md).
+
 ## Scientific Minimum Inputs
 
 Temperature alone is not enough for directional propagation. The current MVP uses:

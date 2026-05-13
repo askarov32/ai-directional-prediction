@@ -10,3 +10,5 @@ data
 pinn-service/artifacts/rod_experiments/
 analytics/outputs/
 analytics/charts/
+analytics
+pinn-service/artifacts
