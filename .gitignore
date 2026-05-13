@@ -12,3 +12,4 @@ analytics/outputs/
 analytics/charts/
 analytics
 pinn-service/artifacts
+*.pt

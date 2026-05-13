@@ -8,6 +8,10 @@ This folder contains the standalone PINN data, training, and inference stack:
 - a first hybrid PINN trainer that can produce a checkpoint from the prepared data
 - a FastAPI inference service that loads a real checkpoint when available
 
+For a Windows-specific copy-paste training flow, see:
+
+- [Windows PINN Training Guide](../docs/windows_pinn_training.md)
+
 ## Supported COMSOL exports
 
 The current pipeline expects the core COMSOL exports:
