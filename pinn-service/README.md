@@ -152,6 +152,42 @@ Artifacts:
 When `--val-dataset` is provided, `best_model.pth` is selected by `val_total_loss`. Without validation data, it falls back to training `total_loss`. `model.pth` always stores the final epoch state.
 `ReduceLROnPlateau` now tracks the same metric and lowers the learning rate when progress stalls. Early stopping uses that same target metric, so the checkpoint choice and stopping rule stay aligned.
 
+## Recommended Long Training Command
+
+For the current four-rock rod dataset, prefer the experiment runner. It uses the deterministic train/validation split, reads the initial loss-scale report, enables normalized loss balancing, writes checkpoints, and generates the HTML training report after training:
+
+```bash
+PYTHONPATH=pinn-service/src .venv-pinn/bin/python3 pinn-service/scripts/run_training_experiment.py \
+  --output-dir pinn-service/artifacts/checkpoints/rod_all_rocks_2000 \
+  --epochs 2000 \
+  --batch-size 8192 \
+  --validation-batch-size 8192 \
+  --device cuda
+```
+
+If CUDA is not available, use:
+
+```bash
+PYTHONPATH=pinn-service/src .venv-pinn/bin/python3 pinn-service/scripts/run_training_experiment.py \
+  --output-dir pinn-service/artifacts/checkpoints/rod_all_rocks_cpu \
+  --epochs 2000 \
+  --batch-size 2048 \
+  --validation-batch-size 2048 \
+  --device cpu
+```
+
+For a quick smoke check that does not touch the main checkpoint:
+
+```bash
+PYTHONPATH=pinn-service/src .venv-pinn/bin/python3 pinn-service/scripts/run_training_experiment.py \
+  --output-dir /tmp/pinn-training-smoke \
+  --epochs 1 \
+  --batch-size 64 \
+  --sample-limit 128 \
+  --validation-sample-limit 64 \
+  --device cpu
+```
+
 For a stronger reusable baseline, use the helper script:
 
 ```bash
