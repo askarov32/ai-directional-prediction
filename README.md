@@ -53,6 +53,7 @@ For scientific scope and known limitations, see:
 
 - [Model Card](docs/model_card.md)
 - [Demo Limitations](docs/demo_limitations.md)
+- [New Model Integration Guide](docs/model_integration_guide.md)
 - [Physics Theory Notes](physics-theory/README.md)
 
 ## Project Structure
