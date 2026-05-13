@@ -65,15 +65,36 @@ PYTHONPATH=pinn-service/src python3 -m pinn_service.cli \
   --build-training-matrix
 ```
 
-To build all four rod experiments from `~/Downloads`:
+To build all four rod experiments from the repository `data/` directory:
 
 ```bash
 PYTHONPATH=pinn-service/src python3 pinn-service/scripts/build_rod_experiments.py \
-  --raw-root ~/Downloads \
+  --raw-root data \
   --output-dir pinn-service/artifacts/rod_experiments
 ```
 
 This writes one processed folder per rock, a shared `manifest.json`, and a combined `training_samples_all_rocks.npz` for multi-medium PINN training.
+
+The current expected raw layout is:
+
+```text
+data/
+  granite/
+    data_materials.csv
+    data_temperature.csv
+    data_displacement.csv
+    data_stress_1.csv
+    data_stress_2.csv
+    data_stress_3.csv
+    data_strain.csv
+    granite_mesh.csv
+  limestone/
+    ...
+  sandstone/
+    ...
+  basalt/
+    ...
+```
 
 ## Training Readiness Reports
 
