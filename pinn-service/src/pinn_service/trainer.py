@@ -31,6 +31,7 @@ METRIC_FIELDS = [
     "epoch",
     "learning_rate",
     "grad_norm",
+    "epochs_without_improvement",
     "supervised_loss",
     "velocity_consistency_loss",
     "wave_residual_loss",
@@ -50,6 +51,7 @@ METRIC_FIELDS = [
     "val_normalized_thermal_residual_loss",
     "val_total_loss",
     "best_metric",
+    "best_so_far",
 ]
 
 
@@ -85,6 +87,7 @@ def train_pinn(config: TrainingConfig) -> TrainingArtifacts:
         lr=config.learning_rate,
         weight_decay=config.weight_decay,
     )
+    scheduler = _build_scheduler(optimizer, config)
 
     input_mean = torch.tensor(data.input_scaler.mean, dtype=torch.float32, device=device)
     input_std = torch.tensor(data.input_scaler.std, dtype=torch.float32, device=device)
@@ -101,6 +104,7 @@ def train_pinn(config: TrainingConfig) -> TrainingArtifacts:
     best_loss = float("inf")
     best_state: dict | None = None
     best_metric_name = "val_total_loss" if validation_loader else "total_loss"
+    epochs_without_improvement = 0
 
     for epoch in range(1, config.epochs + 1):
         model.train()
@@ -145,10 +149,10 @@ def train_pinn(config: TrainingConfig) -> TrainingArtifacts:
             )
             epoch_metrics.update(validation_metrics)
         epoch_metrics["best_metric"] = epoch_metrics[best_metric_name]
-        history.append(epoch_metrics)
-
-        if epoch_metrics[best_metric_name] < best_loss:
+        improved = epoch_metrics[best_metric_name] < (best_loss - config.early_stopping_min_delta)
+        if improved:
             best_loss = epoch_metrics[best_metric_name]
+            epochs_without_improvement = 0
             best_state = _snapshot_checkpoint_state(
                 model=model,
                 config=config,
@@ -157,6 +161,16 @@ def train_pinn(config: TrainingConfig) -> TrainingArtifacts:
                 best_metric_name=best_metric_name,
                 best_epoch=epoch,
             )
+        else:
+            epochs_without_improvement += 1
+        epoch_metrics["epochs_without_improvement"] = float(epochs_without_improvement)
+        epoch_metrics["best_so_far"] = float(best_loss)
+        history.append(epoch_metrics)
+
+        if scheduler is not None:
+            scheduler.step(epoch_metrics[best_metric_name])
+        if _should_stop_early(config, epochs_without_improvement):
+            break
 
     checkpoint_path = output_dir / "model.pth"
     best_checkpoint_path = output_dir / "best_model.pth"
@@ -168,7 +182,7 @@ def train_pinn(config: TrainingConfig) -> TrainingArtifacts:
         data=data,
         best_loss=history[-1]["total_loss"] if history else float("inf"),
         best_metric_name="total_loss",
-        best_epoch=config.epochs,
+        best_epoch=int(history[-1]["epoch"]) if history else config.epochs,
     )
     torch.save(latest_state, checkpoint_path)
     torch.save(best_state, best_checkpoint_path)
@@ -181,6 +195,8 @@ def train_pinn(config: TrainingConfig) -> TrainingArtifacts:
                 "best_loss": best_loss,
                 "best_metric": best_metric_name,
                 "validation_enabled": validation_loader is not None,
+                "stopped_early": _did_stop_early(config, history),
+                "completed_epochs": len(history),
             },
             indent=2,
         ),
@@ -329,6 +345,32 @@ def _snapshot_checkpoint_state(
 
 def _clone_state_dict(state_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
     return {key: value.detach().cpu().clone() for key, value in state_dict.items()}
+
+
+def _build_scheduler(optimizer: optim.Optimizer, config: TrainingConfig) -> optim.lr_scheduler.ReduceLROnPlateau | None:
+    if config.lr_scheduler_patience is None or config.lr_scheduler_patience <= 0:
+        return None
+    return optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        mode="min",
+        factor=config.lr_scheduler_factor,
+        patience=config.lr_scheduler_patience,
+        min_lr=config.min_learning_rate,
+    )
+
+
+def _should_stop_early(config: TrainingConfig, epochs_without_improvement: int) -> bool:
+    return bool(
+        config.early_stopping_patience is not None
+        and config.early_stopping_patience > 0
+        and epochs_without_improvement >= config.early_stopping_patience
+    )
+
+
+def _did_stop_early(config: TrainingConfig, history: list[dict[str, float]]) -> bool:
+    if not history:
+        return False
+    return _should_stop_early(config, int(history[-1].get("epochs_without_improvement", 0.0)))
 
 
 def _set_seed(seed: int) -> None:

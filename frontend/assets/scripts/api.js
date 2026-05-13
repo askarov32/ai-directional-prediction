@@ -1,5 +1,5 @@
 const DEFAULT_API_BASE_URL = window.location.protocol === "file:" ? "http://localhost:8000/api/v1" : "/api/v1";
-const REQUEST_TIMEOUT_MS = Number(window.THESIS_APP_CONFIG?.requestTimeoutMs || 15000);
+const REQUEST_TIMEOUT_MS = Number(window.THESIS_APP_CONFIG?.requestTimeoutMs || 600000);
 
 export const API_BASE_URL = normalizeBaseUrl(window.THESIS_APP_CONFIG?.apiBaseUrl || DEFAULT_API_BASE_URL);
 

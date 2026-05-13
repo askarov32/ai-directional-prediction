@@ -18,6 +18,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--batch-size", type=int, default=4096)
     parser.add_argument("--validation-batch-size", type=int, default=None)
     parser.add_argument("--learning-rate", type=float, default=1e-3)
+    parser.add_argument("--min-learning-rate", type=float, default=1e-6)
     parser.add_argument("--weight-decay", type=float, default=1e-6)
     parser.add_argument("--hidden-dim", type=int, default=192)
     parser.add_argument("--depth", type=int, default=6)
@@ -48,6 +49,10 @@ def build_parser() -> argparse.ArgumentParser:
         default=1.0,
         help="Clip gradients to this norm before optimizer step. Use 0 or a negative value to disable clipping.",
     )
+    parser.add_argument("--lr-scheduler-patience", type=int, default=25)
+    parser.add_argument("--lr-scheduler-factor", type=float, default=0.5)
+    parser.add_argument("--early-stopping-patience", type=int, default=None)
+    parser.add_argument("--early-stopping-min-delta", type=float, default=0.0)
     parser.add_argument(
         "--physics-mode",
         choices=("coupled_thermoelastic", "simple_heat"),
@@ -71,6 +76,7 @@ def main() -> None:
         batch_size=args.batch_size,
         validation_batch_size=args.validation_batch_size,
         learning_rate=args.learning_rate,
+        min_learning_rate=args.min_learning_rate,
         weight_decay=args.weight_decay,
         hidden_dim=args.hidden_dim,
         depth=args.depth,
@@ -86,6 +92,10 @@ def main() -> None:
         wave_residual_loss_scale=loss_scales["wave_residual_loss_scale"],
         thermal_residual_loss_scale=loss_scales["thermal_residual_loss_scale"],
         max_grad_norm=args.max_grad_norm,
+        lr_scheduler_patience=args.lr_scheduler_patience,
+        lr_scheduler_factor=args.lr_scheduler_factor,
+        early_stopping_patience=args.early_stopping_patience,
+        early_stopping_min_delta=args.early_stopping_min_delta,
         physics_mode=args.physics_mode,
         sample_limit=args.sample_limit,
         validation_sample_limit=args.validation_sample_limit,

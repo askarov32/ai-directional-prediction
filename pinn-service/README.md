@@ -133,6 +133,10 @@ PYTHONPATH=pinn-service/src python3 -m pinn_service.train \
   --loss-balance-mode normalize \
   --loss-scale-report pinn-service/artifacts/rod_experiments/reports/loss_scale_report.json \
   --max-grad-norm 1.0 \
+  --lr-scheduler-patience 20 \
+  --lr-scheduler-factor 0.5 \
+  --early-stopping-patience 60 \
+  --early-stopping-min-delta 1e-4 \
   --physics-mode coupled_thermoelastic
 ```
 
@@ -146,6 +150,7 @@ Artifacts:
 - `scalers.json`
 
 When `--val-dataset` is provided, `best_model.pth` is selected by `val_total_loss`. Without validation data, it falls back to training `total_loss`. `model.pth` always stores the final epoch state.
+`ReduceLROnPlateau` now tracks the same metric and lowers the learning rate when progress stalls. Early stopping uses that same target metric, so the checkpoint choice and stopping rule stay aligned.
 
 For a stronger reusable baseline, use the helper script:
 
@@ -166,6 +171,9 @@ Default baseline script settings:
 - `reference_temperature_k=293.15`
 - `loss_balance_mode=fixed`
 - `max_grad_norm=1.0`
+- `min_learning_rate=1e-6`
+- `lr_scheduler_patience=25`
+- `lr_scheduler_factor=0.5`
 - `physics_mode=coupled_thermoelastic`
 
 Override them with environment variables:
@@ -178,7 +186,9 @@ WAVE_RESIDUAL_WEIGHT=0.1 THERMAL_RESIDUAL_WEIGHT=0.05 \
 LOSS_BALANCE_MODE=normalize \
 LOSS_SCALE_REPORT=pinn-service/artifacts/rod_experiments/reports/loss_scale_report.json \
 REFERENCE_TEMPERATURE_K=293.15 PHYSICS_MODE=coupled_thermoelastic \
-MAX_GRAD_NORM=1.0 \
+MAX_GRAD_NORM=1.0 MIN_LEARNING_RATE=1e-6 \
+LR_SCHEDULER_PATIENCE=20 LR_SCHEDULER_FACTOR=0.5 \
+EARLY_STOPPING_PATIENCE=60 EARLY_STOPPING_MIN_DELTA=1e-4 \
 ./pinn-service/train_baseline.sh
 ```
 
@@ -198,9 +208,35 @@ PYTHONPATH=pinn-service/src python3 -m pinn_service.train \
   --thermal-residual-loss-scale 5.03e17
 ```
 
-`metrics.csv` is written next to `metrics.json` for quick plotting. It includes per-epoch raw losses (`supervised_loss`, `velocity_consistency_loss`, `wave_residual_loss`, `thermal_residual_loss`), normalized losses (`normalized_supervised_loss`, `normalized_velocity_consistency_loss`, `normalized_wave_residual_loss`, `normalized_thermal_residual_loss`), `total_loss`, `grad_norm`, and `learning_rate`. `max_grad_norm` clips gradients before the optimizer step; set it to `0` to disable clipping.
+`metrics.csv` is written next to `metrics.json` for quick plotting. It includes per-epoch raw losses (`supervised_loss`, `velocity_consistency_loss`, `wave_residual_loss`, `thermal_residual_loss`), normalized losses (`normalized_supervised_loss`, `normalized_velocity_consistency_loss`, `normalized_wave_residual_loss`, `normalized_thermal_residual_loss`), `total_loss`, `grad_norm`, `learning_rate`, `epochs_without_improvement`, and `best_so_far`. `max_grad_norm` clips gradients before the optimizer step; set it to `0` to disable clipping.
 
-With validation enabled, the CSV also includes `val_*` loss columns. Validation uses the training scalers, so it measures generalization on the same normalized feature space rather than fitting fresh statistics on the validation split.
+With validation enabled, the CSV also includes `val_*` loss columns. Validation uses the training scalers, so it measures generalization on the same normalized feature space rather than fitting fresh statistics on the validation split. `metrics.json` also records whether training stopped early and how many epochs actually completed.
+
+## Generate A Training Report
+
+After training finishes, generate a compact HTML report with SVG charts:
+
+```bash
+python3 pinn-service/scripts/generate_training_report.py \
+  --metrics-json pinn-service/artifacts/checkpoints/rod_all_rocks_baseline/metrics.json
+```
+
+Outputs are written by default to:
+
+```text
+pinn-service/artifacts/checkpoints/rod_all_rocks_baseline/report/
+```
+
+The report includes:
+
+- `training_report.html`
+- `training_report_summary.json`
+- `total_loss.svg`
+- `component_loss.svg`
+- `normalized_loss.svg`
+- `optimization.svg`
+
+The script works with older checkpoints that only contain `metrics.json` and with newer checkpoints that also include `metrics.csv`.
 
 ## Run The Inference Service
 

@@ -15,6 +15,7 @@ class TrainingConfig:
     batch_size: int = 4096
     validation_batch_size: int | None = None
     learning_rate: float = 1e-3
+    min_learning_rate: float = 1e-6
     weight_decay: float = 1e-6
     hidden_dim: int = 192
     depth: int = 6
@@ -31,6 +32,10 @@ class TrainingConfig:
     wave_residual_loss_scale: float = 1.0
     thermal_residual_loss_scale: float = 1.0
     max_grad_norm: float | None = 1.0
+    lr_scheduler_patience: int | None = 25
+    lr_scheduler_factor: float = 0.5
+    early_stopping_patience: int | None = None
+    early_stopping_min_delta: float = 0.0
     sample_limit: int | None = None
     validation_sample_limit: int | None = None
     seed: int = 42
