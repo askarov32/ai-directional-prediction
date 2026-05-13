@@ -9,3 +9,5 @@ pinn-service/artifacts/demo/*.npz
 data
 analytics
 pinn-service/artifacts
+.idea
+clean-data

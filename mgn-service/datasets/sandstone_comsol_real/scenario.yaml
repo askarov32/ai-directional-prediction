@@ -1,0 +1,50 @@
+dataset_id: sandstone_comsol_real
+rock_type: sandstone
+physics:
+  type: thermoelastic_wave
+  heat_transfer: true
+  solid_mechanics: true
+  thermal_expansion: true
+geometry:
+  mesh_file: ''
+  dimension: 3
+  graph_source: mesh
+scenario:
+  type: heated_rod
+  initial_temperature: 1500.015346198892
+  background_temperature: 293.15000000008246
+  source_center: &id001
+  - -8.417972685988352e-05
+  - -0.00020218792801965013
+  - 0.2500470107261406
+  source_radius: 0.2514264215738345
+material:
+  source: data_materials.csv
+  has_nodewise_materials: true
+  young_modulus: 33066624499.26207
+  poisson_ratio: 0.22665612481551758
+  density: 2737.244360109635
+  thermal_expansion: 1.0142631246046806e-05
+  thermal_conductivity: 6.650094876660343
+  heat_capacity: 770.1425258275353
+time:
+  start: 0.0
+  end: 0.01
+  step: 0.0001
+training:
+  target_mode: delta
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15
+boundary_conditions:
+  mechanical: unknown
+  thermal: unknown
+source:
+  type: heated_rod
+  initial_temperature: 1500.015346198892
+  background_temperature: 293.15000000008246
+  center: *id001
+  radius: 0.2514264215738345
+paths:
+  raw_dir: datasets/sandstone_comsol_real/raw
+  mesh_file: datasets/sandstone_comsol_real/raw/sandstone.mphtxt

@@ -17,6 +17,7 @@ from app.api.routes.models import router as models_router
 from app.api.routes.predictions import router as predictions_router
 from app.core.exceptions import AppError
 from app.core.logging import configure_logging
+from fastapi.encoders import jsonable_encoder
 
 
 @asynccontextmanager
@@ -86,9 +87,27 @@ async def app_error_handler(_: Request, exc: AppError) -> JSONResponse:
     )
 
 
+def make_json_safe(value):
+    if isinstance(value, dict):
+        return {str(k): make_json_safe(v) for k, v in value.items()}
+
+    if isinstance(value, list):
+        return [make_json_safe(v) for v in value]
+
+    if isinstance(value, tuple):
+        return [make_json_safe(v) for v in value]
+
+    if isinstance(value, Exception):
+        return str(value)
+
+    return value
+
+
 @app.exception_handler(RequestValidationError)
-async def request_validation_handler(_: Request, exc: RequestValidationError) -> JSONResponse:
-    errors = exc.errors()
+async def request_validation_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    raw_errors = exc.errors()
+    errors = make_json_safe(raw_errors)
+
     first_error = errors[0] if errors else {}
     location = ".".join(str(item) for item in first_error.get("loc", []))
     message = str(first_error.get("msg", "Request validation failed")).replace("Value error, ", "")
@@ -103,15 +122,21 @@ async def request_validation_handler(_: Request, exc: RequestValidationError) ->
     else:
         code = "VALIDATION_ERROR"
 
+    request_id = getattr(request.state, "request_id", None)
+
     return JSONResponse(
         status_code=422,
         content={
             "error": {
                 "code": code,
                 "message": message,
-                "details": {"errors": errors},
+                "details": {
+                    "errors": errors
+                },
+                "request_id": request_id,
             }
         },
+        headers={"X-Request-ID": request_id} if request_id else None,
     )
 
 
