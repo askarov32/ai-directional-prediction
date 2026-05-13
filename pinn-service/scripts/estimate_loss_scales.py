@@ -12,6 +12,15 @@ from pinn_service.model import MLP_PINN
 from pinn_service.training_data import PRIMARY_OUTPUT_NAMES, load_training_data
 
 
+LOSS_SCALE_KEYS = (
+    "supervised_loss",
+    "velocity_consistency_loss",
+    "wave_residual_loss",
+    "thermal_residual_loss",
+    "total_loss",
+)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Estimate initial PINN loss component scales on sampled training data.")
     parser.add_argument(
@@ -75,13 +84,7 @@ def estimate_loss_scales(args: argparse.Namespace) -> dict:
     output_mean = torch.tensor(data.output_scaler.mean, dtype=torch.float32, device=device)
     output_std = torch.tensor(data.output_scaler.std, dtype=torch.float32, device=device)
 
-    aggregates = {
-        "supervised_loss": 0.0,
-        "velocity_consistency_loss": 0.0,
-        "wave_residual_loss": 0.0,
-        "thermal_residual_loss": 0.0,
-        "total_loss": 0.0,
-    }
+    aggregates = {key: 0.0 for key in LOSS_SCALE_KEYS}
     batch_count = 0
 
     for inputs_scaled, primary_targets_scaled, velocity_targets in loader:
@@ -105,8 +108,8 @@ def estimate_loss_scales(args: argparse.Namespace) -> dict:
             loss_balance_mode="fixed",
         )
         del loss
-        for key, value in metrics.items():
-            aggregates[key] += value
+        for key in LOSS_SCALE_KEYS:
+            aggregates[key] += metrics[key]
         batch_count += 1
 
     averages = {key: value / max(batch_count, 1) for key, value in aggregates.items()}
