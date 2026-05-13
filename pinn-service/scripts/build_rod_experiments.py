@@ -10,16 +10,20 @@ from pinn_service.dataset_builder import DatasetArtifacts, build_dataset_from_ex
 
 
 ROD_EXPERIMENT_FOLDERS = {
-    "granite": "granite experiment rod",
-    "limestone": "limestone experiment rod",
-    "sandstone": "sandstone experiment ROD",
-    "basalt": "basalt experiment rod",
+    "granite": ["granite", "granite experiment rod"],
+    "limestone": ["limestone", "limestone experiment rod"],
+    "sandstone": ["sandstone", "sandstone experiment ROD"],
+    "basalt": ["basalt", "basalt experiment rod"],
 }
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Build PINN-ready rod experiment datasets for multiple rocks.")
-    parser.add_argument("--raw-root", default="~/Downloads", help="Directory containing the raw rock experiment folders.")
+    parser.add_argument(
+        "--raw-root",
+        default="data",
+        help="Directory containing the raw rock experiment folders, for example ./data/granite or older exports under ~/Downloads.",
+    )
     parser.add_argument(
         "--output-dir",
         default="pinn-service/artifacts/rod_experiments",
@@ -62,7 +66,7 @@ def main() -> None:
     built_experiments: list[dict[str, object]] = []
 
     for rock_id in args.rocks:
-        raw_dir = raw_root / ROD_EXPERIMENT_FOLDERS[rock_id]
+        raw_dir = _resolve_raw_dir(raw_root, rock_id)
         artifacts = _build_rock(
             rock_id=rock_id,
             raw_dir=raw_dir,
@@ -101,6 +105,15 @@ def main() -> None:
     manifest_path = output_root / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print("Manifest:", manifest_path)
+
+
+def _resolve_raw_dir(raw_root: Path, rock_id: str) -> Path:
+    candidates = [raw_root / folder_name for folder_name in ROD_EXPERIMENT_FOLDERS[rock_id]]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    expected = ", ".join(str(candidate) for candidate in candidates)
+    raise FileNotFoundError(f"Raw experiment directory for '{rock_id}' was not found. Checked: {expected}")
 
 
 def _build_rock(

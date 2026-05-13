@@ -8,6 +8,37 @@ It assumes:
 - you use `PowerShell`;
 - you want to train the four-rock PINN baseline from the prepared rod experiment dataset;
 - you prefer GPU training when CUDA is available.
+- your raw CSV files are stored under `data/granite`, `data/limestone`, `data/sandstone`, and `data/basalt`.
+
+## 0. Expected Raw Data Layout
+
+The project now expects the raw exports in the repository `data/` folder:
+
+```text
+data/
+  granite/
+    data_materials.csv
+    data_temperature.csv
+    data_displacement.csv
+    data_stress_1.csv
+    data_stress_2.csv
+    data_stress_3.csv
+    data_strain.csv
+    granite_mesh.csv
+  limestone/
+    ...
+  sandstone/
+    ...
+  basalt/
+    ...
+```
+
+If you need to rebuild the processed PINN datasets from these raw CSV files, run:
+
+```powershell
+$env:PYTHONPATH="pinn-service/src"
+python pinn-service/scripts/build_rod_experiments.py --raw-root data --output-dir pinn-service/artifacts/rod_experiments
+```
 
 Project recommendation:
 
