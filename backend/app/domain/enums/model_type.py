@@ -7,6 +7,7 @@ class ModelType(str, Enum):
     MESHGRAPHNET = "meshgraphnet"
     FNO = "fno"
     PINN = "pinn"
+    TRANSFORMER = "transformer"
 
     @property
     def label(self) -> str:
@@ -14,4 +15,5 @@ class ModelType(str, Enum):
             ModelType.MESHGRAPHNET: "MeshGraphNet",
             ModelType.FNO: "FNO",
             ModelType.PINN: "PINN",
+            ModelType.TRANSFORMER: "Transformer",
         }[self]

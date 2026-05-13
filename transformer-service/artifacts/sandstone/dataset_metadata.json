@@ -1,0 +1,42 @@
+{
+  "node_count": 4743,
+  "time_steps": 101,
+  "input_channels": 16,
+  "target_channels": 4,
+  "raw_node_counts": {
+    "materials": 4743,
+    "temperature": 4743,
+    "displacement": 4448,
+    "intersection": 4743
+  },
+  "n_pairs": 100,
+  "train_size": 80,
+  "val_size": 20,
+  "time_start": 0.0,
+  "time_end": 0.009999999776482582,
+  "time_step": 9.999999747378752e-05,
+  "input_channel_names": [
+    "x",
+    "y",
+    "z",
+    "temperature_k",
+    "disp_x",
+    "disp_y",
+    "disp_z",
+    "vel_x",
+    "vel_y",
+    "vel_z",
+    "youngs_modulus",
+    "poissons_ratio",
+    "density",
+    "thermal_expansion",
+    "thermal_conductivity",
+    "heat_capacity"
+  ],
+  "target_channel_names": [
+    "temperature_k",
+    "disp_x",
+    "disp_y",
+    "disp_z"
+  ]
+}
