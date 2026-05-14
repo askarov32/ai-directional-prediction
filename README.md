@@ -563,6 +563,18 @@ CUDA note:
 - set `FNO_DEVICE=cuda` on a machine with a CUDA-enabled PyTorch build;
 - if `cuda` is requested but unavailable, the current service falls back to CPU instead of crashing.
 
+To build a local demo baseline checkpoint and dataset in the default artifact paths:
+
+```bash
+./fno-service/train_baseline.sh
+```
+
+That helper:
+
+- converts the demo PINN structured dataset into a regular FNO grid under `fno-service/artifacts/datasets/sandstone_fno`;
+- trains a small `FNO2d` baseline;
+- writes `best_model.pth` under `fno-service/artifacts/checkpoints/baseline`.
+
 ## Running Backend Separately
 
 From the `backend` directory:

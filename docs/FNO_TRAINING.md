@@ -44,6 +44,25 @@ For the current `FNO2d` baseline, keep:
 
 ## Training Command
 
+One-command local baseline bootstrap:
+
+```bash
+./fno-service/train_baseline.sh
+```
+
+That helper prepares the default demo dataset and writes the default checkpoint expected by `fno-service`.
+
+Key environment overrides:
+
+```bash
+DEVICE=cuda
+EPOCHS=10
+BATCH_SIZE=4
+MAX_TIMESTEPS=128
+GRID_Y=32
+GRID_X=32
+```
+
 Minimal smoke training:
 
 ```bash
