@@ -337,6 +337,87 @@ def plot_basalt_vs_sandstone_displacement(plt, rows: list[dict[str, str]], outpu
     plt.close(fig)
 
 
+def plot_elevation_comparison(plt, rows: list[dict[str, str]], output_path: Path) -> None:
+    means = average_metric(rows, "elevation_deg", by="model")
+    if not means:
+        render_placeholder(plt, output_path, "Elevation comparison", "No elevation metrics were available.")
+        return
+    labels = list(means.keys())
+    values = [means[label] for label in labels]
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.bar(labels, values, color="#7C3AED")
+    ax.set_title("Mean elevation angle by model")
+    ax.set_ylabel("Elevation (deg)")
+    annotate_bars(ax, values)
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=180)
+    plt.close(fig)
+
+
+def plot_depth_sensitivity(plt, rows: list[dict[str, str]], output_path: Path) -> None:
+    grouped: dict[tuple[str, str], list[tuple[float, float]]] = defaultdict(list)
+    for row in rows:
+        probe_z = float_or_none(row.get("probe_z", ""))
+        travel_time = float_or_none(row.get("travel_time_ms_pred", ""))
+        if probe_z is not None and travel_time is not None:
+            grouped[(row["material"], row["model"])].append((probe_z, travel_time))
+    enough_variation = any(len({z for z, _ in points}) >= 2 for points in grouped.values())
+    if not enough_variation:
+        render_placeholder(
+            plt,
+            output_path,
+            "Depth sensitivity",
+            "Need at least two distinct probe_z values per model/material to show depth sensitivity.",
+        )
+        return
+    materials = sorted({material for material, _ in grouped})
+    fig, axes = plt.subplots(len(materials), 1, figsize=(12, 4.5 * len(materials)), squeeze=False)
+    for row_index, material in enumerate(materials):
+        ax = axes[row_index][0]
+        for _, model in sorted(key for key in grouped if key[0] == material):
+            points = sorted(grouped[(material, model)])
+            ax.plot(
+                [point[0] for point in points],
+                [point[1] for point in points],
+                marker="o",
+                label=model,
+            )
+        ax.set_title(f"{material}: travel time vs probe depth")
+        ax.set_xlabel("Probe z")
+        ax.set_ylabel("Predicted travel time (ms)")
+        ax.legend()
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=180)
+    plt.close(fig)
+
+
+def plot_domain_adaptation_summary(plt, rows: list[dict[str, str]], output_path: Path) -> None:
+    counts: dict[str, Counter[str]] = defaultdict(Counter)
+    for row in rows:
+        model = row.get("model", "")
+        adaptation = row.get("domain_adaptation", "") or "none"
+        if model:
+            counts[model][adaptation] += 1
+    if not counts:
+        render_placeholder(plt, output_path, "Domain adaptation summary", "No rows were available in summary.csv.")
+        return
+    labels = sorted(counts.keys())
+    adaptation_labels = sorted({adaptation for counter in counts.values() for adaptation in counter.keys()})
+    fig, ax = plt.subplots(figsize=(11, 5))
+    bottom = [0] * len(labels)
+    palette = ["#15803D", "#B45309", "#1D4ED8", "#B91C1C", "#7C3AED"]
+    for index, adaptation in enumerate(adaptation_labels):
+        values = [counts[label].get(adaptation, 0) for label in labels]
+        ax.bar(labels, values, bottom=bottom, label=adaptation, color=palette[index % len(palette)])
+        bottom = [current + delta for current, delta in zip(bottom, values)]
+    ax.set_title("Requested vs effective domain adaptation")
+    ax.set_ylabel("Case count")
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=180)
+    plt.close(fig)
+
+
 def plot_service_status_summary(plt, rows: list[dict[str, str]], output_path: Path) -> None:
     counts: dict[str, Counter[str]] = defaultdict(Counter)
     for row in rows:
@@ -432,13 +513,28 @@ def main() -> None:
         successful_rows,
         args.output_dir / "basalt_vs_sandstone_displacement.png",
     )
+    plot_elevation_comparison(
+        plt,
+        successful_rows,
+        args.output_dir / "elevation_comparison.png",
+    )
+    plot_depth_sensitivity(
+        plt,
+        successful_rows,
+        args.output_dir / "depth_sensitivity.png",
+    )
+    plot_domain_adaptation_summary(
+        plt,
+        rows,
+        args.output_dir / "domain_adaptation_summary.png",
+    )
     print(
         json.dumps(
             {
                 "status": "ok",
                 "input": str(args.input),
                 "output_dir": str(args.output_dir),
-                "chart_count": 9,
+                "chart_count": 12,
             },
             ensure_ascii=False,
             indent=2,

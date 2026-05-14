@@ -46,6 +46,29 @@ SERVICE_CONFIG: dict[str, dict[str, str]] = {
     },
 }
 
+MODEL_DOMAIN_POLICY: dict[str, dict[str, Any]] = {
+    "pinn": {
+        "supported_domain_types": ["rect_2d", "rect_3d"],
+        "default_domain_type": "rect_3d",
+        "allow_3d": True,
+    },
+    "mgn": {
+        "supported_domain_types": ["rect_2d", "rect_3d"],
+        "default_domain_type": "rect_3d",
+        "allow_3d": True,
+    },
+    "transformer": {
+        "supported_domain_types": ["rect_2d", "rect_3d"],
+        "default_domain_type": "rect_3d",
+        "allow_3d": True,
+    },
+    "fno": {
+        "supported_domain_types": ["rect_2d"],
+        "default_domain_type": "rect_2d",
+        "allow_3d": False,
+    },
+}
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -113,21 +136,52 @@ def resolve_media(catalog: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return {entry["id"]: entry for entry in catalog if isinstance(entry, dict) and "id" in entry}
 
 
-def build_payload(model: str, case: dict[str, Any], medium: dict[str, Any]) -> dict[str, Any]:
+def adapt_case_for_model(model: str, case: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    adapted_case = json.loads(json.dumps(case))
+    request_domain = adapted_case.get("input", {}).get("domain", {})
+    requested_domain_type = str(request_domain.get("type", "rect_2d"))
+    effective_domain_type = requested_domain_type
+    adaptation = "none"
+    policy = MODEL_DOMAIN_POLICY[model]
+
+    if requested_domain_type not in policy["supported_domain_types"]:
+        effective_domain_type = str(policy["default_domain_type"])
+        adaptation = f"{requested_domain_type}_to_{effective_domain_type}"
+        if effective_domain_type == "rect_2d":
+            adapted_case["input"]["domain"]["type"] = "rect_2d"
+            adapted_case["input"]["domain"]["size"]["lz"] = 0.0
+            adapted_case["input"]["domain"]["resolution"]["nz"] = 1
+            adapted_case["input"]["domain"]["boundary_conditions"]["front"] = None
+            adapted_case["input"]["domain"]["boundary_conditions"]["back"] = None
+            adapted_case["input"]["source"]["z"] = 0.0
+            adapted_case["input"]["probe"]["z"] = 0.0
+            if len(adapted_case["input"]["source"]["direction"]) == 3:
+                adapted_case["input"]["source"]["direction"][2] = 0.0
+
+    meta = {
+        "requested_domain_type": requested_domain_type,
+        "effective_domain_type": effective_domain_type,
+        "domain_adaptation": adaptation,
+    }
+    return adapted_case, meta
+
+
+def build_payload(model: str, case: dict[str, Any], medium: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    adapted_case, adaptation_meta = adapt_case_for_model(model, case)
     service = SERVICE_CONFIG[model]
     payload = {
         "medium": medium,
-        "scenario": case["input"]["scenario"],
-        "source": case["input"]["source"],
-        "probe": case["input"]["probe"],
-        "domain": case["input"]["domain"],
+        "scenario": adapted_case["input"]["scenario"],
+        "source": adapted_case["input"]["source"],
+        "probe": adapted_case["input"]["probe"],
+        "domain": adapted_case["input"]["domain"],
         "representation": service["representation"],
         "routing_hint": service["routing_hint"],
     }
     if model == "fno":
         payload["requested_outputs"] = ["direction", "field_summary"]
         payload["grid_policy"] = "service_default"
-    return payload
+    return payload, adaptation_meta
 
 
 def http_get_json(url: str, timeout_seconds: float) -> tuple[int | None, dict[str, Any] | None, str | None]:
@@ -213,6 +267,7 @@ def normalize_success(
     model: str,
     case: dict[str, Any],
     raw_response: dict[str, Any],
+    adaptation_meta: dict[str, Any],
 ) -> dict[str, Any]:
     if model == "fno":
         prediction = raw_response.get("prediction", {})
@@ -239,6 +294,9 @@ def normalize_success(
         "status": "ok",
         "service_mode": service_mode,
         "fallback_used": fallback_used,
+        "requested_domain_type": adaptation_meta["requested_domain_type"],
+        "effective_domain_type": adaptation_meta["effective_domain_type"],
+        "domain_adaptation": adaptation_meta["domain_adaptation"],
         "material": case["material"],
         "medium_id": case["medium_id"],
         "temperature_c": case["temperature_c"],
@@ -275,6 +333,7 @@ def normalize_error(
     http_status: int | None,
     body: dict[str, Any] | None,
     error_text: str | None,
+    adaptation_meta: dict[str, Any],
 ) -> dict[str, Any]:
     detail = body.get("detail") if isinstance(body, dict) else None
     if isinstance(detail, dict):
@@ -292,6 +351,9 @@ def normalize_error(
         "status": "error",
         "service_mode": "error",
         "fallback_used": False,
+        "requested_domain_type": adaptation_meta["requested_domain_type"],
+        "effective_domain_type": adaptation_meta["effective_domain_type"],
+        "domain_adaptation": adaptation_meta["domain_adaptation"],
         "material": case["material"],
         "medium_id": case["medium_id"],
         "temperature_c": case["temperature_c"],
@@ -342,6 +404,9 @@ def write_summary_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "status",
         "service_mode",
         "fallback_used",
+        "requested_domain_type",
+        "effective_domain_type",
+        "domain_adaptation",
         "material",
         "medium_id",
         "temperature_c",
@@ -442,18 +507,24 @@ def main() -> None:
                         http_status=None,
                         body={"code": "UNKNOWN_MEDIUM", "message": f"Medium not found: {medium_id}"},
                         error_text=None,
+                        adaptation_meta={
+                            "requested_domain_type": case.get("requested_domain_type", case.get("input", {}).get("domain", {}).get("type", "")),
+                            "effective_domain_type": case.get("requested_domain_type", case.get("input", {}).get("domain", {}).get("type", "")),
+                            "domain_adaptation": "none",
+                        },
                     )
                 )
             continue
 
         for model in args.models:
-            payload = build_payload(model, case, medium)
+            payload, adaptation_meta = build_payload(model, case, medium)
             predict_url = f"{urls[model]}/predict"
             raw_requests.append(
                 {
                     "case_id": case["case_id"],
                     "model": model,
                     "url": predict_url,
+                    "adaptation_meta": adaptation_meta,
                     "payload": payload,
                 }
             )
@@ -468,12 +539,18 @@ def main() -> None:
                     "model": model,
                     "url": predict_url,
                     "http_status": http_status,
+                    "adaptation_meta": adaptation_meta,
                     "response": body,
                     "error_text": error_text,
                 }
             )
             if http_status is not None and 200 <= http_status < 300 and isinstance(body, dict):
-                normalized = normalize_success(model=model, case=case, raw_response=body)
+                normalized = normalize_success(
+                    model=model,
+                    case=case,
+                    raw_response=body,
+                    adaptation_meta=adaptation_meta,
+                )
                 normalized["http_status"] = http_status
             else:
                 normalized = normalize_error(
@@ -482,6 +559,7 @@ def main() -> None:
                     http_status=http_status,
                     body=body,
                     error_text=error_text,
+                    adaptation_meta=adaptation_meta,
                 )
             summary_rows.append(normalized)
 

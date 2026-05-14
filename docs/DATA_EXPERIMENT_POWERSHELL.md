@@ -61,6 +61,8 @@ Default grid:
 - temperatures: `20, 80, 140, 220, 300`
 - pressures: `5, 35`
 - time points: `6, 12`
+- domain: `rect_3d`
+- nonzero `source.z` / `probe.z`
 
 That yields `40` cases by default.
 
@@ -144,6 +146,14 @@ Main files:
 - `summary.csv`
 - `summary.json`
 
+Important 3D fields in `summary.csv`:
+
+- `requested_domain_type`
+- `effective_domain_type`
+- `domain_adaptation`
+
+This lets you see which services ran true `3D` and which were adapted.
+
 ### Charts
 
 Charts are saved here:
@@ -160,6 +170,9 @@ Expected chart files:
 - `material_comparison_sandstone_vs_basalt.png`
 - `basalt_vs_sandstone_travel_time.png`
 - `basalt_vs_sandstone_displacement.png`
+- `elevation_comparison.png`
+- `depth_sensitivity.png`
+- `domain_adaptation_summary.png`
 - `model_disagreement.png`
 - `prediction_vs_time.png`
 - `service_status_summary.png`
