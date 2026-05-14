@@ -17,6 +17,7 @@ analytics/outputs/
 analytics/charts/
 analytics
 pinn-service/artifacts
+fno-service/artifacts
 *.pt
 .venv-pinn
 .idea
