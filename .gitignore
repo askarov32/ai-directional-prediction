@@ -7,6 +7,11 @@ __pycache__/
 .DS_Store
 pinn-service/artifacts/demo/*.npz
 data
+!fno-service/src/fno_service/data/
+!fno-service/src/fno_service/data/__init__.py
+!fno-service/src/fno_service/data/dataset.py
+!fno-service/src/fno_service/data/preprocessing.py
+!fno-service/src/fno_service/data/pinn_to_grid.py
 pinn-service/artifacts/rod_experiments/
 analytics/outputs/
 analytics/charts/
