@@ -8,6 +8,7 @@ class ModelType(str, Enum):
     FNO = "fno"
     TRANSFORMER = "transformer"
     PINN = "pinn"
+    TRANSFORMER = "transformer"
 
     @property
     def label(self) -> str:
@@ -16,4 +17,5 @@ class ModelType(str, Enum):
             ModelType.FNO: "FNO",
             ModelType.TRANSFORMER: "Transformer",
             ModelType.PINN: "PINN",
+            ModelType.TRANSFORMER: "Transformer",
         }[self]

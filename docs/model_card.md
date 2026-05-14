@@ -31,13 +31,14 @@ Do not use this MVP for:
 
 Current local implementation:
 
-- deterministic mock FastAPI service;
+- dedicated FastAPI `mgn-service`;
 - accepts graph-oriented payload shape;
-- returns synthetic, frontend-friendly values.
+- runs MeshGraphNet rollout when dataset/checkpoint artifacts are configured;
+- returns deterministic fallback values when `MGN_ALLOW_FALLBACK=true` and artifacts are missing.
 
 Expected future implementation:
 
-- graph/mesh neural operator over nodes, edges, material fields, source/probe geometry.
+- fully trained and independently validated graph/mesh neural operator over nodes, edges, material fields, source/probe geometry.
 
 ### FNO
 
@@ -140,7 +141,8 @@ Recommended next metrics:
 
 ## Known Limitations
 
-- MeshGraphNet, FNO, and Transformer are mocks in the default local stack.
+- MeshGraphNet can run in fallback mode if real artifacts are missing.
+- FNO is mocked in the default local stack.
 - PINN is a first baseline, not a complete coupled thermoelastic PDE solver.
 - Medium presets are starter values and should be replaced with validated references.
 - Current MVP is 2D-first in the UI, though the request shape supports 3D.
@@ -151,4 +153,4 @@ Recommended next metrics:
 
 Use this wording:
 
-> The MVP demonstrates a clean full-stack architecture for thermoelastic-wave direction prediction with model routing to MeshGraphNet, FNO, Transformer, and PINN services. MeshGraphNet, FNO, and Transformer are currently deterministic mock services, while PINN uses a real checkpoint-based baseline with readiness diagnostics. The current prediction output is suitable for architecture and thesis-demo illustration, not final scientific validation.
+> The MVP demonstrates a clean full-stack architecture for thermoelastic-wave direction prediction with model routing to MeshGraphNet, FNO, and PINN services. MeshGraphNet is wired through a dedicated service with real-rollout support and fallback mode, FNO is currently a deterministic mock service, and PINN uses a checkpoint-based baseline with readiness diagnostics. The current prediction output is suitable for architecture and thesis-demo illustration, not final scientific validation.

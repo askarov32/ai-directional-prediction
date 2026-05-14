@@ -1,0 +1,28 @@
+dataset_id: sandstone_thermoelastic_demo
+rock_type: sandstone
+physics:
+  type: thermoelastic_wave
+  heat_transfer: true
+  solid_mechanics: true
+  thermal_expansion: true
+material:
+  young_modulus: 3.0e10
+  poisson_ratio: 0.25
+  density: 2200
+  thermal_expansion: 8.0e-6
+  thermal_conductivity: 2.5
+  heat_capacity: 850
+source:
+  type: heated_rod
+  initial_temperature: 773.15
+  background_temperature: 293.15
+  center: [0.0, 0.0, 0.0]
+  radius: 0.01
+time:
+  start: 0.0
+  end: 0.01
+  step: 0.0001
+boundary_conditions:
+  mechanical: fixed_bottom
+  thermal: insulated_sides
+notes: Real COMSOL scenario metadata. Replace values with your exported simulation settings.

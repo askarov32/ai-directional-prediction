@@ -19,6 +19,6 @@ class TransformerClient(BaseModelClient):
 
     def build_payload(self, request: EnrichedPredictionRequest) -> dict[str, Any]:
         payload = request.to_shared_payload()
-        payload["representation"] = "sequence"
+        payload["representation"] = "tokenset"
         payload["routing_hint"] = "transformer"
         return payload

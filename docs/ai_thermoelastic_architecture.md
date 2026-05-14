@@ -8,13 +8,13 @@ The local Docker stack contains:
 
 - `frontend`: nginx-served vanilla HTML/CSS/JavaScript UI on `localhost:8080`
 - `backend`: FastAPI orchestration/API gateway on `localhost:8000`
-- `mock-meshgraphnet`: synthetic MeshGraphNet-compatible service on `localhost:9001`
+- `mgn-service`: MeshGraphNet-compatible service on `localhost:9001`
 - `mock-fno`: synthetic FNO-compatible service on `localhost:9002`
 - `pinn-service`: checkpoint-based PINN inference service on `localhost:9003`
 
 The frontend calls backend through nginx at `/api/v1`. The backend calls model services through Docker service names:
 
-- `http://mock-meshgraphnet:9000/predict`
+- `http://mgn-service:9000/predict`
 - `http://mock-fno:9000/predict`
 - `http://pinn-service:9000/predict`
 
@@ -172,7 +172,7 @@ curl -s http://localhost:8080/api/v1/models
 
 ## What Is Mock vs Real
 
-- MeshGraphNet is mocked by `mock-services`.
+- MeshGraphNet is served by `mgn-service`; it runs real rollout when artifacts are present and demo fallback when `MGN_ALLOW_FALLBACK=true`.
 - FNO is mocked by `mock-services`.
 - Transformer is mocked by `mock-services`.
 - PINN uses a real PyTorch checkpoint when available.

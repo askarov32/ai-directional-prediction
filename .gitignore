@@ -14,3 +14,8 @@ analytics
 pinn-service/artifacts
 *.pt
 .venv-pinn
+.idea
+clean-data
+.venv-transformer/
+transformer-service/artifacts/checkpoints/baseline/
+transformer-service/artifacts/checkpoints/_timing/
