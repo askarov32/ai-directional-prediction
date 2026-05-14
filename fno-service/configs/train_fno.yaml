@@ -4,3 +4,11 @@ device: cpu
 epochs: 1
 batch_size: 1
 learning_rate: 0.001
+weight_decay: 0.000001
+width: 32
+modes_x: 12
+modes_y: 12
+depth: 4
+val_fraction: 0.2
+sample_limit: null
+seed: 42

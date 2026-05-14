@@ -146,6 +146,24 @@ The fno-service now includes an FNO grid tensor loader and a fallback converter 
 The converter writes the same [T,C,Z,Y,X] layout used by mgn-service/src/data/universal_formatter.py.
 ```
 
+Phase 4 implementation note:
+
+```text
+The fno-service now includes SpectralConv2d and FNO2d with shape/finite-value tests.
+Native FNO3d remains out of scope until the 2D baseline is trained and validated.
+```
+
+Phase 5 implementation note:
+
+```text
+The fno-service now includes a minimal FNO2d training pipeline:
+- time-step dataset train/validation split;
+- MSE + relative-L2 objective;
+- metrics.json and metrics.csv;
+- model.pth and best_model.pth checkpoint writing;
+- train_fno.py CLI.
+```
+
 ## Transformer Note
 
 The repository currently contains:
