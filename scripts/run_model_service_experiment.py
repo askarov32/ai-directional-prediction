@@ -19,6 +19,20 @@ DEFAULT_INPUT = Path("artifacts/data_experiments/inputs/model_comparison_inputs.
 DEFAULT_OUTPUT_DIR = Path("artifacts/data_experiments/results")
 DEFAULT_CATALOG = Path("backend/data/media/catalog.json")
 
+
+def load_env_defaults(path: Path = Path(".env")) -> None:
+    if not path.exists():
+        return
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+load_env_defaults()
+
 SERVICE_CONFIG: dict[str, dict[str, str]] = {
     "pinn": {
         "local_url": f"http://localhost:{os.getenv('PINN_SERVICE_PORT', '9003')}",

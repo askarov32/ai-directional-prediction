@@ -25,6 +25,22 @@ MGN_TIMEOUT_SECONDS = int(os.getenv("MGN_PREDICT_TIMEOUT_SECONDS", "600"))
 MGN_ROLLOUT_STEPS = os.getenv("MGN_ROLLOUT_STEPS", "5")
 MGN_ALLOW_FALLBACK = os.getenv("MGN_ALLOW_FALLBACK", "true").lower() in {"1", "true", "yes", "on"}
 
+
+def resolve_checkpoint_path() -> Path:
+    configured_path = PROJECT_ROOT / MGN_CHECKPOINT_PATH
+    if configured_path.exists():
+        return configured_path
+
+    for candidate in (
+        PROJECT_ROOT / "outputs" / "checkpoints" / "best_model.pt",
+        PROJECT_ROOT / "outputs" / "checkpoints_finetuned" / "best_model.pt",
+    ):
+        if candidate.exists():
+            return candidate
+
+    return configured_path
+
+
 class PredictionPayload(BaseModel):
     medium: dict[str, Any]
     scenario: dict[str, Any]
@@ -51,7 +67,7 @@ async def health() -> dict[str, Any]:
 @app.get("/ready")
 async def ready() -> dict[str, Any]:
     dataset_dir = PROJECT_ROOT / "datasets" / MGN_DATASET_ID
-    checkpoint_path = PROJECT_ROOT / MGN_CHECKPOINT_PATH
+    checkpoint_path = resolve_checkpoint_path()
 
     dataset_exists = dataset_dir.exists()
     checkpoint_exists = checkpoint_path.exists()
@@ -64,6 +80,7 @@ async def ready() -> dict[str, Any]:
         "service": "meshgraphnet",
         "dataset_id": MGN_DATASET_ID,
         "dataset_dir": str(dataset_dir),
+        "configured_checkpoint": str(PROJECT_ROOT / MGN_CHECKPOINT_PATH),
         "checkpoint": str(checkpoint_path),
         "checkpoint_exists": checkpoint_exists,
         "dataset_exists": dataset_exists,
@@ -208,7 +225,7 @@ def enrich_response_from_summary(response: dict[str, Any]) -> dict[str, Any]:
 @app.post("/predict")
 async def predict(payload: PredictionPayload) -> dict[str, Any]:
     dataset_dir = PROJECT_ROOT / "datasets" / MGN_DATASET_ID
-    checkpoint_path = PROJECT_ROOT / MGN_CHECKPOINT_PATH
+    checkpoint_path = resolve_checkpoint_path()
 
     if not dataset_dir.exists():
         if MGN_ALLOW_FALLBACK:
@@ -235,6 +252,7 @@ async def predict(payload: PredictionPayload) -> dict[str, Any]:
             response["model_version"] = "mgn-service-fallback-v1"
             response["extra_metrics"] = {
                 "fallback_reason": "checkpoint_not_found",
+                "configured_path": str(PROJECT_ROOT / MGN_CHECKPOINT_PATH),
                 "expected_path": str(checkpoint_path),
             }
             return response
@@ -254,7 +272,7 @@ async def predict(payload: PredictionPayload) -> dict[str, Any]:
         "--dataset_id",
         MGN_DATASET_ID,
         "--checkpoint",
-        MGN_CHECKPOINT_PATH,
+        str(checkpoint_path.relative_to(PROJECT_ROOT)),
         "--rollout_steps",
         MGN_ROLLOUT_STEPS,
         "--no_animate",
