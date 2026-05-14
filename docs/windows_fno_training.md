@@ -95,7 +95,19 @@ If it prints `False`, do not start the longer GPU training command yet. Use CPU 
 
 ## 6. Prepare The FNO Dataset
 
-The current easiest path is to derive the FNO regular-grid dataset from the demo PINN structured dataset that already exists in the repository.
+The current easiest Windows path is to derive the FNO regular-grid dataset from an already built PINN `structured_dataset.npz` inside:
+
+```text
+pinn-service/artifacts/rod_experiments/<rock>/
+```
+
+First check which processed rocks already exist:
+
+```powershell
+Get-ChildItem pinn-service/artifacts/rod_experiments -Recurse -Filter structured_dataset.npz
+```
+
+Then choose one real existing path. For example, if `limestone` already exists, use it directly.
 
 This creates:
 
@@ -107,13 +119,15 @@ This creates:
 
 Command:
 
+Example for `limestone`:
+
 ```powershell
 $env:PYTHONPATH="fno-service/src"
 
 python fno-service/scripts/prepare_fno_dataset.py `
-  --pinn-structured pinn-service/artifacts/demo/structured_dataset.npz `
-  --pinn-metadata pinn-service/artifacts/demo/dataset_metadata.json `
-  --output-dir fno-service/artifacts/datasets/sandstone_fno `
+  --pinn-structured pinn-service/artifacts/rod_experiments/limestone/structured_dataset.npz `
+  --pinn-metadata pinn-service/artifacts/rod_experiments/limestone/dataset_metadata.json `
+  --output-dir fno-service/artifacts/datasets/limestone_fno `
   --grid-res 1 32 32 `
   --max-timesteps 64 `
   --validate
@@ -123,6 +137,7 @@ Important:
 
 - keep the first grid dimension as `1`, because the current baseline expects `Z=1`;
 - this is the current MVP path for `FNO2d`.
+- if you want another rock, replace `limestone` with the rock folder that actually exists on your machine.
 
 ## 7. Optional Dry Run
 
@@ -133,7 +148,7 @@ $env:PYTHONPATH="fno-service/src"
 
 python fno-service/scripts/train_fno.py `
   --config fno-service/configs/train_fno.yaml `
-  --dataset-path fno-service/artifacts/datasets/sandstone_fno `
+  --dataset-path fno-service/artifacts/datasets/limestone_fno `
   --output-dir "$env:TEMP\fno-dry-run" `
   --epochs 1 `
   --batch-size 1 `
@@ -156,7 +171,7 @@ $env:PYTHONPATH="fno-service/src"
 
 python fno-service/scripts/train_fno.py `
   --config fno-service/configs/train_fno.yaml `
-  --dataset-path fno-service/artifacts/datasets/sandstone_fno `
+  --dataset-path fno-service/artifacts/datasets/limestone_fno `
   --output-dir "$env:TEMP\fno-training-smoke" `
   --epochs 1 `
   --batch-size 1 `
@@ -178,7 +193,7 @@ $env:PYTHONPATH="fno-service/src"
 
 python fno-service/scripts/train_fno.py `
   --config fno-service/configs/train_fno.yaml `
-  --dataset-path fno-service/artifacts/datasets/sandstone_fno `
+  --dataset-path fno-service/artifacts/datasets/limestone_fno `
   --output-dir fno-service/artifacts/checkpoints/baseline `
   --epochs 20 `
   --batch-size 4 `
@@ -202,7 +217,7 @@ $env:PYTHONPATH="fno-service/src"
 
 python fno-service/scripts/train_fno.py `
   --config fno-service/configs/train_fno.yaml `
-  --dataset-path fno-service/artifacts/datasets/sandstone_fno `
+  --dataset-path fno-service/artifacts/datasets/limestone_fno `
   --output-dir fno-service/artifacts/checkpoints/baseline `
   --epochs 20 `
   --batch-size 2 `
@@ -228,7 +243,7 @@ $env:PYTHONPATH="fno-service/src"
 
 python fno-service/scripts/train_fno.py `
   --config fno-service/configs/train_fno.yaml `
-  --dataset-path fno-service/artifacts/datasets/sandstone_fno `
+  --dataset-path fno-service/artifacts/datasets/limestone_fno `
   --output-dir fno-service/artifacts/checkpoints/baseline_cpu `
   --epochs 10 `
   --batch-size 1 `
@@ -274,7 +289,7 @@ The default compose setup already points FNO to:
 
 ```text
 FNO_CHECKPOINT_PATH=/app/artifacts/checkpoints/baseline
-FNO_DATASET_PATH=/app/artifacts/datasets/sandstone_fno
+FNO_DATASET_PATH=/app/artifacts/datasets/limestone_fno
 ```
 
 So after training, restart the FNO service:
