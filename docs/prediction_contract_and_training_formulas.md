@@ -3,7 +3,7 @@
 This document collects two things in one place:
 
 - the exact unified prediction request contract used by the frontend and backend;
-- the current LaTeX formulas for the baseline PINN training objective.
+- the current coupled thermoelastic PINN training objective.
 
 ## 1. Unified Prediction Request Contract
 
@@ -27,7 +27,7 @@ Top-level fields:
 Allowed values:
 
 ```json
-"meshgraphnet" | "fno" | "pinn"
+"meshgraphnet" | "fno" | "transformer" | "pinn"
 ```
 
 ### `medium_id`
@@ -41,8 +41,9 @@ backend/data/media/catalog.json
 Examples:
 
 ```json
-"sandstone_medium"
 "granite"
+"limestone"
+"sandstone_medium"
 "basalt"
 ```
 
@@ -50,8 +51,8 @@ Examples:
 
 Fields:
 
-- `temperature_c`: `float`, range `[-273.15, 2000]`
-- `pressure_mpa`: `float`, range `(0, 5000]`
+- `temperature_c`: `float`, range is validated against the selected medium preset
+- `pressure_mpa`: `float`, range is validated against the selected medium preset
 - `time_ms`: `float`, range `(0, 60000]`
 
 ### `source`
@@ -167,6 +168,8 @@ Additional domain rules:
   }
 }
 ```
+
+The backend resolves `medium_id`, merges the selected rock preset into the request, validates scenario ranges, routes the payload to the selected model service, and normalizes the model response.
 
 ## 3. Example `curl` Request
 
@@ -355,27 +358,96 @@ Current primary network output:
 \hat{Y} = [\hat{T}, \hat{u}, \hat{v}, \hat{w}]
 ```
 
-The total loss is:
+The current implementation treats material parameters as locally homogeneous pointwise features. It does not take spatial derivatives of `E`, `nu`, `rho`, `alpha`, `k`, or `Cp`.
+
+### Lame parameters
 
 ```latex
-\mathcal{L}_{total}
+\mu = \frac{E}{2(1+\nu)}
+```
+
+```latex
+\lambda = \frac{E\nu}{(1+\nu)(1-2\nu)}
+```
+
+### Thermoelastic coupling
+
+```latex
+\gamma = (3\lambda + 2\mu)\alpha
+```
+
+### Small strain tensor
+
+```latex
+\varepsilon_{ij}
 =
-\lambda_{sup}\mathcal{L}_{sup}
+\frac{1}{2}
+\left(
+\frac{\partial u_i}{\partial x_j}
 +
-\lambda_{vel}\mathcal{L}_{vel}
-+
-\lambda_{temp}\mathcal{L}_{temp}
+\frac{\partial u_j}{\partial x_i}
+\right)
 ```
-
-Current default weights:
 
 ```latex
-\lambda_{sup}=1.0,\qquad
-\lambda_{vel}=0.25,\qquad
-\lambda_{temp}=0.05
+\varepsilon_{kk}
+=
+\frac{\partial u}{\partial x}
++
+\frac{\partial v}{\partial y}
++
+\frac{\partial w}{\partial z}
 ```
 
-Supervised field loss:
+### Thermoelastic stress
+
+```latex
+\sigma_{ij}
+=
+\lambda \delta_{ij}\varepsilon_{kk}
++
+2\mu\varepsilon_{ij}
+-
+\gamma \delta_{ij}(T - T_0)
+```
+
+### Elastic wave residual
+
+```latex
+R_i^{wave}
+=
+\rho
+\frac{\partial^2 u_i}{\partial t^2}
+-
+\frac{\partial \sigma_{ij}}{\partial x_j}
+```
+
+```latex
+\mathcal{L}_{wave}
+=
+\operatorname{mean}(R_u^2 + R_v^2 + R_w^2)
+```
+
+### Coupled thermal residual
+
+```latex
+R_T =
+\rho C_p
+\frac{\partial T}{\partial t}
+-
+k\nabla^2T
++
+\gamma T_0
+\frac{\partial \varepsilon_{kk}}{\partial t}
+```
+
+```latex
+\mathcal{L}_{temp}
+=
+\operatorname{mean}(R_T^2)
+```
+
+### Supervised field loss
 
 ```latex
 \mathcal{L}_{sup}
@@ -387,7 +459,7 @@ Supervised field loss:
 \right)
 ```
 
-Velocity-consistency loss:
+### Velocity-consistency loss
 
 ```latex
 \mathcal{L}_{vel}
@@ -403,67 +475,74 @@ Velocity-consistency loss:
 \right)
 ```
 
-Thermal diffusivity:
-
-```latex
-a = \frac{k}{\rho C_p}
-```
-
-Thermal residual:
-
-```latex
-R_T =
-\frac{\partial \hat{T}}{\partial t}
--
-a
-\left(
-\frac{\partial^2 \hat{T}}{\partial x^2}
-+
-\frac{\partial^2 \hat{T}}{\partial y^2}
-+
-\frac{\partial^2 \hat{T}}{\partial z^2}
-\right)
-```
-
-Thermal residual loss:
-
-```latex
-\mathcal{L}_{temp}
-=
-\operatorname{mean}(R_T^2)
-```
-
-## 7. Compact One-Line Formula
+### Total loss
 
 ```latex
 \mathcal{L}_{total}
 =
-1.0 \cdot \operatorname{MSE}([\hat{T},\hat{u},\hat{v},\hat{w}],[T,u,v,w])
+\lambda_{sup}\mathcal{L}_{sup}
 +
-0.25 \cdot \operatorname{MSE}
-\left(
-\left[
-\frac{\partial \hat{u}}{\partial t},
-\frac{\partial \hat{v}}{\partial t},
-\frac{\partial \hat{w}}{\partial t}
-\right],
-[u_t,v_t,w_t]
-\right)
+\lambda_{vel}\mathcal{L}_{vel}
 +
-0.05 \cdot \operatorname{mean}(R_T^2)
+\lambda_{wave}\mathcal{L}_{wave}
++
+\lambda_{temp}\mathcal{L}_{temp}
 ```
+
+Current default weights:
+
+```latex
+\lambda_{sup}=1.0,\qquad
+\lambda_{vel}=0.25,\qquad
+\lambda_{wave}=0.1,\qquad
+\lambda_{temp}=0.05
+```
+
+## 7. Scale Correction For Autograd Derivatives
+
+Inputs and outputs are standardized for neural network training, but PDE residuals are computed in physical units.
+
+For a standardized coordinate:
+
+```latex
+x_s = \frac{x - \mu_x}{\sigma_x}
+```
+
+the physical derivative is corrected as:
+
+```latex
+\frac{\partial}{\partial x}
+=
+\frac{1}{\sigma_x}
+\frac{\partial}{\partial x_s}
+```
+
+and:
+
+```latex
+\frac{\partial^2}{\partial x^2}
+=
+\frac{1}{\sigma_x^2}
+\frac{\partial^2}{\partial x_s^2}
+```
+
+The same correction is applied for `y`, `z`, and `t`.
 
 ## 8. Important Scientific Note
 
-These formulas describe the current baseline in this repository.
+These formulas describe the current coupled thermoelastic training baseline in this repository.
 
-This is not yet a full coupled thermoelastic PINN with:
+The current implementation includes:
 
-- elastic momentum residual;
-- stress-strain constitutive residual;
-- thermoelastic coupling term;
-- boundary-condition loss;
-- initial-condition loss;
-- collocation-point residual sampling.
+- supervised field fitting for temperature and displacement;
+- velocity-consistency loss;
+- elastic wave residual;
+- coupled thermal residual;
+- pointwise locally homogeneous material parameters.
 
-Those are the next scientific/modeling steps.
+The next scientific/modeling steps are:
+
+- explicit initial-condition loss;
+- explicit boundary-condition loss;
+- separate collocation-point residual sampling;
+- stronger nondimensionalization or adaptive loss weighting for residual balance.

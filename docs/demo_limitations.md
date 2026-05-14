@@ -46,7 +46,7 @@ You can claim:
 
 - the system supports a unified prediction request contract;
 - the backend resolves geological media from JSON presets;
-- the backend routes requests to MeshGraphNet, FNO, and PINN services;
+- the backend routes requests to MeshGraphNet, FNO, Transformer, and PINN services;
 - remote model responses are validated and normalized;
 - local Docker setup is one-command demo-ready;
 - MeshGraphNet route is wired to a dedicated service;

@@ -187,9 +187,9 @@ E = \mu \frac{3\lambda + 2\mu}{\lambda + \mu}
 
 ---
 
-## 4. Формулы, реально используемые в текущем MVP-коде
+## 4. Формулы, реально используемые в текущем PINN training
 
-Ниже не “идеальная теория”, а именно те выражения, которые реально участвуют в текущем `PINN` inference.
+Ниже описана текущая обучающая постановка `PINN`. Это уже не только простое уравнение теплопроводности: loss включает supervised part, velocity consistency, волновой residual и связанный термоупругий температурный residual.
 
 ### 4.1. Восстановление \(E\) и \(\nu\)
 
@@ -215,46 +215,118 @@ E = \mu \frac{3\lambda + 2\mu}{\lambda + \mu}
 
 ---
 
-### 4.2. Коэффициент температуропроводности
+### 4.2. Параметры Ламе и термоупругая связь
 
-В loss-функции используется:
+В training loss параметры Ламе вычисляются из \(E\) и \(\nu\):
 
 \[
-\alpha_T = \frac{k}{\rho C_p}
+\mu = \frac{E}{2(1+\nu)}
+\]
+
+\[
+\lambda = \frac{E\nu}{(1+\nu)(1-2\nu)}
+\]
+
+Коэффициент термоупругой связи:
+
+\[
+\gamma = (3\lambda + 2\mu)\alpha
+\]
+
+### 4.3. Тензор деформаций
+
+\[
+\varepsilon_{ij}
+=
+\frac{1}{2}
+\left(
+\frac{\partial u_i}{\partial x_j}
++
+\frac{\partial u_j}{\partial x_i}
+\right)
+\]
+
+Объемная деформация:
+
+\[
+\varepsilon_{kk}
+=
+\frac{\partial u}{\partial x}
++
+\frac{\partial v}{\partial y}
++
+\frac{\partial w}{\partial z}
+\]
+
+### 4.4. Тензор напряжений
+
+\[
+\sigma_{ij}
+=
+\lambda \delta_{ij}\varepsilon_{kk}
++
+2\mu\varepsilon_{ij}
+-
+\gamma \delta_{ij}(T - T_0)
 \]
 
 где:
 
-- \(k\) — теплопроводность;
-- \(\rho\) — плотность;
-- \(C_p\) — теплоемкость.
+- \(T_0\) — опорная температура, по умолчанию \(293.15 K\);
+- \(T - T_0\) — температурное отклонение, потому что текущий dataset хранит `temperature_k`.
 
 ---
 
-### 4.3. Тепловой residual в PINN
-
-В обучении используется residual:
+### 4.5. Волновой residual
 
 \[
-R_T = \frac{\partial T}{\partial t} - \alpha_T
+R_i^{wave}
+=
+\rho
+\frac{\partial^2 u_i}{\partial t^2}
+-
+\frac{\partial \sigma_{ij}}{\partial x_j}
+\]
+
+В 3D:
+
+\[
+\mathcal{L}_{wave}
+=
+\text{mean}(R_u^2 + R_v^2 + R_w^2)
+\]
+
+### 4.6. Связанный температурный residual
+
+\[
+R_T =
+\rho C_p
+\frac{\partial T}{\partial t}
+-
+k
 \left(
-\frac{\partial^2 T}{\partial x^2} +
-\frac{\partial^2 T}{\partial y^2} +
+\frac{\partial^2 T}{\partial x^2}
++
+\frac{\partial^2 T}{\partial y^2}
++
 \frac{\partial^2 T}{\partial z^2}
 \right)
++
+\gamma T_0
+\frac{\partial \varepsilon_{kk}}{\partial t}
 \]
 
-И соответствующая loss:
+Loss:
 
 \[
-\mathcal{L}_{thermal} = \text{mean}(R_T^2)
+\mathcal{L}_{temp} = \text{mean}(R_T^2)
 \]
 
-То есть модель штрафуется за нарушение уравнения теплопроводности.
+Старый residual \(T_t - \frac{k}{\rho C_p}\nabla^2T\) сохранен только как режим обратной совместимости `simple_heat`.
 
 ---
 
-### 4.4. Supervised loss
+### 4.7. Supervised loss
 
 Для основных выходов модели:
 
@@ -269,7 +341,7 @@ R_T = \frac{\partial T}{\partial t} - \alpha_T
 
 ---
 
-### 4.5. Согласование скоростей
+### 4.8. Согласование скоростей
 
 Скорости оцениваются как производные смещений по времени:
 
@@ -287,16 +359,31 @@ v_z = \frac{\partial w}{\partial t}
 
 ---
 
-### 4.6. Общая hybrid loss
+### 4.9. Общая hybrid loss
 
 \[
 \mathcal{L} =
 w_{sup}\mathcal{L}_{sup}
 + w_{vel}\mathcal{L}_{vel}
-+ w_{thermal}\mathcal{L}_{thermal}
++ w_{wave}\mathcal{L}_{wave}
++ w_{temp}\mathcal{L}_{temp}
 \]
 
-Это и есть текущая PINN-постановка в baseline training.
+Это текущая PINN-постановка в baseline training. Входные и выходные величины нормализуются, поэтому производные в PDE считаются с scale correction:
+
+\[
+\frac{\partial}{\partial x_{phys}}
+=
+\frac{1}{s_x}
+\frac{\partial}{\partial x_{scaled}}
+\]
+
+\[
+\frac{\partial^2}{\partial x_{phys}^2}
+=
+\frac{1}{s_x^2}
+\frac{\partial^2}{\partial x_{scaled}^2}
+\]
 
 ---
 

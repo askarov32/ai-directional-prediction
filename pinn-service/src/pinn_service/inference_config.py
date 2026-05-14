@@ -4,6 +4,8 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+import torch
+
 
 @dataclass(frozen=True)
 class InferenceConfig:
@@ -16,6 +18,11 @@ class InferenceConfig:
 
 
 def get_inference_config() -> InferenceConfig:
+    requested_device = os.getenv("PINN_DEVICE", "cpu")
+    resolved_device = requested_device
+    if requested_device.startswith("cuda") and not torch.cuda.is_available():
+        resolved_device = "cpu"
+
     return InferenceConfig(
         checkpoint_path=Path(
             os.getenv("PINN_CHECKPOINT_PATH", "/app/artifacts/checkpoints/baseline/model.pth")

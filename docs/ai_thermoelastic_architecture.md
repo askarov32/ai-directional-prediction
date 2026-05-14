@@ -85,7 +85,7 @@ POST /api/v1/predictions
 
 Top-level fields:
 
-- `model`: `meshgraphnet`, `fno`, or `pinn`
+- `model`: `meshgraphnet`, `fno`, `transformer`, or `pinn`
 - `medium_id`
 - `scenario`
 - `source`
@@ -130,10 +130,11 @@ The model-specific adapters currently set:
 
 ## PINN Implementation Notes
 
-The current PINN service is a pragmatic hybrid baseline:
+The current PINN service is a hybrid coupled thermoelastic baseline:
 
 - checkpoint model input features: `x, y, z, t, E, nu, rho, alpha, k, Cp`
 - neural outputs: `temperature_k`, `disp_x`, `disp_y`, `disp_z`
+- training loss: supervised field loss, velocity consistency, elastic wave residual, and coupled thermal residual
 - final API prediction: neural outputs plus geometry/material postprocessing
 
 The service returns extra diagnostics:
@@ -173,12 +174,13 @@ curl -s http://localhost:8080/api/v1/models
 
 - MeshGraphNet is served by `mgn-service`; it runs real rollout when artifacts are present and demo fallback when `MGN_ALLOW_FALLBACK=true`.
 - FNO is mocked by `mock-services`.
+- Transformer is mocked by `mock-services`.
 - PINN uses a real PyTorch checkpoint when available.
-- The current PINN prediction is not a full real-time PDE solver; it is a hybrid neural + physics-informed + postprocessed MVP baseline.
+- The current PINN prediction is not a full real-time PDE solver; it is a hybrid neural + coupled physics-informed + postprocessed MVP baseline.
 
 For a thesis/demo-safe statement, use:
 
-> The application demonstrates an extensible orchestration layer for directional thermoelastic-wave prediction. MeshGraphNet is wired through a dedicated service with real-rollout support and demo fallback mode, FNO is currently represented by a deterministic mock service, and PINN uses a checkpoint-based baseline with readiness diagnostics.
+> The application demonstrates an extensible orchestration layer and a checkpoint-based PINN baseline for directional thermoelastic-wave prediction. MeshGraphNet, FNO, and Transformer services are currently represented by deterministic mock services unless replaced by real model hosts.
 
 To add another model route, see [New Model Integration Guide](model_integration_guide.md).
 

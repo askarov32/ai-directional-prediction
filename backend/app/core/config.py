@@ -33,12 +33,12 @@ class Settings(BaseSettings):
     remote_model_timeout_seconds: float = Field(default=12.0, gt=0, le=120)
     model_meshgraphnet_url: str = "http://localhost:9001"
     model_fno_url: str = "http://localhost:9002"
-    model_pinn_url: str = "http://localhost:9003"
     model_transformer_url: str = "http://localhost:9004"
+    model_pinn_url: str = "http://localhost:9003"
     model_meshgraphnet_predict_path: str = "/predict"
     model_fno_predict_path: str = "/predict"
-    model_pinn_predict_path: str = "/predict"
     model_transformer_predict_path: str = "/predict"
+    model_pinn_predict_path: str = "/predict"
 
     @field_validator("log_level", mode="before")
     @classmethod
@@ -85,7 +85,7 @@ class Settings(BaseSettings):
                 raise ValueError("CORS_ORIGINS entries must be valid http(s) origins or '*'.")
         return value
 
-    @field_validator("model_meshgraphnet_url", "model_fno_url", "model_pinn_url")
+    @field_validator("model_meshgraphnet_url", "model_fno_url", "model_transformer_url", "model_pinn_url")
     @classmethod
     def validate_model_url(cls, value: str) -> str:
         parsed = urlparse(value)
@@ -96,6 +96,7 @@ class Settings(BaseSettings):
     @field_validator(
         "model_meshgraphnet_predict_path",
         "model_fno_predict_path",
+        "model_transformer_predict_path",
         "model_pinn_predict_path",
     )
     @classmethod

@@ -1,0 +1,21 @@
+{
+  "metrics_json_path": "/Users/askarovi/Documents/New project/pinn-service/artifacts/checkpoints/baseline/metrics.json",
+  "metrics_csv_path": null,
+  "epochs_recorded": 8,
+  "validation_enabled": false,
+  "stopped_early": false,
+  "completed_epochs": 8,
+  "best_metric_name": "total_loss",
+  "best_loss": 0.7398042201995849,
+  "initial_total_loss": 0.7978339473406474,
+  "final_total_loss": 0.7398042201995849,
+  "initial_val_total_loss": null,
+  "final_val_total_loss": null,
+  "initial_learning_rate": null,
+  "final_learning_rate": null,
+  "max_grad_norm": null,
+  "min_best_so_far": null,
+  "learning_rate_changed": false,
+  "epochs_without_improvement": 0,
+  "latest_epoch": 8
+}

@@ -18,14 +18,16 @@ services:
       MODEL_TRANSFORMER_URL: ${MODEL_TRANSFORMER_URL:-http://transformer-service:9000}
       MODEL_MESHGRAPHNET_PREDICT_PATH: ${MODEL_MESHGRAPHNET_PREDICT_PATH:-/predict}
       MODEL_FNO_PREDICT_PATH: ${MODEL_FNO_PREDICT_PATH:-/predict}
-      MODEL_PINN_PREDICT_PATH: ${MODEL_PINN_PREDICT_PATH:-/predict}
       MODEL_TRANSFORMER_PREDICT_PATH: ${MODEL_TRANSFORMER_PREDICT_PATH:-/predict}
+      MODEL_PINN_PREDICT_PATH: ${MODEL_PINN_PREDICT_PATH:-/predict}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
       mgn-service:
         condition: service_healthy
       mock-fno:
+        condition: service_healthy
+      mock-transformer:
         condition: service_healthy
       pinn-service:
         condition: service_healthy
@@ -80,6 +82,21 @@ services:
       SERVICE_KIND: fno
     ports:
       - "${MOCK_FNO_PORT:-9002}:9000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/ready')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  mock-transformer:
+    build:
+      context: ./mock-services
+    container_name: mock-transformer
+    environment:
+      SERVICE_KIND: transformer
+    ports:
+      - "${MOCK_TRANSFORMER_PORT:-9004}:9000"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/ready')"]
       interval: 15s
