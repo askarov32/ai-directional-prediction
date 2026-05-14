@@ -1,6 +1,6 @@
 import { ApiError, createPrediction, fetchMedia, fetchModels } from "./api.js";
 import { renderDomain } from "./charts.js";
-import { buildDemoPayload, fillForm, readPayloadFromForm } from "./form.js";
+import { applyModelDomainPolicy, buildDemoPayload, fillForm, readPayloadFromForm } from "./form.js";
 import { getState, setState, subscribe } from "./state.js";
 import { createUI } from "./ui.js";
 import { validatePayload } from "./validators.js";
@@ -16,9 +16,14 @@ function getModelById(modelId) {
 }
 
 function syncDraftFromForm() {
-  const draftRequest = readPayloadFromForm(ui.refs.form);
+  const rawDraftRequest = readPayloadFromForm(ui.refs.form);
+  const model = getModelById(rawDraftRequest.model);
+  const draftRequest = applyModelDomainPolicy(rawDraftRequest, model);
+  if (JSON.stringify(draftRequest) !== JSON.stringify(rawDraftRequest)) {
+    fillForm(ui.refs.form, draftRequest);
+  }
   const medium = getMediumById(draftRequest.medium_id);
-  const validationErrors = validatePayload(draftRequest, medium);
+  const validationErrors = validatePayload(draftRequest, medium, model);
 
   setState({
     draftRequest,
@@ -34,10 +39,11 @@ function hydrateFormWithDemo() {
   const state = getState();
   const selectedMediumId = state.selectedMediumId || state.media[0]?.id || "";
   const selectedModel =
-    state.selectedModel ||
-    state.models.find((model) => model.status === "configured")?.id ||
-    state.models[0]?.id ||
-    "meshgraphnet";
+    state.models.find((model) => model.id === state.selectedModel) ||
+    state.models.find((model) => model.status === "configured" && model.default_domain_type === "rect_3d") ||
+    state.models.find((model) => model.status === "configured") ||
+    state.models[0] ||
+    { id: "meshgraphnet", default_domain_type: "rect_3d", supported_domain_types: ["rect_2d", "rect_3d"] };
   const payload = buildDemoPayload(selectedMediumId, selectedModel);
   fillForm(ui.refs.form, payload);
   syncDraftFromForm();
@@ -45,7 +51,10 @@ function hydrateFormWithDemo() {
 
 function resetForm() {
   const state = getState();
-  const payload = buildDemoPayload(state.selectedMediumId || state.media[0]?.id || "", state.selectedModel || "meshgraphnet");
+  const selectedModel =
+    state.models.find((model) => model.id === state.selectedModel) ||
+    { id: state.selectedModel || "meshgraphnet" };
+  const payload = buildDemoPayload(state.selectedMediumId || state.media[0]?.id || "", selectedModel);
   fillForm(ui.refs.form, payload);
   setState({
     lastResponse: null,
@@ -87,7 +96,8 @@ async function handleSubmit(event) {
   event.preventDefault();
   const payload = syncDraftFromForm();
   const medium = getMediumById(payload.medium_id);
-  const validationErrors = validatePayload(payload, medium);
+  const model = getModelById(payload.model);
+  const validationErrors = validatePayload(payload, medium, model);
 
   if (Object.keys(validationErrors).length > 0) {
     setState({ validationErrors, error: null });
@@ -125,7 +135,11 @@ async function bootstrap() {
       media,
       models,
       selectedMediumId: media[0]?.id || "",
-      selectedModel: models.find((model) => model.status === "configured")?.id || models[0]?.id || "meshgraphnet",
+      selectedModel:
+        models.find((model) => model.status === "configured" && model.default_domain_type === "rect_3d")?.id ||
+        models.find((model) => model.status === "configured")?.id ||
+        models[0]?.id ||
+        "meshgraphnet",
     });
 
     hydrateFormWithDemo();

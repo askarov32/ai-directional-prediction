@@ -1,6 +1,7 @@
 """Dataset registry for multiple real COMSOL runs."""
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -43,16 +44,39 @@ def register_dataset(
     mesh_file: str | Path | None = None,
     registry_dir: str | Path = "datasets",
     scenario: Optional[Dict] = None,
+    *,
+    copy_raw_files: bool = False,
 ) -> Path:
     d = dataset_dir(dataset_id, registry_dir)
-    (d / "raw").mkdir(parents=True, exist_ok=True)
+    raw_target = d / "raw"
+    raw_target.mkdir(parents=True, exist_ok=True)
     (d / "processed").mkdir(parents=True, exist_ok=True)
     sc = merged_scenario(scenario or default_scenario(dataset_id), dataset_id)
     sc["dataset_id"] = dataset_id
-    sc.setdefault("paths", {})["raw_dir"] = str(Path(raw_dir))
+    raw_source = Path(raw_dir)
+    if copy_raw_files:
+        if not raw_source.exists() or not raw_source.is_dir():
+            raise FileNotFoundError(f"Raw directory not found: {raw_source}")
+        for item in sorted(raw_source.iterdir()):
+            if not item.is_file():
+                continue
+            shutil.copy2(item, raw_target / item.name)
+        sc.setdefault("paths", {})["raw_dir"] = "raw"
+    else:
+        sc.setdefault("paths", {})["raw_dir"] = str(raw_source)
     if mesh_file:
-        sc["paths"]["mesh_file"] = str(Path(mesh_file))
-        sc.setdefault("geometry", {})["mesh_file"] = Path(mesh_file).name
+        mesh_path = Path(mesh_file)
+        if copy_raw_files:
+            if not mesh_path.exists() or not mesh_path.is_file():
+                raise FileNotFoundError(f"Mesh file not found: {mesh_path}")
+            copied_mesh = raw_target / mesh_path.name
+            if copied_mesh.resolve() != mesh_path.resolve():
+                shutil.copy2(mesh_path, copied_mesh)
+            sc["paths"]["mesh_file"] = f"raw/{mesh_path.name}"
+            sc.setdefault("geometry", {})["mesh_file"] = mesh_path.name
+        else:
+            sc["paths"]["mesh_file"] = str(mesh_path)
+            sc.setdefault("geometry", {})["mesh_file"] = mesh_path.name
     save_yaml(sc, d / "scenario.yaml")
     return d
 
