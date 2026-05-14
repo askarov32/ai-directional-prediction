@@ -60,6 +60,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--sample-limit", type=int, default=None)
     parser.add_argument("--validation-sample-limit", type=int, default=None)
+    parser.add_argument("--progress-interval-batches", type=int, default=10)
     parser.add_argument("--seed", type=int, default=42)
     return parser
 
@@ -99,6 +100,7 @@ def main() -> None:
         physics_mode=args.physics_mode,
         sample_limit=args.sample_limit,
         validation_sample_limit=args.validation_sample_limit,
+        progress_interval_batches=args.progress_interval_batches,
         seed=args.seed,
     )
     artifacts = train_pinn(config)

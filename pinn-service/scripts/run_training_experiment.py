@@ -53,6 +53,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--early-stopping-min-delta", type=float, default=0.0)
     parser.add_argument("--sample-limit", type=int, default=None)
     parser.add_argument("--validation-sample-limit", type=int, default=None)
+    parser.add_argument("--progress-interval-batches", type=int, default=10)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
         "--skip-report",
@@ -108,6 +109,7 @@ def main() -> None:
         physics_mode="coupled_thermoelastic",
         sample_limit=args.sample_limit,
         validation_sample_limit=args.validation_sample_limit,
+        progress_interval_batches=args.progress_interval_batches,
         seed=args.seed,
     )
 

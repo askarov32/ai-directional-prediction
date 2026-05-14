@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import json
 import random
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -69,6 +70,16 @@ def train_pinn(config: TrainingConfig) -> TrainingArtifacts:
         if validation_data
         else None
     )
+    print(
+        (
+            f"Training PINN on device={config.device} | "
+            f"train_rows={len(data.inputs_scaled)} | "
+            f"val_rows={len(validation_data.inputs_scaled) if validation_data else 0} | "
+            f"train_batches={len(loader)} | "
+            f"val_batches={len(validation_loader) if validation_loader else 0}"
+        ),
+        flush=True,
+    )
 
     output_dir = config.output_dir.expanduser().resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -107,12 +118,14 @@ def train_pinn(config: TrainingConfig) -> TrainingArtifacts:
     epochs_without_improvement = 0
 
     for epoch in range(1, config.epochs + 1):
+        epoch_started_at = time.perf_counter()
         model.train()
         aggregates = _empty_loss_aggregates()
         aggregates["grad_norm"] = 0.0
         batch_count = 0
+        print(f"[epoch {epoch}/{config.epochs}] train start", flush=True)
 
-        for inputs_scaled, primary_targets_scaled, velocity_targets in loader:
+        for batch_index, (inputs_scaled, primary_targets_scaled, velocity_targets) in enumerate(loader, start=1):
             inputs_scaled = inputs_scaled.to(device)
             primary_targets_scaled = primary_targets_scaled.to(device)
             velocity_targets = velocity_targets.to(device)
@@ -134,11 +147,24 @@ def train_pinn(config: TrainingConfig) -> TrainingArtifacts:
                 aggregates[key] += value
             aggregates["grad_norm"] += grad_norm
             batch_count += 1
+            if _should_report_batch_progress(config, batch_index, len(loader)):
+                running_total_loss = aggregates["total_loss"] / max(batch_count, 1)
+                elapsed = time.perf_counter() - epoch_started_at
+                print(
+                    (
+                        f"[epoch {epoch}/{config.epochs}] "
+                        f"batch {batch_index}/{len(loader)} | "
+                        f"avg_total_loss={running_total_loss:.6g} | "
+                        f"elapsed={elapsed:.1f}s"
+                    ),
+                    flush=True,
+                )
 
         epoch_metrics = {key: value / max(batch_count, 1) for key, value in aggregates.items()}
         epoch_metrics["epoch"] = float(epoch)
         epoch_metrics["learning_rate"] = float(optimizer.param_groups[0]["lr"])
         if validation_loader:
+            print(f"[epoch {epoch}/{config.epochs}] validation start", flush=True)
             validation_metrics = evaluate_loss(
                 model=model,
                 loader=validation_loader,
@@ -166,10 +192,28 @@ def train_pinn(config: TrainingConfig) -> TrainingArtifacts:
         epoch_metrics["epochs_without_improvement"] = float(epochs_without_improvement)
         epoch_metrics["best_so_far"] = float(best_loss)
         history.append(epoch_metrics)
+        epoch_elapsed = time.perf_counter() - epoch_started_at
+        val_total_loss = epoch_metrics.get("val_total_loss")
+        val_suffix = f" | val_total_loss={val_total_loss:.6g}" if val_total_loss is not None else ""
+        print(
+            (
+                f"[epoch {epoch}/{config.epochs}] done | "
+                f"train_total_loss={epoch_metrics['total_loss']:.6g}"
+                f"{val_suffix} | "
+                f"best_metric={epoch_metrics['best_metric']:.6g} | "
+                f"lr={epoch_metrics['learning_rate']:.3g} | "
+                f"elapsed={epoch_elapsed:.1f}s"
+            ),
+            flush=True,
+        )
 
         if scheduler is not None:
             scheduler.step(epoch_metrics[best_metric_name])
         if _should_stop_early(config, epochs_without_improvement):
+            print(
+                f"Early stopping triggered after epoch {epoch} with patience={config.early_stopping_patience}.",
+                flush=True,
+            )
             break
 
     checkpoint_path = output_dir / "model.pth"
@@ -393,6 +437,11 @@ def _clip_gradients(model: torch.nn.Module, max_grad_norm: float | None) -> floa
     for parameter in parameters:
         total = total + parameter.grad.detach().pow(2).sum()
     return float(torch.sqrt(total).cpu())
+
+
+def _should_report_batch_progress(config: TrainingConfig, batch_index: int, total_batches: int) -> bool:
+    interval = max(int(config.progress_interval_batches), 1)
+    return batch_index == 1 or batch_index == total_batches or batch_index % interval == 0
 
 
 def _write_metrics_csv(path: Path, history: list[dict[str, float]]) -> None:

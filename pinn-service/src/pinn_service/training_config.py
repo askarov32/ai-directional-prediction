@@ -38,6 +38,7 @@ class TrainingConfig:
     early_stopping_min_delta: float = 0.0
     sample_limit: int | None = None
     validation_sample_limit: int | None = None
+    progress_interval_batches: int = 10
     seed: int = 42
 
     def to_dict(self) -> dict:
