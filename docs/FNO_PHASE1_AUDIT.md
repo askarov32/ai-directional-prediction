@@ -164,6 +164,14 @@ The fno-service now includes a minimal FNO2d training pipeline:
 - train_fno.py CLI.
 ```
 
+Phase 6 implementation note:
+
+```text
+The fno-service now loads a trained checkpoint for /ready and /predict.
+Inference combines the request scenario with the local FNO grid dataset, runs FNO2d,
+and returns backend-compatible prediction + field_summary payloads.
+```
+
 ## Transformer Note
 
 The repository currently contains:

@@ -7,6 +7,8 @@ from fastapi.testclient import TestClient
 from fno_service.api.main import create_app
 from fno_service.utils.config import FNOServiceConfig
 
+from .helpers import train_tiny_fno_checkpoint, write_tiny_2d_fno_dataset
+
 
 def make_client(tmp_path: Path, *, allow_fallback: bool = False) -> TestClient:
     config = FNOServiceConfig(
@@ -97,3 +99,28 @@ def test_fallback_predict_returns_backend_compatible_payload(tmp_path: Path) -> 
     assert payload["prediction"]["wave_type"] == "fno_skeleton_fallback"
     assert payload["field_summary"]["max_displacement"] > 0
     assert payload["model_version"] == "fno-skeleton-fallback-v0"
+
+
+def test_checkpoint_predict_returns_real_inference_payload(tmp_path: Path) -> None:
+    dataset_dir = write_tiny_2d_fno_dataset(tmp_path / "dataset")
+    checkpoint_path = train_tiny_fno_checkpoint(dataset_dir, tmp_path / "checkpoint")
+    config = FNOServiceConfig(
+        checkpoint_path=checkpoint_path,
+        config_path=tmp_path / "inference.yaml",
+        dataset_path=dataset_dir,
+        device="cpu",
+        log_level="INFO",
+        service_port=9000,
+        allow_fallback=False,
+    )
+    client = TestClient(create_app(config))
+
+    ready = client.get("/ready")
+    response = client.post("/predict", json=sample_payload())
+
+    assert ready.status_code == 200
+    assert ready.json()["mode"] == "checkpoint"
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["prediction"]["wave_type"] == "fno_checkpoint_inference"
+    assert payload["model_version"].startswith("fno-baseline@")

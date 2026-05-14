@@ -4,7 +4,13 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from fno_service.api.schemas import PredictionPayload
-from fno_service.inference.predictor import CheckpointNotReadyError, FNOInferenceService
+from fno_service.inference.predictor import (
+    CheckpointNotReadyError,
+    FNOInferenceService,
+    ModelLoadError,
+    NonFiniteModelOutputError,
+    UnsupportedDomainError,
+)
 
 
 router = APIRouter()
@@ -34,6 +40,30 @@ async def predict(request: Request, payload: PredictionPayload) -> dict:
             status_code=503,
             detail={
                 "code": "CHECKPOINT_NOT_READY",
+                "message": str(exc),
+            },
+        ) from exc
+    except UnsupportedDomainError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "UNSUPPORTED_DOMAIN",
+                "message": str(exc),
+            },
+        ) from exc
+    except NonFiniteModelOutputError as exc:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": "NON_FINITE_MODEL_OUTPUT",
+                "message": str(exc),
+            },
+        ) from exc
+    except ModelLoadError as exc:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": "MODEL_LOAD_FAILED",
                 "message": str(exc),
             },
         ) from exc

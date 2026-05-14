@@ -25,11 +25,14 @@ Implemented now:
 - train/validation split over time-step pairs;
 - checkpoint, metrics, and channel metadata artifacts;
 - `scripts/train_fno.py` CLI.
+- checkpoint-based FNO inference using local dataset conditioning;
+- backend-compatible `/predict` response from a trained `best_model.pth` or `model.pth`.
 
 Not implemented yet:
 
-- checkpoint loading;
 - field inference.
+- standalone evaluation CLI;
+- dedicated `run_inference.py` helper script.
 
 ## Runtime
 
@@ -48,7 +51,9 @@ FNO_LOG_LEVEL=INFO
 FNO_ALLOW_FALLBACK=false
 ```
 
-If `FNO_ALLOW_FALLBACK=true`, `/ready` can report ready and `/predict` returns a deterministic placeholder response. This is only for local stack wiring while the real FNO model is not implemented yet.
+If `FNO_ALLOW_FALLBACK=true`, `/ready` can report ready and `/predict` returns a deterministic placeholder response when no checkpoint is available. This is only for local stack wiring and quick demos.
+
+If a checkpoint directory contains `best_model.pth` or `model.pth`, the service now loads it and runs real `FNO2d` inference. The request itself is still lightweight: the backend sends medium/scenario/source/probe/domain, and the FNO service combines that request with its local grid dataset to build the model input.
 
 ## Dataset Preparation
 
@@ -168,4 +173,26 @@ Current targets are:
 
 ```text
 temperature_k, disp_x, disp_y, disp_z
+```
+
+## Inference
+
+Current inference path:
+
+```text
+backend request
+  -> POST /predict on fno-service
+  -> load checkpoint + local FNO grid dataset
+  -> build conditioned input tensor
+  -> run FNO2d
+  -> summarize direction/travel time/field metrics
+```
+
+Current limitations:
+
+```text
+- supports rect_2d only;
+- requires FNO grid data with Z=1;
+- uses local dataset conditioning instead of sending full grids through the backend;
+- intended as an MVP baseline, not a final validated scientific model.
 ```
