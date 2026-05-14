@@ -76,7 +76,15 @@ class FNOInferenceService:
     def predict(self, payload: PredictionPayload) -> dict[str, Any]:
         checkpoint = self._resolve_checkpoint_path()
         if checkpoint and checkpoint.exists():
-            runtime = self._get_runtime()
+            try:
+                runtime = self._get_runtime()
+            except Exception as exc:  # noqa: BLE001
+                if self.config.allow_fallback:
+                    response = self._fallback_prediction(payload)
+                    response["diagnostics"]["checkpoint_runtime_error"] = str(exc)
+                    response["diagnostics"]["mode"] = "fallback"
+                    return response
+                raise
             return self._checkpoint_prediction(payload, runtime)
         if self.config.allow_fallback:
             return self._fallback_prediction(payload)
@@ -90,7 +98,15 @@ class FNOInferenceService:
         if checkpoint and checkpoint.exists():
             try:
                 runtime = self._get_runtime()
-            except (ModelLoadError, UnsupportedDomainError, NonFiniteModelOutputError) as exc:
+            except Exception as exc:  # noqa: BLE001
+                if self.config.allow_fallback:
+                    return {
+                        "ready": True,
+                        "mode": "fallback",
+                        "checkpoint_loaded": False,
+                        "reason": str(exc),
+                        "fallback_reason": "checkpoint_runtime_not_usable",
+                    }
                 return {
                     "ready": False,
                     "mode": "not_ready",
@@ -175,7 +191,12 @@ class FNOInferenceService:
         model.to(torch.device(self._resolved_device()))
         model.eval()
 
-        tensors = load_fno_grid_tensors(self.config.dataset_path)
+        try:
+            tensors = load_fno_grid_tensors(self.config.dataset_path)
+        except FileNotFoundError as exc:
+            raise ModelLoadError(str(exc)) from exc
+        except ValueError as exc:
+            raise ModelLoadError(f"Invalid FNO dataset at {self.config.dataset_path}: {exc}") from exc
         if tensors.grid_dynamic.shape[2] != 1:
             raise UnsupportedDomainError(
                 "Current FNO2d inference supports only Z=1 regular grids. Prepare the dataset with a single Z slice."
