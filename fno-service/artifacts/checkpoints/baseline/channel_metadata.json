@@ -1,0 +1,44 @@
+{
+  "input_channels": [
+    "temperature_k",
+    "disp_x",
+    "disp_y",
+    "disp_z",
+    "youngs_modulus",
+    "poissons_ratio",
+    "density",
+    "thermal_expansion",
+    "thermal_conductivity",
+    "thermal_density",
+    "heat_capacity",
+    "grid_valid_mask",
+    "coord_x",
+    "coord_y",
+    "coord_z",
+    "time_fraction"
+  ],
+  "target_channels": [
+    "temperature_k",
+    "disp_x",
+    "disp_y",
+    "disp_z"
+  ],
+  "field_names": [
+    "temperature_k",
+    "disp_x",
+    "disp_y",
+    "disp_z"
+  ],
+  "static_feature_names": [
+    "youngs_modulus",
+    "poissons_ratio",
+    "density",
+    "thermal_expansion",
+    "thermal_conductivity",
+    "thermal_density",
+    "heat_capacity"
+  ],
+  "mask_names": [
+    "grid_valid_mask"
+  ]
+}

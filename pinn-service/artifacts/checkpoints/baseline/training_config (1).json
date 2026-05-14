@@ -1,0 +1,17 @@
+{
+  "dataset_path": "pinn-service/artifacts/demo/training_samples.npz",
+  "output_dir": "pinn-service/artifacts/checkpoints/baseline_cpu",
+  "device": "cpu",
+  "epochs": 8,
+  "batch_size": 8192,
+  "learning_rate": 0.001,
+  "weight_decay": 1e-06,
+  "hidden_dim": 192,
+  "depth": 6,
+  "activation": "tanh",
+  "supervised_weight": 1.0,
+  "velocity_weight": 0.25,
+  "thermal_residual_weight": 0.05,
+  "sample_limit": 120000,
+  "seed": 42
+}

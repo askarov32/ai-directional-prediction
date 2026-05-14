@@ -1,0 +1,61 @@
+{
+  "history": [
+    {
+      "supervised_loss": 0.7978339473406474,
+      "velocity_consistency_loss": 2.0738949446652555e-10,
+      "thermal_residual_loss": 2.939794133660115e-14,
+      "total_loss": 0.7978339473406474,
+      "epoch": 1.0
+    },
+    {
+      "supervised_loss": 0.7522870262463888,
+      "velocity_consistency_loss": 2.0683836032819868e-10,
+      "thermal_residual_loss": 2.345420396075686e-14,
+      "total_loss": 0.7522870262463888,
+      "epoch": 2.0
+    },
+    {
+      "supervised_loss": 0.750654935836792,
+      "velocity_consistency_loss": 2.0681507802618645e-10,
+      "thermal_residual_loss": 2.0392448987034335e-14,
+      "total_loss": 0.750654935836792,
+      "epoch": 3.0
+    },
+    {
+      "supervised_loss": 0.7488699515660604,
+      "velocity_consistency_loss": 2.0688133706148193e-10,
+      "thermal_residual_loss": 1.9901668045937556e-14,
+      "total_loss": 0.7488699515660604,
+      "epoch": 4.0
+    },
+    {
+      "supervised_loss": 0.7496529499689738,
+      "velocity_consistency_loss": 2.0736322566457706e-10,
+      "thermal_residual_loss": 1.9713935277515353e-14,
+      "total_loss": 0.7496529499689738,
+      "epoch": 5.0
+    },
+    {
+      "supervised_loss": 0.7486839572588603,
+      "velocity_consistency_loss": 2.0694328565588432e-10,
+      "thermal_residual_loss": 2.1192604646357604e-14,
+      "total_loss": 0.7486839572588603,
+      "epoch": 6.0
+    },
+    {
+      "supervised_loss": 0.746115521589915,
+      "velocity_consistency_loss": 2.068738994924028e-10,
+      "thermal_residual_loss": 2.4917245119971364e-14,
+      "total_loss": 0.746115521589915,
+      "epoch": 7.0
+    },
+    {
+      "supervised_loss": 0.7398042201995849,
+      "velocity_consistency_loss": 2.0697853708728787e-10,
+      "thermal_residual_loss": 5.0614527511515994e-14,
+      "total_loss": 0.7398042201995849,
+      "epoch": 8.0
+    }
+  ],
+  "best_loss": 0.7398042201995849
+}
