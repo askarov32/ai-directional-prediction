@@ -4,9 +4,9 @@ import logging
 
 from fastapi import FastAPI
 
-from fno_service.api.routes import router
-from fno_service.inference.predictor import FNOInferenceService
-from fno_service.utils.config import FNOServiceConfig, get_service_config
+from .routes import router
+from ..inference.predictor import FNOInferenceService
+from ..utils.config import FNOServiceConfig, get_service_config
 
 
 def create_app(config: FNOServiceConfig | None = None) -> FastAPI:

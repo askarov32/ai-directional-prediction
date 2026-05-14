@@ -44,13 +44,16 @@ Expected future implementation:
 
 Current local implementation:
 
-- deterministic mock FastAPI service;
+- dedicated FastAPI `fno-service`;
 - accepts grid-oriented payload shape;
-- returns synthetic, frontend-friendly values.
+- loads a local `FNO2d` checkpoint when present;
+- loads a local regular-grid dataset and conditions inference on request scenario/source/probe inputs;
+- returns backend-compatible nested prediction payloads;
+- can return deterministic fallback values when `FNO_ALLOW_FALLBACK=true` and no checkpoint is present.
 
 Expected future implementation:
 
-- Fourier Neural Operator over regular fields/grids with material and source channels.
+- stronger Fourier Neural Operator baseline over regular fields/grids with better normalization, validation metrics, and richer rollout logic.
 
 ### PINN
 
@@ -106,7 +109,9 @@ PINN service also exposes raw/diagnostic fields:
 
 ## Training Data
 
-The PINN baseline is prepared from COMSOL CSV exports:
+The PINN and FNO baselines are prepared from COMSOL-origin exports and derived regular-grid artifacts.
+
+Primary raw files:
 
 - `data_materials.csv`;
 - `data_temperature.csv`;
@@ -115,10 +120,11 @@ The PINN baseline is prepared from COMSOL CSV exports:
 - `data_stress_2.csv`;
 - `data_stress_3.csv`.
 
-The data pipeline builds:
+Current derived artifacts include:
 
 - structured field dataset;
 - flattened training samples;
+- FNO regular-grid tensors;
 - scaler metadata;
 - checkpoint metrics.
 
@@ -142,7 +148,7 @@ Recommended next metrics:
 ## Known Limitations
 
 - MeshGraphNet can run in fallback mode if real artifacts are missing.
-- FNO is mocked in the default local stack.
+- FNO is now a real service route, but the current baseline is still MVP-grade and may run in fallback mode if no checkpoint is present.
 - PINN is a first baseline, not a complete coupled thermoelastic PDE solver.
 - Medium presets are starter values and should be replaced with validated references.
 - Current MVP is 2D-first in the UI, though the request shape supports 3D.
@@ -153,4 +159,4 @@ Recommended next metrics:
 
 Use this wording:
 
-> The MVP demonstrates a clean full-stack architecture for thermoelastic-wave direction prediction with model routing to MeshGraphNet, FNO, and PINN services. MeshGraphNet is wired through a dedicated service with real-rollout support and fallback mode, FNO is currently a deterministic mock service, and PINN uses a checkpoint-based baseline with readiness diagnostics. The current prediction output is suitable for architecture and thesis-demo illustration, not final scientific validation.
+> The MVP demonstrates a clean full-stack architecture for thermoelastic-wave direction prediction with model routing to MeshGraphNet, FNO, and PINN services. MeshGraphNet runs through a dedicated service with rollout/fallback support, FNO runs through a checkpoint-based `FNO2d` service with local grid conditioning and fallback mode, and PINN uses a checkpoint-based baseline with readiness diagnostics. The current prediction output is suitable for architecture and thesis-demo illustration, not final scientific validation.

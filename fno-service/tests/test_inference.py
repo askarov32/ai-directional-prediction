@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import torch
+
 from fno_service.api.schemas import PredictionPayload
 from fno_service.inference.predictor import FNOInferenceService
 from fno_service.utils.config import FNOServiceConfig
@@ -68,3 +70,27 @@ def test_checkpoint_inference_returns_backend_compatible_payload(tmp_path: Path)
     assert payload["prediction"]["wave_type"] == "fno_checkpoint_inference"
     assert payload["field_summary"]["max_displacement"] >= 0.0
     assert payload["diagnostics"]["checkpoint_loaded"] is True
+
+
+def test_checkpoint_inference_falls_back_to_cpu_when_cuda_unavailable(tmp_path: Path, monkeypatch) -> None:
+    dataset_dir = write_tiny_2d_fno_dataset(tmp_path / "dataset")
+    checkpoint_path = train_tiny_fno_checkpoint(dataset_dir, tmp_path / "checkpoint")
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    service = FNOInferenceService(
+        FNOServiceConfig(
+            checkpoint_path=checkpoint_path,
+            config_path=tmp_path / "inference.yaml",
+            dataset_path=dataset_dir,
+            device="cuda",
+            log_level="INFO",
+            service_port=9000,
+            allow_fallback=False,
+        )
+    )
+
+    readiness = service.readiness_payload()
+    payload = service.predict(sample_payload())
+
+    assert readiness["ready"] is True
+    assert readiness["device"] == "cpu"
+    assert payload["diagnostics"]["device"] == "cpu"

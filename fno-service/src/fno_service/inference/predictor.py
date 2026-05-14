@@ -8,11 +8,11 @@ from typing import Any
 import numpy as np
 import torch
 
-from fno_service.api.schemas import PredictionPayload
-from fno_service.data.dataset import FNOGridTensors, load_fno_grid_tensors
-from fno_service.models import FNO2d
-from fno_service.training.checkpoints import load_checkpoint
-from fno_service.utils.config import FNOServiceConfig
+from ..api.schemas import PredictionPayload
+from ..data.dataset import FNOGridTensors, load_fno_grid_tensors
+from ..models import FNO2d
+from ..training.checkpoints import load_checkpoint
+from ..utils.config import FNOServiceConfig
 
 
 class CheckpointNotReadyError(RuntimeError):

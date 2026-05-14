@@ -10,12 +10,12 @@ import torch
 from torch import Tensor
 from torch.utils.data import DataLoader
 
-from fno_service.data.dataset import FNOTimeStepDataset, FNOSample, load_fno_grid_tensors
-from fno_service.data.preprocessing import FNOChannelConfig
-from fno_service.models import FNO2d
-from fno_service.training.checkpoints import save_checkpoint, write_json
-from fno_service.training.losses import field_mse_loss, relative_l2_loss
-from fno_service.training.metrics import finite_metric, mae, relative_l2, rmse
+from ..data.dataset import FNOTimeStepDataset, FNOSample, load_fno_grid_tensors
+from ..data.preprocessing import FNOChannelConfig
+from ..models import FNO2d
+from .checkpoints import save_checkpoint, write_json
+from .losses import field_mse_loss, relative_l2_loss
+from .metrics import finite_metric, mae, relative_l2, rmse
 
 
 @dataclass(frozen=True)

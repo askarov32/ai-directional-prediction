@@ -24,17 +24,15 @@ services:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
       mgn-service:
-        condition: service_healthy
+        condition: service_started
       fno-service:
-        condition: service_healthy
-      mock-transformer:
-        condition: service_healthy
+        condition: service_started
       pinn-service:
-        condition: service_healthy
+        condition: service_started
       transformer-service:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/ready')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -115,6 +113,7 @@ services:
       start_period: 10s
 
   mock-transformer:
+    profiles: ["demo-mocks"]
     build:
       context: ./mock-services
     container_name: mock-transformer

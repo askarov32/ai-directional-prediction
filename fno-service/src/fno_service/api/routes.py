@@ -3,8 +3,8 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from fno_service.api.schemas import PredictionPayload
-from fno_service.inference.predictor import (
+from .schemas import PredictionPayload
+from ..inference.predictor import (
     CheckpointNotReadyError,
     FNOInferenceService,
     ModelLoadError,

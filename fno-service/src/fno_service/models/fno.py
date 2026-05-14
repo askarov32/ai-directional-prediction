@@ -3,7 +3,7 @@ from __future__ import annotations
 from torch import Tensor, nn
 from torch.nn import functional as F
 
-from fno_service.models.layers import SpectralConv2d
+from .layers import SpectralConv2d
 
 
 class FNO2d(nn.Module):

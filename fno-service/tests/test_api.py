@@ -124,3 +124,27 @@ def test_checkpoint_predict_returns_real_inference_payload(tmp_path: Path) -> No
     payload = response.json()
     assert payload["prediction"]["wave_type"] == "fno_checkpoint_inference"
     assert payload["model_version"].startswith("fno-baseline@")
+
+
+def test_predict_returns_400_for_unsupported_domain(tmp_path: Path) -> None:
+    dataset_dir = write_tiny_2d_fno_dataset(tmp_path / "dataset")
+    checkpoint_path = train_tiny_fno_checkpoint(dataset_dir, tmp_path / "checkpoint")
+    config = FNOServiceConfig(
+        checkpoint_path=checkpoint_path,
+        config_path=tmp_path / "inference.yaml",
+        dataset_path=dataset_dir,
+        device="cuda",
+        log_level="INFO",
+        service_port=9000,
+        allow_fallback=False,
+    )
+    client = TestClient(create_app(config))
+    payload = sample_payload()
+    payload["domain"]["type"] = "rect_3d"
+    payload["domain"]["size"]["lz"] = 1.0
+    payload["domain"]["resolution"]["nz"] = 8
+
+    response = client.post("/predict", json=payload)
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "UNSUPPORTED_DOMAIN"

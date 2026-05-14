@@ -22,7 +22,7 @@ The following parts are implemented in a production-oriented MVP style:
 The following parts are intentionally demo/MVP level:
 
 - MeshGraphNet service may run in fallback mode until real dataset/checkpoint artifacts are configured;
-- FNO service is mocked;
+- FNO service is a first checkpoint-based baseline with fallback mode and limited 2D inference assumptions;
 - medium catalog values are starter presets;
 - PINN baseline is not yet independently validated;
 - frontend visualization is illustrative;
@@ -35,7 +35,7 @@ The following parts are intentionally demo/MVP level:
 Do not claim:
 
 - that this predicts real geological wave propagation with validated accuracy;
-- that MeshGraphNet or FNO are trained and scientifically evaluated in this repository;
+- that MeshGraphNet or FNO are fully trained and scientifically validated in this repository;
 - that the PINN baseline solves the full coupled thermoelastic PDE in real time;
 - that current rock presets are final laboratory/reference values;
 - that output is safe for engineering decisions.
@@ -51,7 +51,8 @@ You can claim:
 - local Docker setup is one-command demo-ready;
 - MeshGraphNet route is wired to a dedicated service;
 - PINN service loads a real checkpoint and exposes readiness diagnostics;
-- FNO can be replaced by a real model host via environment variables.
+- FNO service can load a real checkpoint and expose readiness diagnostics;
+- FNO can also be replaced by an external real model host via environment variables.
 
 ## Current Validation Level
 
@@ -77,5 +78,5 @@ Scientific validation:
 - Report angular error for direction prediction.
 - Report travel-time error.
 - Compare PINN, MeshGraphNet, and FNO on the same fixed scenarios.
-- Configure MeshGraphNet with trained artifacts and replace mock FNO with a trained service.
+- Configure MeshGraphNet with trained artifacts and improve the current FNO baseline beyond the MVP checkpoint/fallback setup.
 - Validate medium presets against references or lab measurements.
