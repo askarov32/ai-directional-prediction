@@ -1,0 +1,4 @@
+checkpoint_path: /app/artifacts/checkpoints/baseline
+dataset_path: /app/artifacts/datasets/sandstone_fno
+device: cpu
+allow_fallback: false

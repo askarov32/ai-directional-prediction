@@ -9,13 +9,14 @@ The local Docker stack contains:
 - `frontend`: nginx-served vanilla HTML/CSS/JavaScript UI on `localhost:8080`
 - `backend`: FastAPI orchestration/API gateway on `localhost:8000`
 - `mgn-service`: MeshGraphNet-compatible service on `localhost:9001`
-- `mock-fno`: synthetic FNO-compatible service on `localhost:9002`
+- `fno-service`: checkpoint-based FNO inference service on `localhost:9002`
+- `mock-fno`: optional synthetic FNO-compatible service on `localhost:9012` under the `demo-mocks` profile
 - `pinn-service`: checkpoint-based PINN inference service on `localhost:9003`
 
 The frontend calls backend through nginx at `/api/v1`. The backend calls model services through Docker service names:
 
 - `http://mgn-service:9000/predict`
-- `http://mock-fno:9000/predict`
+- `http://fno-service:9000/predict`
 - `http://pinn-service:9000/predict`
 
 ## Backend Layers
@@ -114,7 +115,7 @@ Routing is implemented in `PredictionRouter`.
 The model-specific adapters currently set:
 
 - MeshGraphNet: `representation = "graph"`
-- FNO: `representation = "grid"`
+- FNO: `representation = "grid"`, `routing_hint = "fno"`
 - PINN: `representation = "physics_informed"`, `routing_hint = "pinn"`
 
 ## Model Service Status
@@ -127,6 +128,25 @@ The model-specific adapters currently set:
 - checkpoint loaded;
 - deterministic smoke inference passed;
 - output shape and finite values verified.
+
+For the FNO service, readiness means:
+
+- checkpoint path resolved or fallback enabled;
+- checkpoint file exists when running in checkpoint mode;
+- model config and weights loaded;
+- channel metadata resolved;
+- smoke inference returns finite outputs;
+- current device resolved, with CPU fallback if `cuda` is requested but unavailable.
+
+## FNO Implementation Notes
+
+The current FNO service is a checkpoint-based `FNO2d` baseline:
+
+- request route uses `representation = "grid"`;
+- model input is built from the local regular-grid dataset plus scenario/source/probe conditioning;
+- current inference supports `rect_2d` requests on `Z=1` grid tensors;
+- service returns normalized `prediction`, `field_summary`, `model_version`, and `diagnostics`;
+- fallback mode remains available for demo continuity when no checkpoint is configured.
 
 ## PINN Implementation Notes
 
@@ -173,14 +193,14 @@ curl -s http://localhost:8080/api/v1/models
 ## What Is Mock vs Real
 
 - MeshGraphNet is served by `mgn-service`; it runs real rollout when artifacts are present and demo fallback when `MGN_ALLOW_FALLBACK=true`.
-- FNO is mocked by `mock-services`.
+- FNO is served by `fno-service`; `mock-fno` remains optional under the `demo-mocks` profile.
 - Transformer is mocked by `mock-services`.
 - PINN uses a real PyTorch checkpoint when available.
 - The current PINN prediction is not a full real-time PDE solver; it is a hybrid neural + coupled physics-informed + postprocessed MVP baseline.
 
 For a thesis/demo-safe statement, use:
 
-> The application demonstrates an extensible orchestration layer and a checkpoint-based PINN baseline for directional thermoelastic-wave prediction. MeshGraphNet, FNO, and Transformer services are currently represented by deterministic mock services unless replaced by real model hosts.
+> The application demonstrates an extensible orchestration layer for thermoelastic-wave direction prediction. MeshGraphNet runs through a dedicated rollout/fallback service, FNO runs through a checkpoint-based `FNO2d` service with local grid conditioning, Transformer remains mocked, and PINN runs through a checkpoint-based baseline. The system is suitable for MVP demonstrations and integration work, not final scientific claims.
 
 To add another model route, see [New Model Integration Guide](model_integration_guide.md).
 

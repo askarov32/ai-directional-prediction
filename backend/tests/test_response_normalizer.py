@@ -67,6 +67,41 @@ def test_normalizer_accepts_valid_nested_remote_response(enriched_request, flat_
     assert result["prediction"]["wave_type"] == "dominant_p"
 
 
+def test_normalizer_accepts_fno_checkpoint_style_response(enriched_request):
+    payload = {
+        "prediction": {
+            "direction_vector": [0.821, 0.571, 0.0],
+            "azimuth_deg": 34.8,
+            "elevation_deg": 0.0,
+            "magnitude": 0.914321,
+            "wave_type": "fno_checkpoint_inference",
+            "travel_time_ms": 12.41234,
+        },
+        "field_summary": {
+            "max_displacement": 0.0013274,
+            "max_temperature_perturbation": 1.7421,
+        },
+        "model_version": "fno-baseline@best_model.pth",
+        "diagnostics": {
+            "checkpoint_loaded": True,
+            "device": "cpu",
+            "input_channels": ["temperature_k"],
+            "output_channels": ["temperature_k", "disp_x", "disp_y", "disp_z"],
+        },
+    }
+
+    result = ResponseNormalizer().normalize(
+        enriched_request,
+        RemotePredictionResponse(service_name="FNO", payload=payload, latency_ms=22),
+    )
+
+    assert result["prediction"]["wave_type"] == "fno_checkpoint_inference"
+    assert result["prediction"]["magnitude"] == 0.9143
+    assert result["prediction"]["travel_time_ms"] == 12.412
+    assert result["field_summary"]["max_displacement"] == 0.001327
+    assert result["meta"]["model_version"] == "fno-baseline@best_model.pth"
+
+
 @pytest.mark.parametrize(
     ("mutate", "reason_fragment"),
     [

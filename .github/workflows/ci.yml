@@ -65,6 +65,31 @@ jobs:
       - name: Run PINN tests
         run: python -m pytest pinn-service/tests
 
+  fno-tests:
+    name: FNO service tests
+    runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONPATH: fno-service/src
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: fno-service/requirements.txt
+
+      - name: Install FNO dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r fno-service/requirements.txt
+
+      - name: Run FNO tests
+        run: python -m pytest fno-service/tests
+
   docker-compose-config:
     name: Docker Compose config
     runs-on: ubuntu-latest

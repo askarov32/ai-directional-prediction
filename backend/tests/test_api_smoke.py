@@ -54,6 +54,19 @@ def test_prediction_happy_path_uses_mocked_model_client(client, prediction_paylo
     assert payload["meta"]["model_version"] == "fake-meshgraphnet-v1"
 
 
+def test_prediction_happy_path_supports_fno_nested_response(fno_client_factory, fno_prediction_payload):
+    with fno_client_factory() as client:
+        response = client.post("/api/v1/predictions", json=fno_prediction_payload)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["model"] == "fno"
+    assert payload["prediction"]["wave_type"] == "fno_checkpoint_inference"
+    assert payload["prediction"]["magnitude"] == 0.914
+    assert payload["field_summary"]["max_displacement"] == 0.001327
+    assert payload["meta"]["model_version"] == "fno-baseline@best_model.pth"
+
+
 def test_invalid_prediction_payload_returns_validation_error(client, prediction_payload):
     prediction_payload["scenario"]["pressure_mpa"] = -1.0
 

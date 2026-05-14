@@ -13,7 +13,7 @@ services:
       MEDIA_CATALOG_PATH: /app/data/media/catalog.json
       REMOTE_MODEL_TIMEOUT_SECONDS: ${REMOTE_MODEL_TIMEOUT_SECONDS:-60}
       MODEL_MESHGRAPHNET_URL: ${MODEL_MESHGRAPHNET_URL:-http://mgn-service:9000}
-      MODEL_FNO_URL: ${MODEL_FNO_URL:-http://mock-fno:9000}
+      MODEL_FNO_URL: ${MODEL_FNO_URL:-http://fno-service:9000}
       MODEL_PINN_URL: ${MODEL_PINN_URL:-http://pinn-service:9000}
       MODEL_TRANSFORMER_URL: ${MODEL_TRANSFORMER_URL:-http://transformer-service:9000}
       MODEL_MESHGRAPHNET_PREDICT_PATH: ${MODEL_MESHGRAPHNET_PREDICT_PATH:-/predict}
@@ -24,17 +24,15 @@ services:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
       mgn-service:
-        condition: service_healthy
-      mock-fno:
-        condition: service_healthy
-      mock-transformer:
-        condition: service_healthy
+        condition: service_started
+      fno-service:
+        condition: service_started
       pinn-service:
-        condition: service_healthy
+        condition: service_started
       transformer-service:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/ready')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -75,13 +73,14 @@ services:
       start_period: 5s
 
   mock-fno:
+    profiles: ["demo-mocks"]
     build:
       context: ./mock-services
     container_name: mock-fno
     environment:
       SERVICE_KIND: fno
     ports:
-      - "${MOCK_FNO_PORT:-9002}:9000"
+      - "${MOCK_FNO_PORT:-9012}:9000"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/ready')"]
       interval: 15s
@@ -89,7 +88,32 @@ services:
       retries: 5
       start_period: 5s
 
+  fno-service:
+    build:
+      context: ./fno-service
+    container_name: fno-service
+    environment:
+      FNO_CHECKPOINT_PATH: ${FNO_CHECKPOINT_PATH:-/app/artifacts/checkpoints/baseline}
+      FNO_CONFIG_PATH: ${FNO_CONFIG_PATH:-/app/configs/inference.yaml}
+      FNO_DATASET_PATH: ${FNO_DATASET_PATH:-/app/artifacts/datasets/sandstone_fno}
+      FNO_DEVICE: ${FNO_DEVICE:-cpu}
+      FNO_LOG_LEVEL: ${FNO_LOG_LEVEL:-INFO}
+      FNO_SERVICE_PORT: 9000
+      FNO_ALLOW_FALLBACK: ${FNO_ALLOW_FALLBACK:-true}
+    volumes:
+      - ./fno-service/artifacts:/app/artifacts
+      - ./mgn-service/datasets:/app/datasets:ro
+    ports:
+      - "${FNO_SERVICE_PORT:-9002}:9000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/ready')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   mock-transformer:
+    profiles: ["demo-mocks"]
     build:
       context: ./mock-services
     container_name: mock-transformer

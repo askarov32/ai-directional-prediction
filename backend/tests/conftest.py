@@ -63,6 +63,46 @@ class FakeMeshGraphNetClient:
         return {"id": "meshgraphnet", "name": "MeshGraphNet", "status": "configured"}
 
 
+class FakeFNOClient:
+    model_type = ModelType.FNO
+
+    def __init__(self, payload: dict[str, Any] | None = None) -> None:
+        self.payload = payload or {
+            "prediction": {
+                "direction_vector": [0.821, 0.571, 0.0],
+                "azimuth_deg": 34.8,
+                "elevation_deg": 0.0,
+                "magnitude": 0.914,
+                "wave_type": "fno_checkpoint_inference",
+                "travel_time_ms": 12.4,
+            },
+            "field_summary": {
+                "max_displacement": 0.001327,
+                "max_temperature_perturbation": 1.742,
+            },
+            "model_version": "fno-baseline@best_model.pth",
+            "diagnostics": {
+                "checkpoint_loaded": True,
+                "device": "cuda",
+                "input_channels": ["temperature_k"],
+                "output_channels": ["temperature_k", "disp_x", "disp_y", "disp_z"],
+            },
+        }
+
+    async def predict(self, request: EnrichedPredictionRequest) -> RemotePredictionResponse:
+        return RemotePredictionResponse(
+            service_name="FNO",
+            payload=self.payload,
+            latency_ms=18,
+        )
+
+    async def readiness(self) -> dict[str, Any]:
+        return {"id": "fno", "name": "FNO", "ready": True, "status": "ready"}
+
+    def descriptor(self) -> dict[str, str]:
+        return {"id": "fno", "name": "FNO", "status": "configured"}
+
+
 @pytest.fixture
 def enriched_request() -> EnrichedPredictionRequest:
     medium = Medium(
@@ -157,6 +197,13 @@ def prediction_payload() -> dict:
 
 
 @pytest.fixture
+def fno_prediction_payload(prediction_payload: dict) -> dict:
+    payload = {**prediction_payload}
+    payload["model"] = "fno"
+    return payload
+
+
+@pytest.fixture
 def client_factory() -> Callable[[dict[str, Any] | None], Generator[TestClient, None, None]]:
     @contextmanager
     def build_client(remote_payload: dict[str, Any] | None = None) -> Generator[TestClient, None, None]:
@@ -182,3 +229,25 @@ def client_factory() -> Callable[[dict[str, Any] | None], Generator[TestClient, 
 def client(client_factory) -> Generator[TestClient, None, None]:
     with client_factory() as test_client:
         yield test_client
+
+
+@pytest.fixture
+def fno_client_factory() -> Callable[[dict[str, Any] | None], Generator[TestClient, None, None]]:
+    @contextmanager
+    def build_client(remote_payload: dict[str, Any] | None = None) -> Generator[TestClient, None, None]:
+        repository = MediaRepository(CATALOG_PATH)
+        medium_catalog = MediumCatalogService(repository)
+        prediction_router = PredictionRouter([FakeFNOClient(remote_payload)])
+        use_case = PredictDirectionUseCase(
+            medium_catalog=medium_catalog,
+            prediction_router=prediction_router,
+            response_normalizer=ResponseNormalizer(),
+        )
+
+        app.dependency_overrides[get_predict_direction_use_case] = lambda: use_case
+        app.dependency_overrides[get_prediction_router] = lambda: prediction_router
+        with TestClient(app, raise_server_exceptions=False) as test_client:
+            yield test_client
+        app.dependency_overrides.clear()
+
+    return build_client

@@ -7,7 +7,7 @@ The project ships a full local stack:
 - `FastAPI` backend orchestrator
 - native `HTML/CSS/JavaScript` frontend
 - integrated `MeshGraphNet` service with demo fallback mode
-- mock model service for `FNO`
+- dedicated `FNO` service with checkpoint-based `FNO2d` inference and fallback mode
 - a dedicated checkpoint-based `PINN` service
 - `Docker Compose` startup for quick local demos
 
@@ -47,7 +47,7 @@ Main user flow:
 ### Model Services
 
 - integrated FastAPI `MeshGraphNet` service under `mgn-service`
-- lightweight FastAPI mock service for `FNO`
+- dedicated FastAPI `FNO` service under `fno-service`
 - a checkpoint-based `PINN` inference service with readiness diagnostics
 - easy to replace each service host independently
 
@@ -56,6 +56,13 @@ For scientific scope and known limitations, see:
 - [Model Card](docs/model_card.md)
 - [Demo Limitations](docs/demo_limitations.md)
 - [New Model Integration Guide](docs/model_integration_guide.md)
+- [FNO Integration Roadmap](docs/FNO_INTEGRATION_ROADMAP.md)
+- [FNO Phase 1 Audit](docs/FNO_PHASE1_AUDIT.md)
+- [FNO Service Guide](docs/FNO_SERVICE.md)
+- [FNO Training Guide](docs/FNO_TRAINING.md)
+- [Windows FNO Training Guide](docs/windows_fno_training.md)
+- [FNO API Contract](docs/FNO_API_CONTRACT.md)
+- [FNO Dataset Format](docs/FNO_DATASET_FORMAT.md)
 - [PINN Architecture Details](docs/pinn_architecture_details.md)
 - [Windows PINN Training Guide](docs/windows_pinn_training.md)
 - [Physics Theory Notes](physics-theory/README.md)
@@ -182,6 +189,7 @@ Important variables:
 - `BACKEND_PORT`
 - `FRONTEND_PORT`
 - `MGN_SERVICE_PORT`
+- `FNO_SERVICE_PORT`
 - `MOCK_FNO_PORT`
 - `MOCK_TRANSFORMER_PORT`
 - `PINN_SERVICE_PORT`
@@ -199,6 +207,11 @@ Important variables:
 - `MGN_CHECKPOINT_PATH`
 - `MGN_DEVICE`
 - `MGN_ALLOW_FALLBACK`
+- `FNO_CHECKPOINT_PATH`
+- `FNO_CONFIG_PATH`
+- `FNO_DATASET_PATH`
+- `FNO_DEVICE`
+- `FNO_ALLOW_FALLBACK`
 - `PINN_CHECKPOINT_PATH`
 - `PINN_DEVICE`
 - `PINN_TIME_SCALE`
@@ -208,10 +221,11 @@ Default Docker routing:
 - backend: `http://localhost:8000`
 - frontend: `http://localhost:8080`
 - MeshGraphNet service: `http://localhost:9001`
-- mock FNO: `http://localhost:9002`
+- FNO service: `http://localhost:9002`
+- mock FNO with `--profile demo-mocks`: `http://localhost:9012`
 - mock Transformer: `http://localhost:9004`
 - pinn-service: `http://localhost:9003`
-- pinn-service: `http://localhost:9003`
+- transformer-service: `http://localhost:9004`
 
 ## Quick Start
 
@@ -239,6 +253,7 @@ Quick smoke checks:
 ```bash
 docker compose config --quiet
 curl -s http://localhost:8000/api/v1/ready
+curl -s http://localhost:9002/ready
 curl -s http://localhost:9003/ready
 curl -s http://localhost:8080/api/v1/models
 ```
@@ -460,9 +475,16 @@ Internal payload representations:
 - `transformer` -> `representation: "sequence"`
 - `pinn` -> `representation: "physics_informed"`
 
-## Replacing Mock Services With Real Models
+## Replacing Model Services
 
-By default, Docker uses the integrated `mgn-service` for `MeshGraphNet`, a mock service for `FNO`, and the checkpoint-based `PINN` service. `mgn-service` can run in fallback mode when a real MeshGraphNet dataset/checkpoint is not available yet, so local demos still start cleanly.
+By default, Docker uses:
+
+- integrated `mgn-service` for `MeshGraphNet`;
+- integrated `fno-service` for `FNO`;
+- integrated checkpoint-based `pinn-service` for `PINN`;
+- `mock-transformer` for `Transformer`.
+
+`mgn-service` and `fno-service` can both run in fallback mode for local demos when artifacts are missing or still being prepared.
 
 To switch to external model hosts:
 
@@ -506,6 +528,53 @@ MGN_CHECKPOINT_PATH=outputs/checkpoints/best_model.pt
 MGN_DEVICE=cuda
 MGN_ALLOW_FALLBACK=true
 ```
+
+## FNO Service
+
+The `FNO` route is now wired to `fno-service`.
+
+That service:
+
+- exposes `GET /health`, `GET /ready`, and `POST /predict`;
+- loads `best_model.pth` or `model.pth` from `FNO_CHECKPOINT_PATH`;
+- loads its local regular-grid dataset from `FNO_DATASET_PATH`;
+- combines the backend request with local grid conditioning;
+- runs `FNO2d` inference for the current MVP baseline;
+- falls back to a deterministic response when `FNO_ALLOW_FALLBACK=true` and no checkpoint is present.
+
+Current FNO baseline limitations:
+
+- current trained/inference path is `rect_2d` only;
+- current regular grid must have `Z=1`;
+- the request does not send full grid tensors through the backend;
+- the service uses local dataset conditioning plus scenario/source/probe adjustments.
+
+Useful variables:
+
+```bash
+FNO_CHECKPOINT_PATH=/app/artifacts/checkpoints/baseline
+FNO_CONFIG_PATH=/app/configs/inference.yaml
+FNO_DATASET_PATH=/app/artifacts/datasets/sandstone_fno
+FNO_DEVICE=cpu
+FNO_ALLOW_FALLBACK=true
+```
+
+CUDA note:
+
+- set `FNO_DEVICE=cuda` on a machine with a CUDA-enabled PyTorch build;
+- if `cuda` is requested but unavailable, the current service falls back to CPU instead of crashing.
+
+To build a local demo baseline checkpoint and dataset in the default artifact paths:
+
+```bash
+./fno-service/train_baseline.sh
+```
+
+That helper:
+
+- converts the demo PINN structured dataset into a regular FNO grid under `fno-service/artifacts/datasets/sandstone_fno`;
+- trains a small `FNO2d` baseline;
+- writes `best_model.pth` under `fno-service/artifacts/checkpoints/baseline`.
 
 ## Running Backend Separately
 
