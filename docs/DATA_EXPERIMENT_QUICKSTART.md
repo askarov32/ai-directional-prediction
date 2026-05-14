@@ -36,19 +36,23 @@ Default example with 40 cases:
 
 ```bash
 python3 scripts/generate_experiment_inputs.py \
-  --output artifacts/data_experiments/inputs/model_comparison_inputs.jsonl
+  --output artifacts/data_experiments/inputs/model_comparison_inputs.jsonl \
+  --metadata-output artifacts/data_experiments/inputs/model_comparison_inputs.metadata.json
 ```
 
-Default grid:
+Default experiment pool before trimming:
 
 - materials: `sandstone_medium`, `basalt`
-- temperatures: `20, 80, 140, 220, 300`
-- pressures: `5, 35`
-- time points: `6, 12`
+- temperatures: `20, 60, 120, 180, 260, 320`
+- pressures: `5, 25, 60`
+- time points: `4, 8, 12, 16`
+- frequencies: `25, 50, 75`
 - domain: `rect_3d`
-- nonzero `source.z` / `probe.z`
+- 4 source variants
+- 4 probe variants
+- 3 boundary-condition variants
 
-That yields `2 x 5 x 2 x 2 = 40` cases.
+The generator deterministically shuffles that larger pool and keeps `40` cases by default.
 
 This creates:
 
@@ -95,7 +99,18 @@ python3 scripts/run_model_service_experiment.py \
 ```bash
 python3 scripts/generate_model_comparison_charts.py \
   --input artifacts/data_experiments/results/summary.csv \
-  --output-dir artifacts/data_experiments/charts
+  --output-dir artifacts/data_experiments/charts \
+  --include-fallback false
+```
+
+## Step 4. Generate markdown report
+
+```bash
+python3 scripts/generate_model_report.py \
+  --input artifacts/data_experiments/results/summary.csv \
+  --output-dir reports \
+  --include-fallback false \
+  --save-png true
 ```
 
 ## Where files are saved
@@ -133,20 +148,56 @@ Charts are written here:
 artifacts/data_experiments/charts/
 ```
 
-Current chart files:
+Current chart files include:
 
 - `temperature_comparison.png`
 - `displacement_components_comparison.png`
 - `displacement_magnitude_comparison.png`
-- `material_comparison_sandstone_vs_basalt.png`
+- `max_displacement_valid_only.png`
+- `max_displacement_log_diagnostic.png`
+- `temperature_perturbation_valid_only.png`
+- `temperature_perturbation_log_diagnostic.png`
 - `basalt_vs_sandstone_travel_time.png`
 - `basalt_vs_sandstone_displacement.png`
 - `elevation_comparison.png`
 - `depth_sensitivity.png`
+- `depth_sensitivity_travel_time.png`
+- `depth_sensitivity_displacement.png`
+- `depth_sensitivity_temperature.png`
 - `domain_adaptation_summary.png`
-- `model_disagreement.png`
+- `azimuth_circular_disagreement_by_case.png`
 - `prediction_vs_time.png`
 - `service_status_summary.png`
+- `model_validity_summary.png`
+- `heatmap_case_model_travel_time.png`
+- `heatmap_case_model_displacement.png`
+- `heatmap_case_model_temperature.png`
+- `heatmap_model_disagreement_travel_time.png`
+- `heatmap_model_disagreement_displacement.png`
+- `heatmap_model_disagreement_temperature.png`
+- `heatmap_model_disagreement_azimuth.png`
+- `heatmap_model_disagreement_elevation.png`
+- `heatmap_material_model_travel_time.png`
+- `heatmap_material_model_displacement.png`
+- `heatmap_material_model_temperature.png`
+- `heatmap_time_model_travel_time.png`
+- `heatmap_probe_z_model_travel_time.png`
+- `heatmap_temperature_model_temperature_perturbation.png`
+- `heatmap_pressure_model_displacement.png`
+
+### Markdown report
+
+Final report:
+
+```text
+reports/model_comparison_report.md
+```
+
+Report figures:
+
+```text
+reports/figures/
+```
 
 ## What the result files mean
 
@@ -231,7 +282,7 @@ You will still get outputs, but they are fallback/demo outputs and should be mar
 
 This happens if all generated cases use the same `time_ms`.
 
-The current default generator already uses a multi-time grid with `6 ms` and `12 ms`, so this chart should become populated after a fresh run.
+The current default generator uses a multi-time grid with `4, 8, 12, 16 ms`, so this chart should become populated after a fresh run.
 
 ## Recommended first smoke run
 
@@ -240,6 +291,7 @@ Generate one case:
 ```bash
 python3 scripts/generate_experiment_inputs.py \
   --output artifacts/data_experiments/inputs/smoke_case.jsonl \
+  --metadata-output artifacts/data_experiments/inputs/smoke_case.metadata.json \
   --num-cases 1
 ```
 
@@ -257,7 +309,18 @@ Generate smoke charts:
 ```bash
 python3 scripts/generate_model_comparison_charts.py \
   --input artifacts/data_experiments/results-smoke/summary.csv \
-  --output-dir artifacts/data_experiments/charts-smoke
+  --output-dir artifacts/data_experiments/charts-smoke \
+  --include-fallback false
+```
+
+Generate smoke report:
+
+```bash
+python3 scripts/generate_model_report.py \
+  --input artifacts/data_experiments/results-smoke/summary.csv \
+  --output-dir reports-smoke \
+  --include-fallback false \
+  --save-png true
 ```
 
 Smoke charts will then be here:

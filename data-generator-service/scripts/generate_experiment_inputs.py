@@ -38,6 +38,26 @@ DEFAULT_PROBE = {
     "z": 0.75,
 }
 
+SOURCE_VARIANTS = [
+    {"x": 0.12, "y": 0.34, "z": 0.18, "direction": [1.0, 0.10, 0.08], "amplitude": 0.8},
+    {"x": 0.18, "y": 0.42, "z": 0.26, "direction": [0.92, 0.24, 0.16], "amplitude": 1.0},
+    {"x": 0.24, "y": 0.58, "z": 0.34, "direction": [0.85, -0.18, 0.28], "amplitude": 1.2},
+    {"x": 0.31, "y": 0.47, "z": 0.22, "direction": [0.78, 0.32, 0.24], "amplitude": 0.9},
+]
+
+PROBE_VARIANTS = [
+    {"x": 0.68, "y": 0.52, "z": 0.52},
+    {"x": 0.74, "y": 0.60, "z": 0.60},
+    {"x": 0.58, "y": 0.66, "z": 0.70},
+    {"x": 0.80, "y": 0.48, "z": 0.78},
+]
+
+BOUNDARY_VARIANTS = [
+    {"left": "fixed", "right": "free", "top": "insulated", "bottom": "insulated"},
+    {"left": "fixed", "right": "fixed", "top": "free", "bottom": "insulated"},
+    {"left": "free", "right": "free", "top": "insulated", "bottom": "fixed"},
+]
+
 DEFAULT_DOMAIN = {
     "type": "rect_3d",
     "size": {
@@ -104,28 +124,29 @@ def parse_args() -> argparse.Namespace:
         "--temperatures",
         nargs="+",
         type=float,
-        default=[20.0, 80.0, 140.0, 220.0, 300.0],
+        default=[20.0, 60.0, 120.0, 180.0, 260.0, 320.0],
         help="Scenario temperatures in Celsius.",
     )
     parser.add_argument(
         "--pressures",
         nargs="+",
         type=float,
-        default=[5.0, 35.0],
+        default=[5.0, 25.0, 60.0],
         help="Scenario pressures in MPa.",
     )
     parser.add_argument(
         "--time-ms",
         nargs="+",
         type=float,
-        default=[6.0, 12.0],
+        default=[4.0, 8.0, 12.0, 16.0],
         help="Scenario time points in milliseconds.",
     )
     parser.add_argument(
         "--frequency-hz",
+        nargs="+",
         type=float,
-        default=50.0,
-        help="Shared source frequency for all generated cases.",
+        default=[25.0, 50.0, 75.0],
+        help="Source frequencies used across generated cases.",
     )
     parser.add_argument(
         "--domain-type",
@@ -148,7 +169,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--num-cases",
         type=int,
-        default=None,
+        default=40,
         help="Optional cap on the number of generated cases after deterministic shuffling.",
     )
     return parser.parse_args()
@@ -183,7 +204,7 @@ def build_cases(
     temperatures: list[float],
     pressures: list[float],
     time_points_ms: list[float],
-    frequency_hz: float,
+    frequencies_hz: list[float],
     domain_type: str,
     domain_size: dict[str, float],
     domain_resolution: dict[str, int],
@@ -192,60 +213,61 @@ def build_cases(
     randomizer = random.Random(seed)
     records: list[ExperimentCase] = []
     serial = 1
-    depth_variants = [
-        {"source_z": 0.18, "probe_z": 0.72, "direction": [1.0, 0.12, 0.08]},
-        {"source_z": 0.32, "probe_z": 0.58, "direction": [0.92, 0.22, 0.18]},
-    ]
-
     for medium in media:
         material = material_label(medium)
         for temperature_c in temperatures:
             for pressure_mpa in pressures:
                 for time_ms in time_points_ms:
-                    depth_variant = depth_variants[(serial - 1) % len(depth_variants)]
-                    source = dict(DEFAULT_SOURCE)
-                    source["frequency_hz"] = frequency_hz
-                    probe = dict(DEFAULT_PROBE)
-                    domain = json.loads(json.dumps(DEFAULT_DOMAIN))
-                    domain["type"] = domain_type
-                    domain["size"].update(domain_size)
-                    domain["resolution"].update(domain_resolution)
-                    if domain_type == "rect_2d":
-                        source["z"] = 0.0
-                        source["direction"] = [depth_variant["direction"][0], depth_variant["direction"][1], 0.0]
-                        probe["z"] = 0.0
-                        domain["size"]["lz"] = 0.0
-                        domain["resolution"]["nz"] = 1
-                        domain["boundary_conditions"]["front"] = None
-                        domain["boundary_conditions"]["back"] = None
-                    else:
-                        max_depth = max(float(domain["size"]["lz"]), 1e-8)
-                        source["z"] = min(depth_variant["source_z"], max_depth)
-                        source["direction"] = list(depth_variant["direction"])
-                        probe["z"] = min(depth_variant["probe_z"], max_depth)
-                    case = ExperimentCase(
-                        case_id=f"case_{serial:03d}_{material}",
-                        material=material,
-                        medium_id=str(medium["id"]),
-                        temperature_c=float(temperature_c),
-                        pressure_mpa=float(pressure_mpa),
-                        time_ms=float(time_ms),
-                        frequency_hz=float(frequency_hz),
-                        boundary_conditions=dict(DEFAULT_BOUNDARY_CONDITIONS),
-                        requested_domain_type=domain_type,
-                        input={
-                            "scenario": {
-                                "temperature_c": float(temperature_c),
-                                "pressure_mpa": float(pressure_mpa),
-                                "time_ms": float(time_ms),
+                    for frequency_hz in frequencies_hz:
+                        source_variant = SOURCE_VARIANTS[(serial - 1) % len(SOURCE_VARIANTS)]
+                        probe_variant = PROBE_VARIANTS[(serial - 1) % len(PROBE_VARIANTS)]
+                        boundary_variant = BOUNDARY_VARIANTS[(serial - 1) % len(BOUNDARY_VARIANTS)]
+                        source = dict(DEFAULT_SOURCE)
+                        source.update(source_variant)
+                        source["frequency_hz"] = frequency_hz
+                        probe = dict(DEFAULT_PROBE)
+                        probe.update(probe_variant)
+                        domain = json.loads(json.dumps(DEFAULT_DOMAIN))
+                        domain["type"] = domain_type
+                        domain["size"].update(domain_size)
+                        domain["resolution"].update(domain_resolution)
+                        domain["boundary_conditions"].update(boundary_variant)
+                        if domain_type == "rect_2d":
+                            source["z"] = 0.0
+                            source["direction"] = [source_variant["direction"][0], source_variant["direction"][1], 0.0]
+                            probe["z"] = 0.0
+                            domain["size"]["lz"] = 0.0
+                            domain["resolution"]["nz"] = 1
+                            domain["boundary_conditions"]["front"] = None
+                            domain["boundary_conditions"]["back"] = None
+                        else:
+                            max_depth = max(float(domain["size"]["lz"]), 1e-8)
+                            source["z"] = min(float(source_variant["z"]), max_depth)
+                            probe["z"] = min(float(probe_variant["z"]), max_depth)
+                            source["direction"] = list(source_variant["direction"])
+                        case = ExperimentCase(
+                            case_id=f"case_{serial:03d}_{material}",
+                            material=material,
+                            medium_id=str(medium["id"]),
+                            temperature_c=float(temperature_c),
+                            pressure_mpa=float(pressure_mpa),
+                            time_ms=float(time_ms),
+                            frequency_hz=float(frequency_hz),
+                            boundary_conditions=dict(boundary_variant),
+                            requested_domain_type=domain_type,
+                            input={
+                                "scenario": {
+                                    "temperature_c": float(temperature_c),
+                                    "pressure_mpa": float(pressure_mpa),
+                                    "time_ms": float(time_ms),
+                                },
+                                "source": source,
+                                "probe": probe,
+                                "domain": domain,
                             },
-                            "source": source,
-                            "probe": probe,
-                            "domain": domain,
-                        },
-                    )
-                    records.append(case)
-                    serial += 1
+                        )
+                        records.append(case)
+                        serial += 1
 
     randomizer.shuffle(records)
     return records
@@ -298,7 +320,7 @@ def write_metadata(
     temperatures: list[float],
     pressures: list[float],
     time_points_ms: list[float],
-    frequency_hz: float,
+    frequencies_hz: list[float],
     domain_type: str,
     domain_size: dict[str, float],
     domain_resolution: dict[str, int],
@@ -313,8 +335,8 @@ def write_metadata(
         "temperatures_c": temperatures,
         "pressures_mpa": pressures,
         "time_ms": time_points_ms,
-        "frequency_hz": frequency_hz,
-        "boundary_conditions": dict(DEFAULT_BOUNDARY_CONDITIONS),
+        "frequency_hz": frequencies_hz,
+        "boundary_conditions": BOUNDARY_VARIANTS,
         "domain": {
             "type": domain_type,
             "size": domain_size,
@@ -322,9 +344,11 @@ def write_metadata(
         },
         "source_template": {
             **DEFAULT_SOURCE,
-            "frequency_hz": frequency_hz,
+            "frequency_hz": frequencies_hz[0] if frequencies_hz else DEFAULT_SOURCE["frequency_hz"],
         },
         "probe_template": dict(DEFAULT_PROBE),
+        "source_variants": SOURCE_VARIANTS,
+        "probe_variants": PROBE_VARIANTS,
         "case_ids": [case.case_id for case in cases],
     }
     with output_path.open("w", encoding="utf-8") as handle:
@@ -344,7 +368,7 @@ def main() -> None:
         temperatures=list(args.temperatures),
         pressures=list(args.pressures),
         time_points_ms=[float(value) for value in args.time_ms],
-        frequency_hz=float(args.frequency_hz),
+        frequencies_hz=[float(value) for value in args.frequency_hz],
         domain_type=args.domain_type,
         domain_size={
             "lx": float(args.domain_lx),
@@ -369,7 +393,7 @@ def main() -> None:
         temperatures=[float(value) for value in args.temperatures],
         pressures=[float(value) for value in args.pressures],
         time_points_ms=[float(value) for value in args.time_ms],
-        frequency_hz=float(args.frequency_hz),
+        frequencies_hz=[float(value) for value in args.frequency_hz],
         domain_type=args.domain_type,
         domain_size={
             "lx": float(args.domain_lx),

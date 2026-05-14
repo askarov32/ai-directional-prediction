@@ -45,7 +45,8 @@ Standard 40-case run:
 
 ```powershell
 python scripts/generate_experiment_inputs.py `
-  --output artifacts/data_experiments/inputs/model_comparison_inputs.jsonl
+  --output artifacts/data_experiments/inputs/model_comparison_inputs.jsonl `
+  --metadata-output artifacts/data_experiments/inputs/model_comparison_inputs.metadata.json
 ```
 
 If `python` is not found, use:
@@ -55,16 +56,19 @@ py scripts/generate_experiment_inputs.py `
   --output artifacts/data_experiments/inputs/model_comparison_inputs.jsonl
 ```
 
-Default grid:
+Default experiment pool before trimming:
 
 - materials: `sandstone_medium`, `basalt`
-- temperatures: `20, 80, 140, 220, 300`
-- pressures: `5, 35`
-- time points: `6, 12`
+- temperatures: `20, 60, 120, 180, 260, 320`
+- pressures: `5, 25, 60`
+- time points: `4, 8, 12, 16`
+- frequencies: `25, 50, 75`
 - domain: `rect_3d`
-- nonzero `source.z` / `probe.z`
+- 4 source variants
+- 4 probe variants
+- 3 boundary-condition variants
 
-That yields `40` cases by default.
+The generator deterministically shuffles that larger pool and keeps `40` cases by default.
 
 Files created:
 
@@ -116,7 +120,18 @@ python scripts/run_model_service_experiment.py `
 ```powershell
 python scripts/generate_model_comparison_charts.py `
   --input artifacts/data_experiments/results/summary.csv `
-  --output-dir artifacts/data_experiments/charts
+  --output-dir artifacts/data_experiments/charts `
+  --include-fallback false
+```
+
+## 5. Generate markdown report
+
+```powershell
+python scripts/generate_model_report.py `
+  --input artifacts/data_experiments/results/summary.csv `
+  --output-dir reports `
+  --include-fallback false `
+  --save-png true
 ```
 
 ## Where the files go
@@ -162,27 +177,63 @@ Charts are saved here:
 artifacts/data_experiments/charts/
 ```
 
-Expected chart files:
+Main chart files now include:
 
 - `temperature_comparison.png`
 - `displacement_components_comparison.png`
 - `displacement_magnitude_comparison.png`
-- `material_comparison_sandstone_vs_basalt.png`
+- `max_displacement_valid_only.png`
+- `max_displacement_log_diagnostic.png`
+- `temperature_perturbation_valid_only.png`
+- `temperature_perturbation_log_diagnostic.png`
 - `basalt_vs_sandstone_travel_time.png`
 - `basalt_vs_sandstone_displacement.png`
 - `elevation_comparison.png`
 - `depth_sensitivity.png`
+- `depth_sensitivity_travel_time.png`
+- `depth_sensitivity_displacement.png`
+- `depth_sensitivity_temperature.png`
 - `domain_adaptation_summary.png`
-- `model_disagreement.png`
+- `azimuth_circular_disagreement_by_case.png`
 - `prediction_vs_time.png`
 - `service_status_summary.png`
+- `model_validity_summary.png`
+- `heatmap_case_model_travel_time.png`
+- `heatmap_case_model_displacement.png`
+- `heatmap_case_model_temperature.png`
+- `heatmap_model_disagreement_travel_time.png`
+- `heatmap_model_disagreement_displacement.png`
+- `heatmap_model_disagreement_temperature.png`
+- `heatmap_model_disagreement_azimuth.png`
+- `heatmap_model_disagreement_elevation.png`
+- `heatmap_material_model_travel_time.png`
+- `heatmap_material_model_displacement.png`
+- `heatmap_material_model_temperature.png`
+- `heatmap_time_model_travel_time.png`
+- `heatmap_probe_z_model_travel_time.png`
+- `heatmap_temperature_model_temperature_perturbation.png`
+- `heatmap_pressure_model_displacement.png`
+
+### Markdown report
+
+The final analysis report is written here:
+
+```text
+reports/model_comparison_report.md
+```
+
+All report figures are written here:
+
+```text
+reports/figures/
+```
 
 ## One-line versions
 
 If you prefer one-line PowerShell commands:
 
 ```powershell
-python scripts/generate_experiment_inputs.py --output artifacts/data_experiments/inputs/model_comparison_inputs.jsonl
+python scripts/generate_experiment_inputs.py --output artifacts/data_experiments/inputs/model_comparison_inputs.jsonl --metadata-output artifacts/data_experiments/inputs/model_comparison_inputs.metadata.json
 ```
 
 ```powershell
@@ -193,6 +244,10 @@ python scripts/run_model_service_experiment.py --input artifacts/data_experiment
 python scripts/generate_model_comparison_charts.py --input artifacts/data_experiments/results/summary.csv --output-dir artifacts/data_experiments/charts
 ```
 
+```powershell
+python scripts/generate_model_report.py --input artifacts/data_experiments/results/summary.csv --output-dir reports --include-fallback false --save-png true
+```
+
 ## Smoke run
 
 If you want to test the whole pipeline on one case first:
@@ -200,6 +255,7 @@ If you want to test the whole pipeline on one case first:
 ```powershell
 python scripts/generate_experiment_inputs.py `
   --output artifacts/data_experiments/inputs/smoke_case.jsonl `
+  --metadata-output artifacts/data_experiments/inputs/smoke_case.metadata.json `
   --num-cases 1
 ```
 
@@ -213,7 +269,16 @@ python scripts/run_model_service_experiment.py `
 ```powershell
 python scripts/generate_model_comparison_charts.py `
   --input artifacts/data_experiments/results-smoke/summary.csv `
-  --output-dir artifacts/data_experiments/charts-smoke
+  --output-dir artifacts/data_experiments/charts-smoke `
+  --include-fallback false
+```
+
+```powershell
+python scripts/generate_model_report.py `
+  --input artifacts/data_experiments/results-smoke/summary.csv `
+  --output-dir reports-smoke `
+  --include-fallback false `
+  --save-png true
 ```
 
 Smoke outputs go here:
@@ -221,6 +286,7 @@ Smoke outputs go here:
 ```text
 artifacts/data_experiments/results-smoke/
 artifacts/data_experiments/charts-smoke/
+reports-smoke/
 ```
 
 ## Common issues

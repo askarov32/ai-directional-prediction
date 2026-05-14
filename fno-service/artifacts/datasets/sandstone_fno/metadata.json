@@ -1,0 +1,147 @@
+{
+  "rock_id": "sandstone",
+  "experiment_id": "sandstone_rod",
+  "source_files": {
+    "materials": "/Users/askarovi/Downloads/sandstone experiment ROD/data_materials.csv",
+    "temperature": "/Users/askarovi/Downloads/sandstone experiment ROD/data_temperature.csv",
+    "displacement": "/Users/askarovi/Downloads/sandstone experiment ROD/data_displacement.csv",
+    "stress1": "/Users/askarovi/Downloads/sandstone experiment ROD/data_stress_1.csv",
+    "stress2": "/Users/askarovi/Downloads/sandstone experiment ROD/data_stress_2.csv",
+    "stress3": "/Users/askarovi/Downloads/sandstone experiment ROD/data_stress_3.csv",
+    "strain": "/Users/askarovi/Downloads/sandstone experiment ROD/data_strain.csv"
+  },
+  "mesh_path": "/Users/askarovi/Downloads/sandstone experiment ROD/sandstone.mphtxt",
+  "dimension": 3,
+  "node_count": 4448,
+  "raw_node_counts": {
+    "materials": 4743,
+    "temperature": 4743,
+    "displacement": 4448,
+    "stress1": 4743,
+    "stress2": 4743,
+    "stress3": 4743,
+    "strain": 4743
+  },
+  "unique_coordinate_counts": {
+    "materials": 4448,
+    "temperature": 4448,
+    "displacement": 4448,
+    "stress1": 4448,
+    "stress2": 4448,
+    "stress3": 4448,
+    "strain": 4448
+  },
+  "dropped_node_counts": {
+    "materials": 295,
+    "temperature": 295,
+    "displacement": 0,
+    "stress1": 295,
+    "stress2": 295,
+    "stress3": 295,
+    "strain": 295
+  },
+  "duplicate_coordinate_counts": {
+    "materials": 295,
+    "temperature": 295,
+    "displacement": 0,
+    "stress1": 295,
+    "stress2": 295,
+    "stress3": 295,
+    "strain": 295
+  },
+  "coordinate_policy": "intersection",
+  "time_steps": 101,
+  "time_start": 0.0,
+  "time_end": 0.009999999776482582,
+  "time_step": 9.999999747378752e-05,
+  "reference_temperature_k": 370.572998046875,
+  "material_static_field_order": [
+    "youngs_modulus",
+    "poissons_ratio",
+    "density",
+    "thermal_expansion"
+  ],
+  "thermal_properties_field_order": [
+    "thermal_conductivity",
+    "thermal_density",
+    "heat_capacity"
+  ],
+  "stress_normal_field_order": [
+    "von_mises",
+    "stress_x",
+    "stress_y",
+    "stress_z"
+  ],
+  "stress_shear_field_order": [
+    "stress_xy",
+    "stress_yz",
+    "stress_xz"
+  ],
+  "strain_field_order": [
+    "strain_x",
+    "strain_y",
+    "strain_z",
+    "strain_xy",
+    "strain_yz",
+    "strain_xz"
+  ],
+  "strain_source": "data_strain.csv",
+  "training_input_names": [
+    "x",
+    "y",
+    "z",
+    "t",
+    "youngs_modulus",
+    "poissons_ratio",
+    "density",
+    "thermal_expansion",
+    "thermal_conductivity",
+    "heat_capacity"
+  ],
+  "training_target_names": [
+    "temperature_k",
+    "disp_x",
+    "disp_y",
+    "disp_z",
+    "vel_x",
+    "vel_y",
+    "vel_z",
+    "von_mises",
+    "stress_x",
+    "stress_y",
+    "stress_z",
+    "stress_xy",
+    "stress_yz",
+    "stress_xz",
+    "strain_x",
+    "strain_y",
+    "strain_z",
+    "strain_xy",
+    "strain_yz",
+    "strain_xz"
+  ],
+  "material_static_drift_abs_max": {
+    "youngs_modulus": 0.0,
+    "poissons_ratio": 0.0,
+    "density": 0.0,
+    "thermal_expansion": 0.0
+  },
+  "notes": [
+    "initial_coordinates are the raw node coordinates from the COMSOL exports",
+    "dynamic_coordinates are taken from the temperature export x/y/z time-dependent columns",
+    "material_static stores one value per node for each material field using the first time slice",
+    "coordinate_policy=intersection aligns exports by common rounded coordinates and keeps the first row for duplicate coordinates"
+  ],
+  "format": "fno_grid",
+  "source_format": "pinn_structured_dataset",
+  "source_structured_dataset": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments/sandstone/structured_dataset.npz",
+  "layout": "grid_dynamic[T,C,Z,Y,X], grid_static[S,Z,Y,X]",
+  "grid_resolution_zyx": [
+    1,
+    32,
+    32
+  ],
+  "interpolation": "nearest_node_from_pinn_structured_dataset",
+  "selected_timesteps": 64,
+  "full_timesteps": 101
+}

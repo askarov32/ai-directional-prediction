@@ -1,6 +1,6 @@
 import { ApiError, createPrediction, fetchMedia, fetchModels } from "./api.js";
 import { renderDomain } from "./charts.js";
-import { applyModelDomainPolicy, buildDemoPayload, fillForm, readPayloadFromForm } from "./form.js";
+import { applyModelDomainPolicy, buildDemoPayload, fillForm, normalizeDomainShape, readPayloadFromForm } from "./form.js";
 import { getState, setState, subscribe } from "./state.js";
 import { createUI } from "./ui.js";
 import { validatePayload } from "./validators.js";
@@ -17,8 +17,9 @@ function getModelById(modelId) {
 
 function syncDraftFromForm() {
   const rawDraftRequest = readPayloadFromForm(ui.refs.form);
+  const shapeNormalizedDraft = normalizeDomainShape(rawDraftRequest);
   const model = getModelById(rawDraftRequest.model);
-  const draftRequest = applyModelDomainPolicy(rawDraftRequest, model);
+  const draftRequest = applyModelDomainPolicy(shapeNormalizedDraft, model);
   if (JSON.stringify(draftRequest) !== JSON.stringify(rawDraftRequest)) {
     fillForm(ui.refs.form, draftRequest);
   }

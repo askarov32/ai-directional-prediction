@@ -71,6 +71,19 @@ function toRect3d(payload) {
   return next;
 }
 
+export function normalizeDomainShape(payload) {
+  if (!payload?.domain?.type) {
+    return payload;
+  }
+  if (payload.domain.type === "rect_2d") {
+    return toRect2d(payload);
+  }
+  if (payload.domain.type === "rect_3d") {
+    return toRect3d(payload);
+  }
+  return payload;
+}
+
 function normalizeModelDescriptor(modelOrId) {
   if (!modelOrId) {
     return null;
@@ -82,24 +95,25 @@ function normalizeModelDescriptor(modelOrId) {
 }
 
 export function applyModelDomainPolicy(payload, modelOrId) {
+  const normalizedPayload = normalizeDomainShape(payload);
   const model = normalizeModelDescriptor(modelOrId);
   if (!model) {
-    return payload;
+    return normalizedPayload;
   }
 
   const supported = Array.isArray(model.supported_domain_types) ? model.supported_domain_types : [];
-  const defaultDomainType = model.default_domain_type || payload.domain.type;
-  if (!supported.length || supported.includes(payload.domain.type)) {
-    return payload;
+  const defaultDomainType = model.default_domain_type || normalizedPayload.domain.type;
+  if (!supported.length || supported.includes(normalizedPayload.domain.type)) {
+    return normalizedPayload;
   }
 
   if (defaultDomainType === "rect_2d") {
-    return toRect2d(payload);
+    return toRect2d(normalizedPayload);
   }
   if (defaultDomainType === "rect_3d") {
-    return toRect3d(payload);
+    return toRect3d(normalizedPayload);
   }
-  return payload;
+  return normalizedPayload;
 }
 
 function readNumber(form, selector) {

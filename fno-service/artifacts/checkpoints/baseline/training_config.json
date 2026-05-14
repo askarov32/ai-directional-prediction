@@ -1,0 +1,16 @@
+{
+  "dataset_path": "fno-service\\artifacts\\datasets\\limestone_fno",
+  "output_dir": "fno-service\\artifacts\\checkpoints\\baseline",
+  "device": "cuda",
+  "epochs": 2000,
+  "batch_size": 800,
+  "learning_rate": 0.0001,
+  "weight_decay": 1e-06,
+  "width": 16,
+  "modes_x": 6,
+  "modes_y": 6,
+  "depth": 2,
+  "val_fraction": 0.2,
+  "sample_limit": null,
+  "seed": 42
+}

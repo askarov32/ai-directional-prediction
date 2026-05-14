@@ -19,27 +19,41 @@ DEFAULT_INPUT = Path("artifacts/data_experiments/inputs/model_comparison_inputs.
 DEFAULT_OUTPUT_DIR = Path("artifacts/data_experiments/results")
 DEFAULT_CATALOG = Path("backend/data/media/catalog.json")
 
+
+def load_env_defaults(path: Path = Path(".env")) -> None:
+    if not path.exists():
+        return
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+load_env_defaults()
+
 SERVICE_CONFIG: dict[str, dict[str, str]] = {
     "pinn": {
-        "local_url": "http://localhost:9003",
+        "local_url": f"http://localhost:{os.getenv('PINN_SERVICE_PORT', '9003')}",
         "compose_url": "http://pinn-service:9000",
         "representation": "physics_informed",
         "routing_hint": "pinn",
     },
     "mgn": {
-        "local_url": "http://localhost:9001",
+        "local_url": f"http://localhost:{os.getenv('MGN_SERVICE_PORT', '9001')}",
         "compose_url": "http://mgn-service:9000",
         "representation": "graph",
         "routing_hint": "meshgraphnet",
     },
     "fno": {
-        "local_url": "http://localhost:9002",
+        "local_url": f"http://localhost:{os.getenv('FNO_SERVICE_PORT', '9002')}",
         "compose_url": "http://fno-service:9000",
         "representation": "grid",
         "routing_hint": "fno",
     },
     "transformer": {
-        "local_url": "http://localhost:9004",
+        "local_url": f"http://localhost:{os.getenv('TRANSFORMER_SERVICE_PORT', '9004')}",
         "compose_url": "http://transformer-service:9000",
         "representation": "tokenset",
         "routing_hint": "transformer",
