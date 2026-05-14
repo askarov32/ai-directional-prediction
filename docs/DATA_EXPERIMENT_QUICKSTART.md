@@ -239,3 +239,4 @@ artifacts/data_experiments/charts-smoke/
 - [Model Service Curls](/Users/askarovi/Documents/New%20project/docs/MODEL_SERVICE_CURLS.md)
 - [Data Experiment Charts](/Users/askarovi/Documents/New%20project/docs/DATA_EXPERIMENT_CHARTS.md)
 - [Data Experiment Pipeline](/Users/askarovi/Documents/New%20project/docs/DATA_EXPERIMENT_PIPELINE.md)
+- [Data Experiment PowerShell Guide](/Users/askarovi/Documents/New%20project/docs/DATA_EXPERIMENT_POWERSHELL.md)
