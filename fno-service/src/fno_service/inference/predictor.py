@@ -269,8 +269,15 @@ class FNOInferenceService:
         temperature_field = _channel_or_zeros(outputs, runtime.output_channels, "temperature_k")
         disp_x = _channel_or_zeros(outputs, runtime.output_channels, "disp_x")
         disp_y = _channel_or_zeros(outputs, runtime.output_channels, "disp_y")
+        is_rect_2d = payload.domain.get("type") == "rect_2d"
         disp_z = _channel_or_zeros(outputs, runtime.output_channels, "disp_z")
+        if is_rect_2d:
+            disp_z = np.zeros_like(disp_z, dtype=np.float32)
         displacement_norm = np.sqrt(disp_x**2 + disp_y**2 + disp_z**2)
+
+        if is_rect_2d:
+            direction[2] = 0.0
+            direction = _normalize(direction)
 
         return {
             "prediction": {
@@ -323,6 +330,10 @@ class FNOInferenceService:
                 dynamic[temp_index, 0] = dynamic[temp_index, 0] * 0.35 + base_temperature * 0.65
                 dynamic[temp_index, 0] += source_mask * (0.15 * amplitude * max(frequency_hz, 1.0))
                 dynamic[temp_index, 0] += pressure_mpa * 0.02
+
+            if payload.domain.get("type") == "rect_2d":
+                source_direction[2] = 0.0
+                source_direction = _normalize(source_direction)
 
             for channel_name, direction_component in zip(("disp_x", "disp_y", "disp_z"), source_direction, strict=True):
                 if channel_name in field_names:
@@ -463,6 +474,8 @@ def _prediction_direction(
     probe_cell: tuple[int, int],
 ) -> list[float]:
     sampled = _sample_vector(outputs, output_channels, ("disp_x", "disp_y", "disp_z"), probe_cell)
+    if sampled:
+        sampled = [sampled[0], sampled[1], 0.0]
     geometric = [float(probe_cell[1] - source_cell[1]), float(probe_cell[0] - source_cell[0]), 0.0]
     return _normalize([sampled[0] + 0.25 * geometric[0], sampled[1] + 0.25 * geometric[1], sampled[2]])
 

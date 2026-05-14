@@ -13,7 +13,7 @@ function pointInBounds(point, size) {
   return within(point.x, 0, size.lx) && within(point.y, 0, size.ly) && within(point.z, 0, size.lz);
 }
 
-export function validatePayload(payload, medium) {
+export function validatePayload(payload, medium, model = null) {
   const errors = {};
 
   if (!medium) {
@@ -42,6 +42,15 @@ export function validatePayload(payload, medium) {
 
   if (type === "rect_2d" && (size.lz !== 0 || resolution.nz !== 1)) {
     errors["domain.resolution"] = "rect_2d requires Lz = 0 and Nz = 1.";
+  }
+  if (type === "rect_3d" && (size.lz <= 0 || resolution.nz <= 1)) {
+    errors["domain.resolution"] = "rect_3d requires Lz > 0 and Nz > 1.";
+  }
+
+  const supportedDomainTypes = Array.isArray(model?.supported_domain_types) ? model.supported_domain_types : [];
+  if (supportedDomainTypes.length > 0 && !supportedDomainTypes.includes(type)) {
+    const supportedLabel = supportedDomainTypes.join(", ");
+    errors["model"] = `${model.name || model.id} currently supports ${supportedLabel} only.`;
   }
 
   if (!pointInBounds(payload.source, size)) {

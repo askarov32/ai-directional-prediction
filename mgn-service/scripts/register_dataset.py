@@ -30,6 +30,11 @@ def parse_args():
     p.add_argument("--thermal_expansion", type=float, default=0.0)
     p.add_argument("--thermal_conductivity", type=float, default=0.0)
     p.add_argument("--heat_capacity", type=float, default=0.0)
+    p.add_argument(
+        "--copy-raw-files",
+        action="store_true",
+        help="Copy COMSOL CSV/mesh files into datasets/<dataset_id>/raw so Docker services can access them.",
+    )
     return p.parse_args()
 
 
@@ -38,12 +43,12 @@ def main():
     sc = default_scenario(args.dataset_id)
     sc["rock_type"] = args.rock_type
     sc["physics"]["type"] = args.physics_type
-    sc["source"].update({
+    sc.setdefault("scenario", {}).update({
         "type": args.source_type,
         "initial_temperature": args.initial_temperature,
         "background_temperature": args.background_temperature,
-        "center": args.source_center,
-        "radius": args.source_radius,
+        "source_center": args.source_center,
+        "source_radius": args.source_radius,
     })
     sc["time"]["step"] = args.dt
     sc["material"].update({
@@ -54,7 +59,14 @@ def main():
         "thermal_conductivity": args.thermal_conductivity,
         "heat_capacity": args.heat_capacity,
     })
-    d = register_dataset(args.dataset_id, args.raw_dir, args.mesh_file, args.registry_dir, sc)
+    d = register_dataset(
+        args.dataset_id,
+        args.raw_dir,
+        args.mesh_file,
+        args.registry_dir,
+        sc,
+        copy_raw_files=args.copy_raw_files,
+    )
     print(f"✅ Registered dataset: {d}")
     print(f"   Scenario: {d / 'scenario.yaml'}")
 

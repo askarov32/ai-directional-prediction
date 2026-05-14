@@ -257,6 +257,9 @@ async def predict(payload: PredictionPayload) -> dict[str, Any]:
         MGN_CHECKPOINT_PATH,
         "--rollout_steps",
         MGN_ROLLOUT_STEPS,
+        "--no_animate",
+        "--no_vtk",
+        "--no_plots",
     ]
 
     summary_path = PROJECT_ROOT / "outputs" / "predictions" / "summary_metrics.json"

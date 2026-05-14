@@ -49,7 +49,8 @@
               <label class="field">
                 <span class="field__label">Model route</span>
                 <select id="model-select" name="model"></select>
-                <small class="field__hint">Requests are routed by the FastAPI orchestration layer.</small>
+                <small class="field__hint" id="model-capability-hint">Requests are routed by the FastAPI orchestration layer.</small>
+                <small class="field__error" data-error-for="model"></small>
               </label>
             </div>
           </section>
@@ -203,6 +204,7 @@
                     <option value="rect_2d">rect_2d</option>
                     <option value="rect_3d">rect_3d</option>
                   </select>
+                  <small class="field__hint">The stack is moving to 3D-first. FNO remains 2D-only for now.</small>
                 </label>
 
                 <label class="field">
@@ -297,7 +299,7 @@
           <div class="card__header card__header--result">
             <div>
               <h2>Prediction result</h2>
-              <p class="section-description">Directional response, latency, and a compact 2D domain preview.</p>
+              <p class="section-description">Directional response, latency, and a compact projected domain preview.</p>
             </div>
 
             <div class="result-badges">

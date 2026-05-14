@@ -10,47 +10,110 @@ const DEMO_TEMPLATE = {
     type: "thermal_pulse",
     x: 0.15,
     y: 0.4,
-    z: 0,
+    z: 0.2,
     amplitude: 1,
     frequency_hz: 50,
-    direction: [1, 0, 0],
+    direction: [1, 0.15, 0.1],
   },
   probe: {
     x: 0.7,
     y: 0.55,
-    z: 0,
+    z: 0.75,
   },
   domain: {
-    type: "rect_2d",
+    type: "rect_3d",
     size: {
       lx: 1,
       ly: 1,
-      lz: 0,
+      lz: 1,
     },
     resolution: {
       nx: 128,
       ny: 128,
-      nz: 1,
+      nz: 48,
     },
     boundary_conditions: {
       left: "fixed",
       right: "free",
       top: "insulated",
       bottom: "insulated",
+      front: "insulated",
+      back: "insulated",
     },
   },
 };
+
+function cloneTemplate() {
+  return structuredClone(DEMO_TEMPLATE);
+}
+
+function toRect2d(payload) {
+  const next = structuredClone(payload);
+  next.domain.type = "rect_2d";
+  next.domain.size.lz = 0;
+  next.domain.resolution.nz = 1;
+  next.source.z = 0;
+  next.probe.z = 0;
+  next.source.direction[2] = 0;
+  return next;
+}
+
+function toRect3d(payload) {
+  const next = structuredClone(payload);
+  next.domain.type = "rect_3d";
+  next.domain.size.lz = next.domain.size.lz > 0 ? next.domain.size.lz : 1;
+  next.domain.resolution.nz = next.domain.resolution.nz > 1 ? next.domain.resolution.nz : 48;
+  next.source.z = next.source.z > 0 ? next.source.z : 0.2;
+  next.probe.z = next.probe.z > 0 ? next.probe.z : 0.75;
+  if (next.source.direction[2] === 0) {
+    next.source.direction[2] = 0.1;
+  }
+  return next;
+}
+
+function normalizeModelDescriptor(modelOrId) {
+  if (!modelOrId) {
+    return null;
+  }
+  if (typeof modelOrId === "string") {
+    return { id: modelOrId };
+  }
+  return modelOrId;
+}
+
+export function applyModelDomainPolicy(payload, modelOrId) {
+  const model = normalizeModelDescriptor(modelOrId);
+  if (!model) {
+    return payload;
+  }
+
+  const supported = Array.isArray(model.supported_domain_types) ? model.supported_domain_types : [];
+  const defaultDomainType = model.default_domain_type || payload.domain.type;
+  if (!supported.length || supported.includes(payload.domain.type)) {
+    return payload;
+  }
+
+  if (defaultDomainType === "rect_2d") {
+    return toRect2d(payload);
+  }
+  if (defaultDomainType === "rect_3d") {
+    return toRect3d(payload);
+  }
+  return payload;
+}
 
 function readNumber(form, selector) {
   return Number(form.querySelector(selector).value);
 }
 
-export function buildDemoPayload(mediumId, modelId) {
-  return {
-    ...structuredClone(DEMO_TEMPLATE),
+export function buildDemoPayload(mediumId, modelOrId) {
+  const model = normalizeModelDescriptor(modelOrId);
+  const basePayload = {
+    ...cloneTemplate(),
     medium_id: mediumId || DEMO_TEMPLATE.medium_id,
-    model: modelId || DEMO_TEMPLATE.model,
+    model: model?.id || DEMO_TEMPLATE.model,
   };
+  return applyModelDomainPolicy(basePayload, model);
 }
 
 export function readPayloadFromForm(form) {
