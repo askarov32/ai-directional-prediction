@@ -61,7 +61,8 @@ use:
 ```bash
 python3 scripts/run_model_service_experiment.py \
   --input artifacts/data_experiments/inputs/model_comparison_inputs.jsonl \
-  --output-dir artifacts/data_experiments/results
+  --output-dir artifacts/data_experiments/results \
+  --timeout-seconds 120
 ```
 
 If your machine uses different published ports, pass them explicitly.
@@ -72,6 +73,7 @@ Example for a machine where `pinn-service` is published on `9013` and `mgn-servi
 python3 scripts/run_model_service_experiment.py \
   --input artifacts/data_experiments/inputs/model_comparison_inputs.jsonl \
   --output-dir artifacts/data_experiments/results \
+  --timeout-seconds 120 \
   --pinn-url http://localhost:9013 \
   --mgn-url http://localhost:9011 \
   --fno-url http://localhost:9002 \
@@ -217,7 +219,8 @@ Run the experiment:
 ```bash
 python3 scripts/run_model_service_experiment.py \
   --input artifacts/data_experiments/inputs/smoke_case.jsonl \
-  --output-dir artifacts/data_experiments/results-smoke
+  --output-dir artifacts/data_experiments/results-smoke \
+  --timeout-seconds 120
 ```
 
 Generate smoke charts:

@@ -125,7 +125,7 @@ def plot_displacement_magnitude(plt, rows: list[dict[str, str]], output_path: Pa
     values = [means[label] for label in labels]
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.bar(labels, values, color="#0F766E")
-    ax.set_title("Max displacement comparison")
+    ax.set_title("Max displacement comparison (successful responses only)")
     ax.set_ylabel("Mean max displacement")
     fig.tight_layout()
     fig.savefig(output_path, dpi=180)
@@ -223,7 +223,10 @@ def plot_service_status_summary(plt, rows: list[dict[str, str]], output_path: Pa
     counts: dict[str, Counter[str]] = defaultdict(Counter)
     for row in rows:
         model = row.get("model", "")
-        status = row.get("status", "unknown")
+        if row.get("status") == "ok" and row.get("fallback_used") == "True":
+            status = "fallback"
+        else:
+            status = row.get("status", "unknown")
         if model:
             counts[model][status] += 1
     if not counts:
@@ -231,10 +234,13 @@ def plot_service_status_summary(plt, rows: list[dict[str, str]], output_path: Pa
         return
     labels = sorted(counts.keys())
     ok_values = [counts[label].get("ok", 0) for label in labels]
+    fallback_values = [counts[label].get("fallback", 0) for label in labels]
     error_values = [counts[label].get("error", 0) for label in labels]
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.bar(labels, ok_values, label="ok", color="#15803D")
-    ax.bar(labels, error_values, bottom=ok_values, label="error", color="#B91C1C")
+    ax.bar(labels, fallback_values, bottom=ok_values, label="fallback", color="#B45309")
+    error_bottom = [ok + fallback for ok, fallback in zip(ok_values, fallback_values)]
+    ax.bar(labels, error_values, bottom=error_bottom, label="error", color="#B91C1C")
     ax.set_title("Service status summary")
     ax.set_ylabel("Case count")
     ax.legend()

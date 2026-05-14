@@ -3,11 +3,14 @@ from __future__ import annotations
 
 import argparse
 import csv
+import shutil
 import json
 import os
 import time
 import urllib.error
 import urllib.request
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -51,7 +54,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--catalog", type=Path, default=DEFAULT_CATALOG)
-    parser.add_argument("--timeout-seconds", type=float, default=20.0)
+    parser.add_argument("--timeout-seconds", type=float, default=120.0)
     parser.add_argument(
         "--models",
         nargs="+",
@@ -62,6 +65,11 @@ def parse_args() -> argparse.Namespace:
         "--skip-preflight",
         action="store_true",
         help="Skip one-time /health and /ready checks before the experiment run.",
+    )
+    parser.add_argument(
+        "--no-clean-output",
+        action="store_true",
+        help="Keep existing files in output-dir instead of removing previous generated results first.",
     )
     parser.add_argument(
         "--pinn-url",
@@ -375,9 +383,25 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
         handle.write("\n")
 
 
+def prepare_output_dir(output_dir: Path, *, clean_output: bool) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    if not clean_output:
+        return
+    for child in ("raw", "normalized"):
+        path = output_dir / child
+        if path.exists():
+            shutil.rmtree(path)
+    for child in ("summary.csv", "summary.json", "run_metadata.json"):
+        path = output_dir / child
+        if path.exists():
+            path.unlink()
+
+
 def main() -> None:
     args = parse_args()
     started_at = time.time()
+    run_id = str(uuid.uuid4())
+    prepare_output_dir(args.output_dir, clean_output=not args.no_clean_output)
     catalog = load_json(args.catalog)
     media = resolve_media(catalog)
     cases = load_jsonl(args.input)
@@ -392,6 +416,19 @@ def main() -> None:
     preflight_report = {}
     if not args.skip_preflight:
         preflight_report = preflight(list(args.models), float(args.timeout_seconds), urls)
+    write_json(
+        args.output_dir / "run_metadata.json",
+        {
+            "run_id": run_id,
+            "started_at": datetime.now(timezone.utc).isoformat(),
+            "input_path": str(args.input),
+            "output_dir": str(args.output_dir),
+            "models": list(args.models),
+            "urls": urls,
+            "timeout_seconds": float(args.timeout_seconds),
+            "preflight": preflight_report,
+        },
+    )
 
     for case in cases:
         medium_id = case["medium_id"]
@@ -458,6 +495,7 @@ def main() -> None:
     error_count = sum(1 for row in summary_rows if row["status"] == "error")
     summary_payload = {
         "status": "ok",
+        "run_id": run_id,
         "input_path": str(args.input),
         "output_dir": str(args.output_dir),
         "case_count": len(cases),

@@ -78,7 +78,8 @@ run:
 ```powershell
 python scripts/run_model_service_experiment.py `
   --input artifacts/data_experiments/inputs/model_comparison_inputs.jsonl `
-  --output-dir artifacts/data_experiments/results
+  --output-dir artifacts/data_experiments/results `
+  --timeout-seconds 120
 ```
 
 If your ports are custom, pass them explicitly.
@@ -94,6 +95,7 @@ Example:
 python scripts/run_model_service_experiment.py `
   --input artifacts/data_experiments/inputs/model_comparison_inputs.jsonl `
   --output-dir artifacts/data_experiments/results `
+  --timeout-seconds 120 `
   --pinn-url http://localhost:9013 `
   --mgn-url http://localhost:9011 `
   --fno-url http://localhost:9002 `
@@ -162,7 +164,7 @@ python scripts/generate_experiment_inputs.py --output artifacts/data_experiments
 ```
 
 ```powershell
-python scripts/run_model_service_experiment.py --input artifacts/data_experiments/inputs/model_comparison_inputs.jsonl --output-dir artifacts/data_experiments/results
+python scripts/run_model_service_experiment.py --input artifacts/data_experiments/inputs/model_comparison_inputs.jsonl --output-dir artifacts/data_experiments/results --timeout-seconds 120
 ```
 
 ```powershell
@@ -182,7 +184,8 @@ python scripts/generate_experiment_inputs.py `
 ```powershell
 python scripts/run_model_service_experiment.py `
   --input artifacts/data_experiments/inputs/smoke_case.jsonl `
-  --output-dir artifacts/data_experiments/results-smoke
+  --output-dir artifacts/data_experiments/results-smoke `
+  --timeout-seconds 120
 ```
 
 ```powershell
