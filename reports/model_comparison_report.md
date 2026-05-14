@@ -9,8 +9,8 @@
 ## Response summary by model
 | Model | Total | Checkpoint | Fallback | Error | Timeout | Outlier |
 |---|---:|---:|---:|---:|---:|---:|
-| `pinn` | 40 | 0 | 0 | 40 | 0 | 0 |
-| `mgn` | 40 | 0 | 0 | 40 | 0 | 0 |
+| `pinn` | 40 | 40 | 0 | 0 | 0 | 0 |
+| `mgn` | 40 | 0 | 0 | 0 | 0 | 0 |
 | `fno` | 40 | 40 | 0 | 0 | 0 | 40 |
 | `transformer` | 40 | 40 | 0 | 0 | 0 | 0 |
 
