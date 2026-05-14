@@ -21,25 +21,25 @@ DEFAULT_CATALOG = Path("backend/data/media/catalog.json")
 
 SERVICE_CONFIG: dict[str, dict[str, str]] = {
     "pinn": {
-        "local_url": "http://localhost:9003",
+        "local_url": f"http://localhost:{os.getenv('PINN_SERVICE_PORT', '9003')}",
         "compose_url": "http://pinn-service:9000",
         "representation": "physics_informed",
         "routing_hint": "pinn",
     },
     "mgn": {
-        "local_url": "http://localhost:9001",
+        "local_url": f"http://localhost:{os.getenv('MGN_SERVICE_PORT', '9001')}",
         "compose_url": "http://mgn-service:9000",
         "representation": "graph",
         "routing_hint": "meshgraphnet",
     },
     "fno": {
-        "local_url": "http://localhost:9002",
+        "local_url": f"http://localhost:{os.getenv('FNO_SERVICE_PORT', '9002')}",
         "compose_url": "http://fno-service:9000",
         "representation": "grid",
         "routing_hint": "fno",
     },
     "transformer": {
-        "local_url": "http://localhost:9004",
+        "local_url": f"http://localhost:{os.getenv('TRANSFORMER_SERVICE_PORT', '9004')}",
         "compose_url": "http://transformer-service:9000",
         "representation": "tokenset",
         "routing_hint": "transformer",

@@ -158,6 +158,7 @@ def canonical_model_labels(rows: list[dict[str, Any]]) -> list[str]:
     for model in MODEL_ORDER:
         candidates = [row for row in rows if row.get("model") == model]
         if not candidates:
+            labels.append(model)
             continue
         if all(row.get("is_fallback") for row in candidates):
             labels.append(f"{model} (fallback)")
@@ -221,9 +222,9 @@ def grouped_mean(
     return {key: sum(values) / len(values) for key, values in buckets.items() if values}
 
 
-def plot_temperature_comparison(plt, rows: list[dict[str, str]], output_path: Path) -> None:
+def plot_temperature_comparison(plt, rows: list[dict[str, str]], output_path: Path, model_labels: list[str] | None = None) -> None:
     means = average_metric(rows, "max_temperature_perturbation", by="model")
-    labels = [label.split(" ")[0] for label in canonical_model_labels(rows)]
+    labels = [label.split(" ")[0] for label in (model_labels or canonical_model_labels(rows))]
     if not means and not labels:
         render_placeholder(plt, output_path, "Temperature comparison", "No successful temperature metrics were available.")
         return
@@ -277,9 +278,9 @@ def plot_direction_components_proxy(plt, rows: list[dict[str, str]], output_path
     plt.close(fig)
 
 
-def plot_displacement_magnitude(plt, rows: list[dict[str, str]], output_path: Path) -> None:
+def plot_displacement_magnitude(plt, rows: list[dict[str, str]], output_path: Path, model_labels: list[str] | None = None) -> None:
     means = average_metric(rows, "max_displacement", by="model")
-    labels = [label.split(" ")[0] for label in canonical_model_labels(rows)]
+    labels = [label.split(" ")[0] for label in (model_labels or canonical_model_labels(rows))]
     if not means and not labels:
         render_placeholder(plt, output_path, "Displacement magnitude comparison", "No displacement metrics were available.")
         return
@@ -296,10 +297,10 @@ def plot_displacement_magnitude(plt, rows: list[dict[str, str]], output_path: Pa
     )
 
 
-def plot_displacement_valid_only(plt, rows: list[dict[str, Any]], output_path: Path) -> None:
+def plot_displacement_valid_only(plt, rows: list[dict[str, Any]], output_path: Path, model_labels: list[str] | None = None) -> None:
     valid_rows = [row for row in rows if not row["is_outlier"]]
     means = average_metric(valid_rows, "max_displacement", by="model_label")
-    labels = canonical_model_labels(rows)
+    labels = model_labels or canonical_model_labels(rows)
     if not means and not labels:
         render_placeholder(plt, output_path, "Max displacement (valid only)", "No valid non-outlier displacement rows were available.")
         return
@@ -315,9 +316,9 @@ def plot_displacement_valid_only(plt, rows: list[dict[str, Any]], output_path: P
     )
 
 
-def plot_displacement_log_diagnostic(plt, rows: list[dict[str, Any]], output_path: Path) -> None:
+def plot_displacement_log_diagnostic(plt, rows: list[dict[str, Any]], output_path: Path, model_labels: list[str] | None = None) -> None:
     means = average_metric(rows, "max_displacement", by="model_label")
-    labels = canonical_model_labels(rows)
+    labels = model_labels or canonical_model_labels(rows)
     if not means and not labels:
         render_placeholder(plt, output_path, "Max displacement log diagnostic", "No displacement rows were available.")
         return
@@ -334,10 +335,10 @@ def plot_displacement_log_diagnostic(plt, rows: list[dict[str, Any]], output_pat
     )
 
 
-def plot_temperature_valid_only(plt, rows: list[dict[str, Any]], output_path: Path) -> None:
+def plot_temperature_valid_only(plt, rows: list[dict[str, Any]], output_path: Path, model_labels: list[str] | None = None) -> None:
     valid_rows = [row for row in rows if not row["is_outlier"]]
     means = average_metric(valid_rows, "max_temperature_perturbation", by="model_label")
-    labels = canonical_model_labels(rows)
+    labels = model_labels or canonical_model_labels(rows)
     if not means and not labels:
         render_placeholder(plt, output_path, "Temperature perturbation (valid only)", "No valid non-outlier temperature rows were available.")
         return
@@ -353,9 +354,9 @@ def plot_temperature_valid_only(plt, rows: list[dict[str, Any]], output_path: Pa
     )
 
 
-def plot_temperature_log_diagnostic(plt, rows: list[dict[str, Any]], output_path: Path) -> None:
+def plot_temperature_log_diagnostic(plt, rows: list[dict[str, Any]], output_path: Path, model_labels: list[str] | None = None) -> None:
     means = average_metric(rows, "max_temperature_perturbation", by="model_label")
-    labels = canonical_model_labels(rows)
+    labels = model_labels or canonical_model_labels(rows)
     if not means and not labels:
         render_placeholder(plt, output_path, "Temperature perturbation log diagnostic", "No temperature rows were available.")
         return
@@ -372,9 +373,9 @@ def plot_temperature_log_diagnostic(plt, rows: list[dict[str, Any]], output_path
     )
 
 
-def plot_material_comparison(plt, rows: list[dict[str, str]], output_path: Path) -> None:
+def plot_material_comparison(plt, rows: list[dict[str, str]], output_path: Path, model_labels: list[str] | None = None) -> None:
     materials = sorted({row["material"] for row in rows if row.get("material")}, key=material_sort_key)
-    models = canonical_model_labels(rows)
+    models = model_labels or canonical_model_labels(rows)
     if len(materials) < 2:
         render_placeholder(plt, output_path, "Material comparison", "Need at least two materials with successful results.")
         return
@@ -478,7 +479,7 @@ def plot_prediction_vs_time(plt, rows: list[dict[str, str]], output_path: Path) 
     plt.close(fig)
 
 
-def plot_basalt_vs_sandstone_travel_time(plt, rows: list[dict[str, str]], output_path: Path) -> None:
+def plot_basalt_vs_sandstone_travel_time(plt, rows: list[dict[str, str]], output_path: Path, model_labels: list[str] | None = None) -> None:
     means = grouped_mean(
         rows,
         group_keys=("material", "model"),
@@ -488,7 +489,7 @@ def plot_basalt_vs_sandstone_travel_time(plt, rows: list[dict[str, str]], output
         render_placeholder(plt, output_path, "Basalt vs sandstone travel time", "No travel-time metrics were available.")
         return
     materials = [material for material in ("basalt", "sandstone") if any(key[0] == material for key in means)]
-    models = canonical_model_labels(rows)
+    models = model_labels or canonical_model_labels(rows)
     fig, ax = plt.subplots(figsize=(12, 5))
     width = 0.18
     base = list(range(len(materials)))
@@ -506,7 +507,7 @@ def plot_basalt_vs_sandstone_travel_time(plt, rows: list[dict[str, str]], output
     plt.close(fig)
 
 
-def plot_basalt_vs_sandstone_displacement(plt, rows: list[dict[str, str]], output_path: Path) -> None:
+def plot_basalt_vs_sandstone_displacement(plt, rows: list[dict[str, str]], output_path: Path, model_labels: list[str] | None = None) -> None:
     means = grouped_mean(
         rows,
         group_keys=("material", "model"),
@@ -516,7 +517,7 @@ def plot_basalt_vs_sandstone_displacement(plt, rows: list[dict[str, str]], outpu
         render_placeholder(plt, output_path, "Basalt vs sandstone displacement", "No displacement metrics were available.")
         return
     materials = [material for material in ("basalt", "sandstone") if any(key[0] == material for key in means)]
-    models = canonical_model_labels(rows)
+    models = model_labels or canonical_model_labels(rows)
     fig, ax = plt.subplots(figsize=(12, 5))
     width = 0.18
     base = list(range(len(materials)))
@@ -534,9 +535,9 @@ def plot_basalt_vs_sandstone_displacement(plt, rows: list[dict[str, str]], outpu
     plt.close(fig)
 
 
-def plot_elevation_comparison(plt, rows: list[dict[str, str]], output_path: Path) -> None:
+def plot_elevation_comparison(plt, rows: list[dict[str, str]], output_path: Path, model_labels: list[str] | None = None) -> None:
     means = average_metric(rows, "elevation_deg", by="model")
-    labels = [label.split(" ")[0] for label in canonical_model_labels(rows)]
+    labels = [label.split(" ")[0] for label in (model_labels or canonical_model_labels(rows))]
     if not means and not labels:
         render_placeholder(plt, output_path, "Elevation comparison", "No elevation metrics were available.")
         return
@@ -921,6 +922,7 @@ def main() -> None:
     include_fallback = args.include_fallback == "true"
     analysis = load_and_analyze_summary(args.input)
     rows = analysis.rows
+    all_model_labels = canonical_model_labels(rows)
     scientific_rows = filter_rows(rows, include_fallback=include_fallback, only_ok=True, exclude_outliers=False)
     valid_rows = filter_rows(rows, include_fallback=include_fallback, only_ok=True, exclude_outliers=True)
     ensure_output_dir(args.output_dir)
@@ -943,6 +945,7 @@ def main() -> None:
         plt,
         scientific_rows,
         args.output_dir / "temperature_comparison.png",
+        all_model_labels,
     )
     plot_direction_components_proxy(
         plt,
@@ -953,31 +956,37 @@ def main() -> None:
         plt,
         scientific_rows,
         args.output_dir / "displacement_magnitude_comparison.png",
+        all_model_labels,
     )
     plot_displacement_valid_only(
         plt,
         valid_rows,
         args.output_dir / "max_displacement_valid_only.png",
+        all_model_labels,
     )
     plot_displacement_log_diagnostic(
         plt,
         scientific_rows,
         args.output_dir / "max_displacement_log_diagnostic.png",
+        all_model_labels,
     )
     plot_temperature_valid_only(
         plt,
         valid_rows,
         args.output_dir / "temperature_perturbation_valid_only.png",
+        all_model_labels,
     )
     plot_temperature_log_diagnostic(
         plt,
         scientific_rows,
         args.output_dir / "temperature_perturbation_log_diagnostic.png",
+        all_model_labels,
     )
     plot_material_comparison(
         plt,
         scientific_rows,
         args.output_dir / "material_comparison_sandstone_vs_basalt.png",
+        all_model_labels,
     )
     plot_model_disagreement(
         plt,
@@ -1003,16 +1012,19 @@ def main() -> None:
         plt,
         scientific_rows,
         args.output_dir / "basalt_vs_sandstone_travel_time.png",
+        all_model_labels,
     )
     plot_basalt_vs_sandstone_displacement(
         plt,
         scientific_rows,
         args.output_dir / "basalt_vs_sandstone_displacement.png",
+        all_model_labels,
     )
     plot_elevation_comparison(
         plt,
         scientific_rows,
         args.output_dir / "elevation_comparison.png",
+        all_model_labels,
     )
     plot_depth_sensitivity(
         plt,
