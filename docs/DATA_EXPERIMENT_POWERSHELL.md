@@ -41,21 +41,28 @@ docker compose up -d
 
 ## 2. Generate experiment inputs
 
-Standard 20-case run:
+Standard 40-case run:
 
 ```powershell
 python scripts/generate_experiment_inputs.py `
-  --output artifacts/data_experiments/inputs/model_comparison_inputs.jsonl `
-  --num-cases 20
+  --output artifacts/data_experiments/inputs/model_comparison_inputs.jsonl
 ```
 
 If `python` is not found, use:
 
 ```powershell
 py scripts/generate_experiment_inputs.py `
-  --output artifacts/data_experiments/inputs/model_comparison_inputs.jsonl `
-  --num-cases 20
+  --output artifacts/data_experiments/inputs/model_comparison_inputs.jsonl
 ```
+
+Default grid:
+
+- materials: `sandstone_medium`, `basalt`
+- temperatures: `20, 80, 140, 220, 300`
+- pressures: `5, 35`
+- time points: `6, 12`
+
+That yields `40` cases by default.
 
 Files created:
 
@@ -151,6 +158,8 @@ Expected chart files:
 - `displacement_components_comparison.png`
 - `displacement_magnitude_comparison.png`
 - `material_comparison_sandstone_vs_basalt.png`
+- `basalt_vs_sandstone_travel_time.png`
+- `basalt_vs_sandstone_displacement.png`
 - `model_disagreement.png`
 - `prediction_vs_time.png`
 - `service_status_summary.png`
@@ -160,7 +169,7 @@ Expected chart files:
 If you prefer one-line PowerShell commands:
 
 ```powershell
-python scripts/generate_experiment_inputs.py --output artifacts/data_experiments/inputs/model_comparison_inputs.jsonl --num-cases 20
+python scripts/generate_experiment_inputs.py --output artifacts/data_experiments/inputs/model_comparison_inputs.jsonl
 ```
 
 ```powershell
@@ -220,8 +229,7 @@ Try:
 
 ```powershell
 py scripts/generate_experiment_inputs.py `
-  --output artifacts/data_experiments/inputs/model_comparison_inputs.jsonl `
-  --num-cases 20
+  --output artifacts/data_experiments/inputs/model_comparison_inputs.jsonl
 ```
 
 ### `pinn-service` returns `503`

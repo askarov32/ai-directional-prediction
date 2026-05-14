@@ -111,9 +111,10 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--time-ms",
+        nargs="+",
         type=float,
-        default=12.0,
-        help="Shared time point for all generated cases.",
+        default=[6.0, 12.0],
+        help="Scenario time points in milliseconds.",
     )
     parser.add_argument(
         "--frequency-hz",
@@ -164,7 +165,7 @@ def build_cases(
     *,
     temperatures: list[float],
     pressures: list[float],
-    time_ms: float,
+    time_points_ms: list[float],
     frequency_hz: float,
     seed: int,
 ) -> list[ExperimentCase]:
@@ -176,30 +177,31 @@ def build_cases(
         material = material_label(medium)
         for temperature_c in temperatures:
             for pressure_mpa in pressures:
-                source = dict(DEFAULT_SOURCE)
-                source["frequency_hz"] = frequency_hz
-                case = ExperimentCase(
-                    case_id=f"case_{serial:03d}_{material}",
-                    material=material,
-                    medium_id=str(medium["id"]),
-                    temperature_c=float(temperature_c),
-                    pressure_mpa=float(pressure_mpa),
-                    time_ms=float(time_ms),
-                    frequency_hz=float(frequency_hz),
-                    boundary_conditions=dict(DEFAULT_BOUNDARY_CONDITIONS),
-                    input={
-                        "scenario": {
-                            "temperature_c": float(temperature_c),
-                            "pressure_mpa": float(pressure_mpa),
-                            "time_ms": float(time_ms),
+                for time_ms in time_points_ms:
+                    source = dict(DEFAULT_SOURCE)
+                    source["frequency_hz"] = frequency_hz
+                    case = ExperimentCase(
+                        case_id=f"case_{serial:03d}_{material}",
+                        material=material,
+                        medium_id=str(medium["id"]),
+                        temperature_c=float(temperature_c),
+                        pressure_mpa=float(pressure_mpa),
+                        time_ms=float(time_ms),
+                        frequency_hz=float(frequency_hz),
+                        boundary_conditions=dict(DEFAULT_BOUNDARY_CONDITIONS),
+                        input={
+                            "scenario": {
+                                "temperature_c": float(temperature_c),
+                                "pressure_mpa": float(pressure_mpa),
+                                "time_ms": float(time_ms),
+                            },
+                            "source": source,
+                            "probe": dict(DEFAULT_PROBE),
+                            "domain": json.loads(json.dumps(DEFAULT_DOMAIN)),
                         },
-                        "source": source,
-                        "probe": dict(DEFAULT_PROBE),
-                        "domain": json.loads(json.dumps(DEFAULT_DOMAIN)),
-                    },
-                )
-                records.append(case)
-                serial += 1
+                    )
+                    records.append(case)
+                    serial += 1
 
     randomizer.shuffle(records)
     return records
@@ -250,7 +252,7 @@ def write_metadata(
     materials: list[str],
     temperatures: list[float],
     pressures: list[float],
-    time_ms: float,
+    time_points_ms: list[float],
     frequency_hz: float,
 ) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -262,7 +264,7 @@ def write_metadata(
         "materials": materials,
         "temperatures_c": temperatures,
         "pressures_mpa": pressures,
-        "time_ms": time_ms,
+        "time_ms": time_points_ms,
         "frequency_hz": frequency_hz,
         "boundary_conditions": dict(DEFAULT_BOUNDARY_CONDITIONS),
         "domain": json.loads(json.dumps(DEFAULT_DOMAIN)),
@@ -289,7 +291,7 @@ def main() -> None:
         media,
         temperatures=list(args.temperatures),
         pressures=list(args.pressures),
-        time_ms=float(args.time_ms),
+        time_points_ms=[float(value) for value in args.time_ms],
         frequency_hz=float(args.frequency_hz),
         seed=int(args.seed),
     )
@@ -303,7 +305,7 @@ def main() -> None:
         materials=[material_label(medium) for medium in media],
         temperatures=[float(value) for value in args.temperatures],
         pressures=[float(value) for value in args.pressures],
-        time_ms=float(args.time_ms),
+        time_points_ms=[float(value) for value in args.time_ms],
         frequency_hz=float(args.frequency_hz),
     )
     print(

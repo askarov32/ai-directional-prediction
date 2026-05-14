@@ -213,3 +213,6 @@ class ModelInfoSchema(BaseModel):
     id: str
     name: str
     status: str
+    supported_domain_types: list[str] = Field(default_factory=list)
+    default_domain_type: str | None = None
+    capability_note: str | None = None

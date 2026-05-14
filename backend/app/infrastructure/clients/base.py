@@ -162,7 +162,7 @@ class BaseModelClient(ABC):
             payload["details"] = {key: value for key, value in details.items() if value is not None}
         return payload
 
-    def descriptor(self) -> dict[str, str]:
+    def descriptor(self) -> dict[str, object]:
         return {
             "id": self.model_type.value,
             "name": self.model_type.label,

@@ -69,6 +69,38 @@ def average_metric(rows: list[dict[str, str]], metric: str, *, by: str) -> dict[
     return {key: sum(values) / len(values) for key, values in buckets.items() if values}
 
 
+def apply_log_scale_if_needed(ax, values: list[float]) -> None:
+    positive = [value for value in values if value > 0]
+    if len(positive) < 2:
+        return
+    spread = max(positive) / max(min(positive), 1e-12)
+    if spread >= 100:
+        ax.set_yscale("log")
+        ax.set_ylabel(f"{ax.get_ylabel()} (log scale)")
+
+
+def annotate_bars(ax, values: list[float]) -> None:
+    for index, value in enumerate(values):
+        ax.text(index, value, f"{value:.3g}", ha="center", va="bottom", fontsize=8, rotation=0)
+
+
+def grouped_mean(
+    rows: list[dict[str, str]],
+    *,
+    group_keys: tuple[str, ...],
+    metric: str,
+) -> dict[tuple[str, ...], float]:
+    buckets: dict[tuple[str, ...], list[float]] = defaultdict(list)
+    for row in rows:
+        value = float_or_none(row.get(metric, ""))
+        if value is None:
+            continue
+        key = tuple(row.get(name, "") for name in group_keys)
+        if all(key):
+            buckets[key].append(value)
+    return {key: sum(values) / len(values) for key, values in buckets.items() if values}
+
+
 def plot_temperature_comparison(plt, rows: list[dict[str, str]], output_path: Path) -> None:
     means = average_metric(rows, "max_temperature_perturbation", by="model")
     if not means:
@@ -80,6 +112,8 @@ def plot_temperature_comparison(plt, rows: list[dict[str, str]], output_path: Pa
     ax.bar(labels, values, color="#4F46E5")
     ax.set_title("Temperature perturbation comparison")
     ax.set_ylabel("Mean max temperature perturbation")
+    apply_log_scale_if_needed(ax, values)
+    annotate_bars(ax, values)
     fig.tight_layout()
     fig.savefig(output_path, dpi=180)
     plt.close(fig)
@@ -103,13 +137,19 @@ def plot_direction_components_proxy(plt, rows: list[dict[str, str]], output_path
     z_values = [z_means.get(label, 0.0) for label in labels]
     indices = list(range(len(labels)))
     fig, ax = plt.subplots(figsize=(11, 5))
-    width = 0.25
-    ax.bar([index - width for index in indices], x_values, width=width, label="direction_x")
-    ax.bar(indices, y_values, width=width, label="direction_y")
-    ax.bar([index + width for index in indices], z_values, width=width, label="direction_z")
+    if all(abs(value) < 1e-9 for value in z_values):
+        width = 0.35
+        ax.bar([index - width / 2 for index in indices], x_values, width=width, label="direction_x")
+        ax.bar([index + width / 2 for index in indices], y_values, width=width, label="direction_y")
+        ax.set_title("Direction-component comparison for 2D runs (x, y only)")
+    else:
+        width = 0.25
+        ax.bar([index - width for index in indices], x_values, width=width, label="direction_x")
+        ax.bar(indices, y_values, width=width, label="direction_y")
+        ax.bar([index + width for index in indices], z_values, width=width, label="direction_z")
+        ax.set_title("Direction-component comparison")
     ax.set_xticks(indices)
     ax.set_xticklabels(labels)
-    ax.set_title("Direction-component comparison (proxy for displacement orientation)")
     ax.legend()
     fig.tight_layout()
     fig.savefig(output_path, dpi=180)
@@ -127,6 +167,8 @@ def plot_displacement_magnitude(plt, rows: list[dict[str, str]], output_path: Pa
     ax.bar(labels, values, color="#0F766E")
     ax.set_title("Max displacement comparison (successful responses only)")
     ax.set_ylabel("Mean max displacement")
+    apply_log_scale_if_needed(ax, values)
+    annotate_bars(ax, values)
     fig.tight_layout()
     fig.savefig(output_path, dpi=180)
     plt.close(fig)
@@ -191,13 +233,14 @@ def plot_model_disagreement(plt, rows: list[dict[str, str]], output_path: Path) 
 
 
 def plot_prediction_vs_time(plt, rows: list[dict[str, str]], output_path: Path) -> None:
-    grouped: dict[str, list[tuple[float, float]]] = defaultdict(list)
+    grouped: dict[tuple[str, str], list[tuple[float, float, float]]] = defaultdict(list)
     for row in rows:
         time_value = float_or_none(row.get("time_ms", ""))
         travel_time = float_or_none(row.get("travel_time_ms_pred", ""))
-        if time_value is not None and travel_time is not None:
-            grouped[row["model"]].append((time_value, travel_time))
-    enough_variation = any(len({time for time, _ in points}) >= 2 for points in grouped.values())
+        max_displacement = float_or_none(row.get("max_displacement", ""))
+        if time_value is not None and travel_time is not None and max_displacement is not None:
+            grouped[(row["material"], row["model"])].append((time_value, travel_time, max_displacement))
+    enough_variation = any(len({time for time, *_ in points}) >= 2 for points in grouped.values())
     if not enough_variation:
         render_placeholder(
             plt,
@@ -206,13 +249,88 @@ def plot_prediction_vs_time(plt, rows: list[dict[str, str]], output_path: Path) 
             "Current experiment input pack uses a mostly fixed time point. Generate a multi-time grid to produce this chart.",
         )
         return
-    fig, ax = plt.subplots(figsize=(10, 5))
-    for model, points in sorted(grouped.items()):
-        points = sorted(points)
-        ax.plot([point[0] for point in points], [point[1] for point in points], marker="o", label=model)
-    ax.set_title("Prediction vs time")
-    ax.set_xlabel("Scenario time (ms)")
-    ax.set_ylabel("Predicted travel time (ms)")
+    materials = sorted({material for material, _ in grouped})
+    fig, axes = plt.subplots(len(materials), 2, figsize=(14, 5 * len(materials)), squeeze=False)
+    for row_index, material in enumerate(materials):
+        travel_ax = axes[row_index][0]
+        disp_ax = axes[row_index][1]
+        for _, model in sorted(key for key in grouped if key[0] == material):
+            points = sorted(grouped[(material, model)])
+            travel_ax.plot(
+                [point[0] for point in points],
+                [point[1] for point in points],
+                marker="o",
+                label=model,
+            )
+            disp_ax.plot(
+                [point[0] for point in points],
+                [point[2] for point in points],
+                marker="o",
+                label=model,
+            )
+        travel_ax.set_title(f"{material}: travel time vs time")
+        travel_ax.set_xlabel("Scenario time (ms)")
+        travel_ax.set_ylabel("Predicted travel time (ms)")
+        travel_ax.legend()
+        disp_ax.set_title(f"{material}: displacement vs time")
+        disp_ax.set_xlabel("Scenario time (ms)")
+        disp_ax.set_ylabel("Max displacement")
+        disp_ax.legend()
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=180)
+    plt.close(fig)
+
+
+def plot_basalt_vs_sandstone_travel_time(plt, rows: list[dict[str, str]], output_path: Path) -> None:
+    means = grouped_mean(
+        rows,
+        group_keys=("material", "model"),
+        metric="travel_time_ms_pred",
+    )
+    if not means:
+        render_placeholder(plt, output_path, "Basalt vs sandstone travel time", "No travel-time metrics were available.")
+        return
+    materials = [material for material in ("basalt", "sandstone") if any(key[0] == material for key in means)]
+    models = sorted({key[1] for key in means})
+    fig, ax = plt.subplots(figsize=(12, 5))
+    width = 0.18
+    base = list(range(len(materials)))
+    for idx, model in enumerate(models):
+        values = [means.get((material, model), 0.0) for material in materials]
+        offset = (idx - (len(models) - 1) / 2.0) * width
+        ax.bar([x + offset for x in base], values, width=width, label=model)
+    ax.set_xticks(base)
+    ax.set_xticklabels(materials)
+    ax.set_title("Basalt vs sandstone: predicted travel time")
+    ax.set_ylabel("Mean predicted travel time (ms)")
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=180)
+    plt.close(fig)
+
+
+def plot_basalt_vs_sandstone_displacement(plt, rows: list[dict[str, str]], output_path: Path) -> None:
+    means = grouped_mean(
+        rows,
+        group_keys=("material", "model"),
+        metric="max_displacement",
+    )
+    if not means:
+        render_placeholder(plt, output_path, "Basalt vs sandstone displacement", "No displacement metrics were available.")
+        return
+    materials = [material for material in ("basalt", "sandstone") if any(key[0] == material for key in means)]
+    models = sorted({key[1] for key in means})
+    fig, ax = plt.subplots(figsize=(12, 5))
+    width = 0.18
+    base = list(range(len(materials)))
+    for idx, model in enumerate(models):
+        values = [means.get((material, model), 0.0) for material in materials]
+        offset = (idx - (len(models) - 1) / 2.0) * width
+        ax.bar([x + offset for x in base], values, width=width, label=model)
+    ax.set_xticks(base)
+    ax.set_xticklabels(materials)
+    ax.set_title("Basalt vs sandstone: max displacement")
+    ax.set_ylabel("Mean max displacement")
     ax.legend()
     fig.tight_layout()
     fig.savefig(output_path, dpi=180)
@@ -304,13 +422,23 @@ def main() -> None:
         rows,
         args.output_dir / "service_status_summary.png",
     )
+    plot_basalt_vs_sandstone_travel_time(
+        plt,
+        successful_rows,
+        args.output_dir / "basalt_vs_sandstone_travel_time.png",
+    )
+    plot_basalt_vs_sandstone_displacement(
+        plt,
+        successful_rows,
+        args.output_dir / "basalt_vs_sandstone_displacement.png",
+    )
     print(
         json.dumps(
             {
                 "status": "ok",
                 "input": str(args.input),
                 "output_dir": str(args.output_dir),
-                "chart_count": 7,
+                "chart_count": 9,
             },
             ensure_ascii=False,
             indent=2,

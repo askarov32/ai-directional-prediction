@@ -6,18 +6,18 @@ physics:
   solid_mechanics: true
   thermal_expansion: true
 geometry:
-  mesh_file: ''
+  mesh_file: sandstone.mphtxt
   dimension: 3
   graph_source: mesh
 scenario:
   type: heated_rod
-  initial_temperature: 1500.015346198892
-  background_temperature: 293.15000000008246
+  initial_temperature: 773.15
+  background_temperature: 293.15
   source_center: &id001
   - -8.417972685988352e-05
   - -0.00020218792801965013
   - 0.2500470107261406
-  source_radius: 0.2514264215738345
+  source_radius: 0.01
 material:
   source: data_materials.csv
   has_nodewise_materials: true
@@ -41,10 +41,10 @@ boundary_conditions:
   thermal: unknown
 source:
   type: heated_rod
-  initial_temperature: 1500.015346198892
-  background_temperature: 293.15000000008246
+  initial_temperature: 773.15
+  background_temperature: 293.15
   center: *id001
-  radius: 0.2514264215738345
+  radius: 0.01
 paths:
-  raw_dir: datasets/sandstone_comsol_real/raw
-  mesh_file: datasets/sandstone_comsol_real/raw/sandstone.mphtxt
+  raw_dir: raw
+  mesh_file: raw/sandstone.mphtxt

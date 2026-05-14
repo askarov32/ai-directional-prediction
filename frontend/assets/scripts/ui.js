@@ -35,6 +35,7 @@ export function createUI() {
     form: document.querySelector("#prediction-form"),
     mediumSelect: document.querySelector("#medium-select"),
     modelSelect: document.querySelector("#model-select"),
+    modelHint: document.querySelector("#model-capability-hint"),
     mediumProperties: document.querySelector("#medium-properties"),
     temperatureRangeHint: document.querySelector("#temperature-range-hint"),
     pressureRangeHint: document.querySelector("#pressure-range-hint"),
@@ -88,10 +89,17 @@ export function createUI() {
       refs.modelSelect,
       models.map((model) => ({
         value: model.id,
-        label: model.name,
+        label:
+          model.default_domain_type === "rect_3d"
+            ? `${model.name} · 3D ready`
+            : model.supported_domain_types?.includes("rect_2d") && !model.supported_domain_types?.includes("rect_3d")
+              ? `${model.name} · 2D only`
+              : model.name,
       })),
       selectedModel
     );
+    const activeModel = models.find((model) => model.id === selectedModel) || null;
+    refs.modelHint.textContent = activeModel?.capability_note || "Requests are routed by the FastAPI orchestration layer.";
   }
 
   function renderMediumDetails(medium) {

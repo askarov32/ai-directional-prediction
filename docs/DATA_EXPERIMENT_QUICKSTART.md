@@ -32,13 +32,21 @@ docker compose up -d
 
 ## Step 1. Generate experiment inputs
 
-Default example with 20 cases:
+Default example with 40 cases:
 
 ```bash
 python3 scripts/generate_experiment_inputs.py \
-  --output artifacts/data_experiments/inputs/model_comparison_inputs.jsonl \
-  --num-cases 20
+  --output artifacts/data_experiments/inputs/model_comparison_inputs.jsonl
 ```
+
+Default grid:
+
+- materials: `sandstone_medium`, `basalt`
+- temperatures: `20, 80, 140, 220, 300`
+- pressures: `5, 35`
+- time points: `6, 12`
+
+That yields `2 x 5 x 2 x 2 = 40` cases.
 
 This creates:
 
@@ -129,6 +137,8 @@ Current chart files:
 - `displacement_components_comparison.png`
 - `displacement_magnitude_comparison.png`
 - `material_comparison_sandstone_vs_basalt.png`
+- `basalt_vs_sandstone_travel_time.png`
+- `basalt_vs_sandstone_displacement.png`
 - `model_disagreement.png`
 - `prediction_vs_time.png`
 - `service_status_summary.png`
@@ -202,7 +212,7 @@ You will still get outputs, but they are fallback/demo outputs and should be mar
 
 This happens if all generated cases use the same `time_ms`.
 
-To make this chart meaningful, generate a multi-time input grid in the next experiment run.
+The current default generator already uses a multi-time grid with `6 ms` and `12 ms`, so this chart should become populated after a fresh run.
 
 ## Recommended first smoke run
 
