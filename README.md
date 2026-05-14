@@ -60,6 +60,7 @@ For scientific scope and known limitations, see:
 - [FNO Phase 1 Audit](docs/FNO_PHASE1_AUDIT.md)
 - [FNO Service Guide](docs/FNO_SERVICE.md)
 - [FNO Training Guide](docs/FNO_TRAINING.md)
+- [Windows FNO Training Guide](docs/windows_fno_training.md)
 - [FNO API Contract](docs/FNO_API_CONTRACT.md)
 - [FNO Dataset Format](docs/FNO_DATASET_FORMAT.md)
 - [PINN Architecture Details](docs/pinn_architecture_details.md)
