@@ -24,3 +24,5 @@ clean-data
 .venv-transformer/
 transformer-service/artifacts/checkpoints/baseline/
 transformer-service/artifacts/checkpoints/_timing/
+artifacts/data_experiments/
+data-generator-service/artifacts/data_experiments/
