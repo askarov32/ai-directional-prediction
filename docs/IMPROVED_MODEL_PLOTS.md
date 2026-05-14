@@ -26,6 +26,23 @@ python3 scripts/generate_model_report.py \
 - `reports/model_comparison_report.md`
 - `reports/figures/*.png`
 
+## Windows PowerShell
+
+```powershell
+python scripts/generate_model_comparison_charts.py `
+  --input artifacts/data_experiments/results/summary.csv `
+  --output-dir artifacts/data_experiments/charts `
+  --include-fallback false
+```
+
+```powershell
+python scripts/generate_model_report.py `
+  --input artifacts/data_experiments/results/summary.csv `
+  --output-dir reports `
+  --include-fallback false `
+  --save-png true
+```
+
 ## Scientific rules now enforced
 
 - Fallback responses are excluded from scientific plots by default.
