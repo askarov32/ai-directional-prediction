@@ -11,13 +11,15 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
       MEDIA_CATALOG_PATH: /app/data/media/catalog.json
-      REMOTE_MODEL_TIMEOUT_SECONDS: ${REMOTE_MODEL_TIMEOUT_SECONDS:-12}
+      REMOTE_MODEL_TIMEOUT_SECONDS: ${REMOTE_MODEL_TIMEOUT_SECONDS:-60}
       MODEL_MESHGRAPHNET_URL: ${MODEL_MESHGRAPHNET_URL:-http://mgn-service:9000}
       MODEL_FNO_URL: ${MODEL_FNO_URL:-http://mock-fno:9000}
       MODEL_PINN_URL: ${MODEL_PINN_URL:-http://pinn-service:9000}
+      MODEL_TRANSFORMER_URL: ${MODEL_TRANSFORMER_URL:-http://transformer-service:9000}
       MODEL_MESHGRAPHNET_PREDICT_PATH: ${MODEL_MESHGRAPHNET_PREDICT_PATH:-/predict}
       MODEL_FNO_PREDICT_PATH: ${MODEL_FNO_PREDICT_PATH:-/predict}
       MODEL_PINN_PREDICT_PATH: ${MODEL_PINN_PREDICT_PATH:-/predict}
+      MODEL_TRANSFORMER_PREDICT_PATH: ${MODEL_TRANSFORMER_PREDICT_PATH:-/predict}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
@@ -26,6 +28,8 @@ services:
       mock-fno:
         condition: service_healthy
       pinn-service:
+        condition: service_healthy
+      transformer-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/ready')"]
@@ -104,3 +108,26 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+
+  transformer-service:
+    build:
+      context: ./transformer-service
+    container_name: transformer-service
+    environment:
+      TRANSFORMER_CHECKPOINT_PATH: ${TRANSFORMER_CHECKPOINT_PATH:-/app/artifacts/checkpoints/smoke}
+      TRANSFORMER_DEVICE: ${TRANSFORMER_DEVICE:-cpu}
+      TRANSFORMER_LOG_LEVEL: ${TRANSFORMER_LOG_LEVEL:-INFO}
+      TRANSFORMER_SERVICE_PORT: 9000
+      TRANSFORMER_REFERENCE_TEMPERATURE_K: ${TRANSFORMER_REFERENCE_TEMPERATURE_K:-293.15}
+      TRANSFORMER_TIME_SCALE: ${TRANSFORMER_TIME_SCALE:-1.0}
+      TRANSFORMER_ROLLOUT_STEPS: ${TRANSFORMER_ROLLOUT_STEPS:-10}
+    volumes:
+      - ./transformer-service/artifacts:/app/artifacts
+    ports:
+      - "${TRANSFORMER_SERVICE_PORT:-9004}:9000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/ready')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s

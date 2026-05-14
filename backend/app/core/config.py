@@ -34,9 +34,11 @@ class Settings(BaseSettings):
     model_meshgraphnet_url: str = "http://localhost:9001"
     model_fno_url: str = "http://localhost:9002"
     model_pinn_url: str = "http://localhost:9003"
+    model_transformer_url: str = "http://localhost:9004"
     model_meshgraphnet_predict_path: str = "/predict"
     model_fno_predict_path: str = "/predict"
     model_pinn_predict_path: str = "/predict"
+    model_transformer_predict_path: str = "/predict"
 
     @field_validator("log_level", mode="before")
     @classmethod

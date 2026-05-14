@@ -10,6 +10,7 @@ from app.infrastructure.adapters.response_normalizer import ResponseNormalizer
 from app.infrastructure.clients.fno_client import FNOClient
 from app.infrastructure.clients.meshgraphnet_client import MeshGraphNetClient
 from app.infrastructure.clients.pinn_client import PINNClient
+from app.infrastructure.clients.transformer_client import TransformerClient
 from app.infrastructure.repositories.media_repository import MediaRepository
 
 
@@ -51,6 +52,11 @@ def get_prediction_router() -> PredictionRouter:
         PINNClient(
             base_url=settings.model_pinn_url,
             predict_path=settings.model_pinn_predict_path,
+            timeout_seconds=settings.remote_model_timeout_seconds,
+        ),
+        TransformerClient(
+            base_url=settings.model_transformer_url,
+            predict_path=settings.model_transformer_predict_path,
             timeout_seconds=settings.remote_model_timeout_seconds,
         ),
     ]

@@ -1,0 +1,18 @@
+{
+  "dataset_path": "transformer-service/artifacts/sandstone/pairs.npz",
+  "output_dir": "transformer-service/artifacts/checkpoints/smoke",
+  "device": "cpu",
+  "epochs": 3,
+  "learning_rate": 0.001,
+  "weight_decay": 1e-06,
+  "d_model": 64,
+  "n_heads": 4,
+  "enc_depth": 2,
+  "dec_depth": 2,
+  "ffn_expansion": 4,
+  "dropout": 0.1,
+  "activation": "gelu",
+  "grad_clip_norm": 1.0,
+  "early_stop_patience": 30,
+  "seed": 42
+}
