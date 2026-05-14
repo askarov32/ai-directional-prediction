@@ -59,11 +59,6 @@ def get_prediction_router() -> PredictionRouter:
             predict_path=settings.model_pinn_predict_path,
             timeout_seconds=settings.remote_model_timeout_seconds,
         ),
-        TransformerClient(
-            base_url=settings.model_transformer_url,
-            predict_path=settings.model_transformer_predict_path,
-            timeout_seconds=settings.remote_model_timeout_seconds,
-        ),
     ]
     return PredictionRouter(clients=clients)
 
