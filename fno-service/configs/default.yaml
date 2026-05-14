@@ -1,0 +1,7 @@
+service:
+  name: fno-service
+  version: 0.1.0
+
+model:
+  type: fno
+  status: skeleton

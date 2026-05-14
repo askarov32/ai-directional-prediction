@@ -1,0 +1,6 @@
+dataset_path: /app/artifacts/datasets/sandstone_fno
+output_dir: /app/artifacts/checkpoints/baseline
+device: cpu
+epochs: 1
+batch_size: 1
+learning_rate: 0.001
