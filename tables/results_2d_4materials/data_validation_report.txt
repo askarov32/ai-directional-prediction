@@ -1,0 +1,39 @@
+2D result graph validation report
+=================================
+
+Summary input: artifacts/data_experiments/results_2d_4materials/summary_2d.csv
+Material parameters input: backend/data/media/catalog.json
+Total rows loaded: 160
+Rows used for graphs: 160
+Rows excluded: 0
+Models used: pinn, mgn, fno, transformer
+Materials used: basalt, sandstone, granite, limestone
+All used rows are 2D: True
+
+Warnings:
+- Material parameter CSV combined_geological_media_parameters.csv was not found; derived parameters from backend/data/media/catalog.json.
+- max_displacement_by_material_and_model.png: y-axis uses log scale because values span 5.67e+09x.
+- temperature_perturbation_by_material_and_model.png: y-axis uses log scale because values span 6.81e+06x.
+- model_stability_boxplot.png: y-axis uses log scale because values span 2.85e+06x.
+- density_vs_max_displacement_by_model.png: y-axis uses log scale because values span 5.67e+09x.
+- young_modulus_vs_max_displacement_by_model.png: y-axis uses log scale because values span 5.67e+09x.
+- thermal_conductivity_vs_temperature_perturbation_by_model.png: y-axis uses log scale because values span 6.81e+06x.
+
+Generated graphs:
+- figures/results_2d_4materials/travel_time_by_material_and_model.png
+- figures/results_2d_4materials/max_displacement_by_material_and_model.png
+- figures/results_2d_4materials/temperature_perturbation_by_material_and_model.png
+- figures/results_2d_4materials/directional_response_by_input_azimuth.png
+- figures/results_2d_4materials/model_stability_boxplot.png
+- figures/results_2d_4materials/vp_vs_travel_time_by_model.png
+- figures/results_2d_4materials/density_vs_max_displacement_by_model.png
+- figures/results_2d_4materials/young_modulus_vs_max_displacement_by_model.png
+- figures/results_2d_4materials/thermal_conductivity_vs_temperature_perturbation_by_model.png
+
+Generated tables:
+- tables/results_2d_4materials/model_material_summary.csv
+- tables/results_2d_4materials/model_material_summary.tex
+- tables/results_2d_4materials/model_status_summary.csv
+- tables/results_2d_4materials/model_status_summary.tex
+- tables/results_2d_4materials/graph_dataset_2d.csv
+- tables/results_2d_4materials/figure_captions.md

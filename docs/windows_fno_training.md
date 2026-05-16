@@ -6,7 +6,7 @@ It assumes:
 
 - you are in the project root;
 - you use `PowerShell`;
-- you want to train the current MVP `FNO2d` baseline;
+- you want to train the current `FNO2d` baseline;
 - you prefer GPU training when CUDA is available;
 - you understand that the current FNO path is a 2D regular-grid baseline with `Z=1`, not a full 3D production setup.
 
@@ -20,19 +20,26 @@ Current scope:
 - training target: next-step field prediction;
 - outputs: `temperature_k`, `disp_x`, `disp_y`, `disp_z`;
 - input source: regular-grid tensors derived from the demo PINN structured dataset;
-- inference assumption: `rect_2d`, `Z=1`.
+- inference assumption: `rect_2d`, `Z=1`;
+- channel-wise normalization is now part of the FNO training/inference stack.
 
 What this means in practice:
 
 - you can already train a demo/baseline FNO checkpoint;
 - you can use CPU or CUDA;
-- after training, `fno-service` can load `best_model.pth` from the default baseline directory.
+- after training, `fno-service` can load `best_model.pth` from the default baseline directory;
+- newly trained checkpoints will include normalization metadata that inference uses for denormalization and metric calculation.
 
 What this does **not** mean yet:
 
 - it is not the same level of dataset/training pipeline maturity as the full multi-rock PINN stack;
 - it is not yet a validated 3D scientific baseline;
 - it is not yet a large four-rock training workflow like the current PINN experiment pipeline.
+
+Important note:
+
+- older FNO checkpoints created before the normalization update can still load, but they may return warnings such as `missing_input_normalization_metadata` and `missing_output_denormalization_metadata`;
+- for thesis-quality comparison, retrain the FNO checkpoint with the current code before trusting the output scale.
 
 ## 1. Open PowerShell In The Project Root
 
@@ -116,6 +123,13 @@ This creates:
 - `grid_masks.npy`
 - `grid_coords.npy`
 - metadata JSON files
+
+The current FNO baseline expects a 2D grid:
+
+```text
+Z = 1
+domain.type = rect_2d
+```
 
 Command:
 
@@ -208,6 +222,26 @@ python fno-service/scripts/train_fno.py `
 
 This is still an MVP baseline. Start modestly, inspect metrics, and only then scale epochs or width upward.
 
+For a slightly stronger first real run on Windows GPU, this is a practical next step:
+
+```powershell
+$env:PYTHONPATH="fno-service/src"
+
+python fno-service/scripts/train_fno.py `
+  --config fno-service/configs/train_fno.yaml `
+  --dataset-path fno-service/artifacts/datasets/limestone_fno `
+  --output-dir fno-service/artifacts/checkpoints/baseline `
+  --epochs 50 `
+  --batch-size 4 `
+  --learning-rate 0.001 `
+  --weight-decay 0.000001 `
+  --width 16 `
+  --modes-x 6 `
+  --modes-y 6 `
+  --depth 2 `
+  --device cuda
+```
+
 ## 10. If GPU Memory Is Not Enough
 
 Lower the batch size first:
@@ -264,7 +298,7 @@ DEVICE=cuda ./fno-service/train_baseline.sh
 
 On pure PowerShell, it is safer to use the explicit Python commands from sections 6 and 9.
 
-## 13. Where To Look After Training
+## 13. What Gets Saved Now
 
 After training, check:
 
@@ -274,6 +308,22 @@ After training, check:
 - `fno-service/artifacts/checkpoints/baseline/metrics.csv`
 - `fno-service/artifacts/checkpoints/baseline/training_config.json`
 - `fno-service/artifacts/checkpoints/baseline/channel_metadata.json`
+
+Now pay special attention to:
+
+- `channel_metadata.json`
+
+It should contain normalization metadata similar to:
+
+```text
+normalization.mode = channel_wise_standardization
+normalization.input.channel_names
+normalization.target.channel_names
+normalization.input.mean/std/min/max
+normalization.target.mean/std/min/max
+normalization.input.units
+normalization.target.units
+```
 
 The inference service prefers:
 
@@ -307,11 +357,84 @@ curl http://localhost:8000/api/v1/models
 
 If the dataset and checkpoint are present, `fno-service` should move from fallback mode to checkpoint mode.
 
-## 15. Current FNO Limitations
+For a healthier modern checkpoint, `http://localhost:9002/ready` should show:
+
+- `mode = checkpoint`
+- `checkpoint_loaded = true`
+- `model_version = fno-baseline@best_model.pth`
+
+If you still see warnings like:
+
+```text
+missing_input_normalization_metadata
+missing_output_denormalization_metadata
+```
+
+then you are still using an old FNO checkpoint and should retrain it with the current code.
+
+You can also test one direct FNO prediction after restart:
+
+```powershell
+curl -X POST http://localhost:9002/predict `
+  -H "Content-Type: application/json" `
+  -d "{\"medium\":{\"id\":\"limestone\",\"name\":\"Limestone\",\"category\":\"sedimentary\",\"properties\":{\"rho\":2694.0,\"vp\":5.8,\"vs\":3.1,\"thermal_conductivity\":2.3,\"heat_capacity\":900.0,\"thermal_expansion\":0.00001}},\"scenario\":{\"temperature_c\":120.0,\"pressure_mpa\":35.0,\"time_ms\":12.0},\"source\":{\"type\":\"thermal_pulse\",\"x\":0.15,\"y\":0.4,\"z\":0.0,\"amplitude\":1.0,\"frequency_hz\":50.0,\"direction\":[1.0,0.0,0.0]},\"probe\":{\"x\":0.7,\"y\":0.55,\"z\":0.0},\"domain\":{\"type\":\"rect_2d\",\"size\":{\"lx\":1.0,\"ly\":1.0,\"lz\":0.0},\"resolution\":{\"nx\":128,\"ny\":128,\"nz\":1},\"boundary_conditions\":{\"left\":\"fixed\",\"right\":\"free\",\"top\":\"insulated\",\"bottom\":\"insulated\"}},\"representation\":\"grid\",\"routing_hint\":\"fno\"}"
+```
+
+In a good post-update checkpoint response, watch these fields:
+
+- `diagnostics.normalization_used = true`
+- `diagnostics.denormalization_used = true`
+- `diagnostics.effective_domain_type = rect_2d`
+- `diagnostics.domain_adaptation = none`
+- `diagnostics.warnings`
+
+If `diagnostics.warnings` contains only an empty list or small non-scale notes, that is a much better sign than the old huge-output baseline.
+
+If you still see:
+
+```text
+scale_outlier:max_displacement_gt_1e2
+scale_outlier:max_temperature_perturbation_gt_1e4
+```
+
+then the new checkpoint still needs further tuning or a better dataset.
+
+## 15. What Changed In The FNO Stack
+
+The current FNO code now does the following:
+
+- normalizes input channels channel-by-channel during training;
+- normalizes target channels channel-by-channel during training;
+- stores normalization metadata in the checkpoint;
+- denormalizes output channels before computing physical metrics during inference;
+- computes `max_displacement` from `sqrt(disp_x^2 + disp_y^2)` for `rect_2d`;
+- computes `max_temperature_perturbation` from denormalized temperature relative to `reference_temperature_k`;
+- adds explicit warnings for suspicious output scales.
+
+This means:
+
+- **newly trained checkpoints are the ones you should use**;
+- old baseline checkpoints may still run, but they are not the right reference for final thesis comparison.
+
+## 16. Current FNO Limitations
 
 Before spending a lot of time on long runs, keep these in mind:
 
 - this is currently a 2D `FNO2d` baseline;
 - it expects `Z=1`;
 - it is not yet the same maturity level as the full PINN multi-rock experiment stack;
+- it does not enforce thermoelastic PDE residuals like the PINN service;
 - it is suitable for MVP experimentation and integration, not final scientific claims.
+
+## 17. Recommended Windows Workflow
+
+If you want the safest practical order on Windows, use this:
+
+1. Build or choose one real `structured_dataset.npz`.
+2. Convert it with `prepare_fno_dataset.py` using `--grid-res 1 32 32`.
+3. Run the 1-epoch smoke training.
+4. Run a 20-50 epoch real training command on CUDA.
+5. Restart `fno-service`.
+6. Check `/ready`.
+7. Check one direct `/predict` response and inspect `diagnostics.warnings`.
+8. Only after that rerun the full comparison pipeline.

@@ -123,6 +123,12 @@ def test_checkpoint_predict_returns_real_inference_payload(tmp_path: Path) -> No
     assert response.status_code == 200
     payload = response.json()
     assert payload["prediction"]["wave_type"] == "fno_checkpoint_inference"
+    assert payload["prediction"]["direction_vector"][2] == 0.0
+    assert payload["prediction"]["elevation_deg"] == 0.0
+    assert payload["diagnostics"]["normalization_used"] is True
+    assert payload["diagnostics"]["denormalization_used"] is True
+    assert payload["diagnostics"]["effective_domain_type"] == "rect_2d"
+    assert payload["diagnostics"]["domain_adaptation"] == "none"
     assert payload["model_version"].startswith("fno-baseline@")
 
 

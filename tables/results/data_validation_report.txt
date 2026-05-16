@@ -1,0 +1,33 @@
+2D result graph validation report
+=================================
+
+Summary input: artifacts/data_experiments/results_2d/summary_2d.csv
+Material parameters input: backend/data/media/catalog.json
+Total rows loaded: 160
+Rows used for graphs: 160
+Rows excluded: 0
+Models used: pinn, mgn, fno, transformer
+Materials used: basalt, sandstone
+All used rows are 2D: True
+
+Warnings:
+- Material parameter CSV combined_geological_media_parameters.csv was not found; derived parameters from backend/data/media/catalog.json.
+- max_displacement_by_material_and_model.png: y-axis uses log scale because values span 5.55e+09x.
+- temperature_perturbation_by_material_and_model.png: y-axis uses log scale because values span 6.81e+06x.
+- model_stability_boxplot.png: y-axis uses log scale because values span 2.05e+06x.
+- Skipped Group B physics-based scatter plots: only 2 materials available; minimum required is 4.
+
+Generated graphs:
+- figures/results/travel_time_by_material_and_model.png
+- figures/results/max_displacement_by_material_and_model.png
+- figures/results/temperature_perturbation_by_material_and_model.png
+- figures/results/directional_response_by_input_azimuth.png
+- figures/results/model_stability_boxplot.png
+
+Generated tables:
+- tables/results/model_material_summary.csv
+- tables/results/model_material_summary.tex
+- tables/results/model_status_summary.csv
+- tables/results/model_status_summary.tex
+- tables/results/graph_dataset_2d.csv
+- tables/results/figure_captions.md
