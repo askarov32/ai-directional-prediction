@@ -231,7 +231,7 @@ python fno-service/scripts/train_fno.py `
   --config fno-service/configs/train_fno.yaml `
   --dataset-path fno-service/artifacts/datasets/limestone_fno `
   --output-dir fno-service/artifacts/checkpoints/baseline `
-  --epochs 50 `
+  --epochs 500 `
   --batch-size 4 `
   --learning-rate 0.001 `
   --weight-decay 0.000001 `
