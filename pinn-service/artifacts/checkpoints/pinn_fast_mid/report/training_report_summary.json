@@ -1,0 +1,21 @@
+{
+  "metrics_json_path": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\checkpoints\\pinn_fast_mid\\metrics.json",
+  "metrics_csv_path": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\checkpoints\\pinn_fast_mid\\metrics.csv",
+  "epochs_recorded": 30,
+  "validation_enabled": true,
+  "stopped_early": false,
+  "completed_epochs": 30,
+  "best_metric_name": "val_total_loss",
+  "best_loss": 1.0828351378440857,
+  "initial_total_loss": 3.9550247713923454,
+  "final_total_loss": 1.0821496024727821,
+  "initial_val_total_loss": 1.53476881980896,
+  "final_val_total_loss": 1.0828351378440857,
+  "initial_learning_rate": 0.0005,
+  "final_learning_rate": 0.0005,
+  "max_grad_norm": 139.5212254524231,
+  "min_best_so_far": 1.0828351378440857,
+  "learning_rate_changed": false,
+  "epochs_without_improvement": 0,
+  "latest_epoch": 30
+}
