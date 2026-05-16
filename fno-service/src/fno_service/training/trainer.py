@@ -11,7 +11,12 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 
 from ..data.dataset import FNOTimeStepDataset, FNOSample, load_fno_grid_tensors
-from ..data.preprocessing import FNOChannelConfig
+from ..data.preprocessing import (
+    ChannelStatistics,
+    FNOChannelConfig,
+    infer_channel_units,
+    normalize_channels,
+)
 from ..models import FNO2d
 from .checkpoints import save_checkpoint, write_json
 from .losses import field_mse_loss, relative_l2_loss
@@ -72,6 +77,7 @@ def train_fno(config: FNOTrainingConfig) -> FNOTrainingArtifacts:
     _validate_2d_slice(first_sample.inputs)
     in_channels = first_sample.inputs.shape[0]
     out_channels = first_sample.target.shape[0]
+    input_stats, target_stats = _compute_normalization_stats(train_dataset)
 
     device = torch.device(config.device)
     model = FNO2d(
@@ -84,9 +90,27 @@ def train_fno(config: FNOTrainingConfig) -> FNOTrainingArtifacts:
     ).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
 
-    train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True, collate_fn=_collate_fno_samples)
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=config.batch_size,
+        shuffle=True,
+        collate_fn=lambda samples: _collate_fno_samples(
+            samples,
+            input_stats=input_stats,
+            target_stats=target_stats,
+        ),
+    )
     val_loader = (
-        DataLoader(val_dataset, batch_size=config.batch_size, shuffle=False, collate_fn=_collate_fno_samples)
+        DataLoader(
+            val_dataset,
+            batch_size=config.batch_size,
+            shuffle=False,
+            collate_fn=lambda samples: _collate_fno_samples(
+                samples,
+                input_stats=input_stats,
+                target_stats=target_stats,
+            ),
+        )
         if val_dataset is not None
         else None
     )
@@ -100,7 +124,12 @@ def train_fno(config: FNOTrainingConfig) -> FNOTrainingArtifacts:
         "modes_y": config.modes_y,
         "depth": config.depth,
     }
-    channel_metadata = _build_channel_metadata(tensors, channel_config)
+    channel_metadata = _build_channel_metadata(
+        tensors,
+        channel_config,
+        input_stats=input_stats,
+        target_stats=target_stats,
+    )
     write_json(output_dir / "training_config.json", config.to_dict())
     write_json(output_dir / "dataset_metadata.json", tensors.metadata)
     write_json(output_dir / "channel_metadata.json", channel_metadata)
@@ -233,10 +262,17 @@ class _MetricAccumulator:
         }
 
 
-def _collate_fno_samples(samples: list[FNOSample]) -> tuple[Tensor, Tensor]:
+def _collate_fno_samples(
+    samples: list[FNOSample],
+    *,
+    input_stats: ChannelStatistics | None = None,
+    target_stats: ChannelStatistics | None = None,
+) -> tuple[Tensor, Tensor]:
     inputs = np.stack([sample.inputs for sample in samples]).astype(np.float32, copy=False)
     targets = np.stack([sample.target for sample in samples]).astype(np.float32, copy=False)
     _validate_2d_slice(inputs[0])
+    inputs = normalize_channels(inputs, input_stats)
+    targets = normalize_channels(targets, target_stats)
     return torch.from_numpy(inputs[:, :, 0, :, :]), torch.from_numpy(targets[:, :, 0, :, :])
 
 
@@ -268,7 +304,60 @@ def _split_time_indices(
     return indices[val_count:], indices[:val_count]
 
 
-def _build_channel_metadata(tensors, channel_config: FNOChannelConfig) -> dict:
+def _compute_normalization_stats(dataset: FNOTimeStepDataset) -> tuple[ChannelStatistics, ChannelStatistics]:
+    input_accumulator: _ChannelStatsAccumulator | None = None
+    target_accumulator: _ChannelStatsAccumulator | None = None
+    for index in range(len(dataset)):
+        sample = dataset[index]
+        input_values = sample.inputs[:, 0, :, :]
+        target_values = sample.target[:, 0, :, :]
+        if input_accumulator is None:
+            input_accumulator = _ChannelStatsAccumulator(input_values.shape[0])
+            target_accumulator = _ChannelStatsAccumulator(target_values.shape[0])
+        input_accumulator.update(input_values)
+        target_accumulator.update(target_values)
+    if input_accumulator is None or target_accumulator is None:
+        raise ValueError("Cannot compute FNO normalization over an empty dataset.")
+    input_names = _build_input_channel_names(dataset.tensors, dataset.channel_config)
+    target_names = list(dataset.channel_config.target_channels)
+    return (
+        input_accumulator.compute(input_names),
+        target_accumulator.compute(target_names),
+    )
+
+
+class _ChannelStatsAccumulator:
+    def __init__(self, channel_count: int) -> None:
+        self.count = 0
+        self.sum = np.zeros(channel_count, dtype=np.float64)
+        self.sum_sq = np.zeros(channel_count, dtype=np.float64)
+        self.min = np.full(channel_count, np.inf, dtype=np.float64)
+        self.max = np.full(channel_count, -np.inf, dtype=np.float64)
+
+    def update(self, values: np.ndarray) -> None:
+        flattened = values.reshape(values.shape[0], -1).astype(np.float64, copy=False)
+        self.count += flattened.shape[1]
+        self.sum += flattened.sum(axis=1)
+        self.sum_sq += np.square(flattened).sum(axis=1)
+        self.min = np.minimum(self.min, flattened.min(axis=1))
+        self.max = np.maximum(self.max, flattened.max(axis=1))
+
+    def compute(self, channel_names: list[str]) -> ChannelStatistics:
+        mean = self.sum / max(self.count, 1)
+        variance = np.maximum(self.sum_sq / max(self.count, 1) - np.square(mean), 0.0)
+        std = np.sqrt(variance)
+        std = np.where(std < 1e-8, 1.0, std)
+        return ChannelStatistics(
+            channel_names=channel_names,
+            mean=mean.astype(np.float32),
+            std=std.astype(np.float32),
+            min=self.min.astype(np.float32),
+            max=self.max.astype(np.float32),
+            units=infer_channel_units(channel_names),
+        )
+
+
+def _build_input_channel_names(tensors, channel_config: FNOChannelConfig) -> list[str]:
     input_channels = list(tensors.field_names)
     if channel_config.include_static:
         input_channels.extend(tensors.static_feature_names)
@@ -278,12 +367,28 @@ def _build_channel_metadata(tensors, channel_config: FNOChannelConfig) -> dict:
         input_channels.extend(["coord_x", "coord_y", "coord_z"])
     if channel_config.include_time:
         input_channels.append("time_fraction")
+    return input_channels
+
+
+def _build_channel_metadata(
+    tensors,
+    channel_config: FNOChannelConfig,
+    *,
+    input_stats: ChannelStatistics,
+    target_stats: ChannelStatistics,
+) -> dict:
+    input_channels = _build_input_channel_names(tensors, channel_config)
     return {
         "input_channels": input_channels,
         "target_channels": list(channel_config.target_channels),
         "field_names": tensors.field_names,
         "static_feature_names": tensors.static_feature_names,
         "mask_names": tensors.mask_names,
+        "normalization": {
+            "mode": "channel_wise_standardization",
+            "input": input_stats.to_dict(),
+            "target": target_stats.to_dict(),
+        },
     }
 
 

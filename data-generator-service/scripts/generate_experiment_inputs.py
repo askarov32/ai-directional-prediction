@@ -172,6 +172,12 @@ def parse_args() -> argparse.Namespace:
         default=40,
         help="Optional cap on the number of generated cases after deterministic shuffling.",
     )
+    parser.add_argument(
+        "--cases-per-material",
+        type=int,
+        default=None,
+        help="Select an equal number of generated cases per material after deterministic shuffling.",
+    )
     return parser.parse_args()
 
 
@@ -303,6 +309,45 @@ def trim_cases(cases: list[ExperimentCase], num_cases: int | None) -> list[Exper
     return renumbered
 
 
+def trim_cases_per_material(cases: list[ExperimentCase], cases_per_material: int) -> list[ExperimentCase]:
+    if cases_per_material <= 0:
+        raise ValueError("--cases-per-material must be greater than zero.")
+    grouped: dict[str, list[ExperimentCase]] = {}
+    for case in cases:
+        grouped.setdefault(case.material, []).append(case)
+    too_small = {
+        material: len(material_cases)
+        for material, material_cases in grouped.items()
+        if len(material_cases) < cases_per_material
+    }
+    if too_small:
+        raise ValueError(
+            f"Not enough generated cases for requested --cases-per-material={cases_per_material}: {too_small}"
+        )
+
+    selected: list[ExperimentCase] = []
+    for material in sorted(grouped):
+        selected.extend(grouped[material][:cases_per_material])
+
+    renumbered: list[ExperimentCase] = []
+    for index, case in enumerate(selected, start=1):
+        renumbered.append(
+            ExperimentCase(
+                case_id=f"case_{index:03d}_{case.material}",
+                material=case.material,
+                medium_id=case.medium_id,
+                temperature_c=case.temperature_c,
+                pressure_mpa=case.pressure_mpa,
+                time_ms=case.time_ms,
+                frequency_hz=case.frequency_hz,
+                boundary_conditions=case.boundary_conditions,
+                requested_domain_type=case.requested_domain_type,
+                input=case.input,
+            )
+        )
+    return renumbered
+
+
 def write_cases(output_path: Path, cases: list[ExperimentCase]) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8") as handle:
@@ -382,7 +427,10 @@ def main() -> None:
         },
         seed=int(args.seed),
     )
-    cases = trim_cases(cases, args.num_cases)
+    if args.cases_per_material is not None:
+        cases = trim_cases_per_material(cases, int(args.cases_per_material))
+    else:
+        cases = trim_cases(cases, args.num_cases)
     write_cases(args.output, cases)
     write_metadata(
         metadata_output,

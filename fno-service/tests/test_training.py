@@ -38,6 +38,12 @@ def test_train_fno_writes_checkpoint_and_metrics(tmp_path: Path) -> None:
     checkpoint = load_checkpoint(artifacts.best_model_path)
     assert checkpoint["model_config"]["architecture"] == "FNO2d"
     assert checkpoint["channel_metadata"]["target_channels"] == ["temperature_k", "disp_x", "disp_y", "disp_z"]
+    normalization = checkpoint["channel_metadata"]["normalization"]
+    assert normalization["mode"] == "channel_wise_standardization"
+    assert normalization["input"]["channel_names"][0] == "temperature_k"
+    assert normalization["target"]["channel_names"] == ["temperature_k", "disp_x", "disp_y", "disp_z"]
+    assert normalization["target"]["units"]["temperature_k"] == "K"
+    assert normalization["target"]["units"]["disp_x"] == "m"
     metrics = json.loads(artifacts.metrics_path.read_text(encoding="utf-8"))
     assert len(metrics) == 1
     assert np.isfinite(metrics[0]["train_loss"])

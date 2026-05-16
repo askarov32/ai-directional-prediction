@@ -1,0 +1,325 @@
+{
+  "status": "ok",
+  "run_id": "6a0043a3-6028-4b7c-a555-5fef3e79a12f",
+  "input_path": "artifacts\\data_experiments\\inputs\\model_comparison_inputs_2d_4materials_balanced.jsonl",
+  "output_dir": "artifacts\\data_experiments\\results_2d_4materials_balanced",
+  "case_count": 40,
+  "models": [
+    "pinn",
+    "mgn",
+    "fno",
+    "transformer"
+  ],
+  "predict_call_count": 160,
+  "ok_count": 160,
+  "fallback_count": 40,
+  "error_count": 0,
+  "elapsed_seconds": 63.286,
+  "preflight": {
+    "pinn": {
+      "local_url": "http://localhost:9013",
+      "compose_url": "http://pinn-service:9000",
+      "health": {
+        "http_status": 200,
+        "payload": {
+          "status": "ok",
+          "service": "pinn-service",
+          "ready": true,
+          "checkpoint_path": "/app/artifacts/checkpoints/baseline_cpu",
+          "device": "cpu",
+          "load_error": null,
+          "model_version": "pinn-baseline@best_model.pth",
+          "smoke_check": {
+            "status": "passed",
+            "output_feature_count": 4
+          },
+          "resolved_checkpoint_path": "/app/artifacts/checkpoints/baseline_cpu/best_model.pth",
+          "active_feature_count": 10,
+          "active_feature_names": [
+            "x",
+            "y",
+            "z",
+            "t",
+            "youngs_modulus",
+            "poissons_ratio",
+            "density",
+            "thermal_expansion",
+            "thermal_conductivity",
+            "heat_capacity"
+          ],
+          "output_feature_count": 4,
+          "output_feature_names": [
+            "temperature_k",
+            "disp_x",
+            "disp_y",
+            "disp_z"
+          ],
+          "best_loss": 0.7398042201995849
+        },
+        "error": null
+      },
+      "ready": {
+        "http_status": 200,
+        "payload": {
+          "status": "ready",
+          "service": "pinn-service",
+          "ready": true,
+          "checkpoint_path": "/app/artifacts/checkpoints/baseline_cpu",
+          "device": "cpu",
+          "load_error": null,
+          "model_version": "pinn-baseline@best_model.pth",
+          "smoke_check": {
+            "status": "passed",
+            "output_feature_count": 4
+          },
+          "resolved_checkpoint_path": "/app/artifacts/checkpoints/baseline_cpu/best_model.pth",
+          "active_feature_count": 10,
+          "active_feature_names": [
+            "x",
+            "y",
+            "z",
+            "t",
+            "youngs_modulus",
+            "poissons_ratio",
+            "density",
+            "thermal_expansion",
+            "thermal_conductivity",
+            "heat_capacity"
+          ],
+          "output_feature_count": 4,
+          "output_feature_names": [
+            "temperature_k",
+            "disp_x",
+            "disp_y",
+            "disp_z"
+          ],
+          "best_loss": 0.7398042201995849
+        },
+        "error": null
+      }
+    },
+    "mgn": {
+      "local_url": "http://localhost:9011",
+      "compose_url": "http://mgn-service:9000",
+      "health": {
+        "http_status": 200,
+        "payload": {
+          "status": "ok",
+          "service": "meshgraphnet"
+        },
+        "error": null
+      },
+      "ready": {
+        "http_status": 200,
+        "payload": {
+          "status": "ready",
+          "ready": true,
+          "service": "meshgraphnet",
+          "dataset_id": "sandstone_comsol_real",
+          "dataset_dir": "/app/datasets/sandstone_comsol_real",
+          "configured_checkpoint": "/app/outputs/checkpoints/best_model.pt",
+          "checkpoint": "/app/outputs/checkpoints/best_model.pt",
+          "checkpoint_exists": false,
+          "dataset_exists": true,
+          "device": "cpu",
+          "mode": "fallback",
+          "fallback_enabled": true,
+          "model_version": "mgn-service-fallback-v1"
+        },
+        "error": null
+      }
+    },
+    "fno": {
+      "local_url": "http://localhost:9002",
+      "compose_url": "http://fno-service:9000",
+      "health": {
+        "http_status": 200,
+        "payload": {
+          "status": "ok",
+          "service": "fno-service",
+          "ready": true,
+          "mode": "checkpoint",
+          "checkpoint_path": "/app/artifacts/checkpoints/baseline",
+          "resolved_checkpoint_path": "/app/artifacts/checkpoints/baseline/best_model.pth",
+          "checkpoint_exists": true,
+          "dataset_path": "/app/artifacts/datasets/sandstone_fno",
+          "dataset_exists": true,
+          "config_path": "/app/configs/inference.yaml",
+          "device": "cpu",
+          "allow_fallback": true,
+          "checkpoint_loaded": true,
+          "input_channels": [
+            "temperature_k",
+            "disp_x",
+            "disp_y",
+            "disp_z",
+            "youngs_modulus",
+            "poissons_ratio",
+            "density",
+            "thermal_expansion",
+            "thermal_conductivity",
+            "thermal_density",
+            "heat_capacity",
+            "grid_valid_mask",
+            "coord_x",
+            "coord_y",
+            "coord_z",
+            "time_fraction"
+          ],
+          "output_channels": [
+            "temperature_k",
+            "disp_x",
+            "disp_y",
+            "disp_z"
+          ],
+          "model_version": "fno-baseline@best_model.pth"
+        },
+        "error": null
+      },
+      "ready": {
+        "http_status": 200,
+        "payload": {
+          "status": "ready",
+          "service": "fno-service",
+          "ready": true,
+          "mode": "checkpoint",
+          "checkpoint_path": "/app/artifacts/checkpoints/baseline",
+          "resolved_checkpoint_path": "/app/artifacts/checkpoints/baseline/best_model.pth",
+          "checkpoint_exists": true,
+          "dataset_path": "/app/artifacts/datasets/sandstone_fno",
+          "dataset_exists": true,
+          "config_path": "/app/configs/inference.yaml",
+          "device": "cpu",
+          "allow_fallback": true,
+          "checkpoint_loaded": true,
+          "input_channels": [
+            "temperature_k",
+            "disp_x",
+            "disp_y",
+            "disp_z",
+            "youngs_modulus",
+            "poissons_ratio",
+            "density",
+            "thermal_expansion",
+            "thermal_conductivity",
+            "thermal_density",
+            "heat_capacity",
+            "grid_valid_mask",
+            "coord_x",
+            "coord_y",
+            "coord_z",
+            "time_fraction"
+          ],
+          "output_channels": [
+            "temperature_k",
+            "disp_x",
+            "disp_y",
+            "disp_z"
+          ],
+          "model_version": "fno-baseline@best_model.pth"
+        },
+        "error": null
+      }
+    },
+    "transformer": {
+      "local_url": "http://localhost:9004",
+      "compose_url": "http://transformer-service:9000",
+      "health": {
+        "http_status": 200,
+        "payload": {
+          "status": "ok",
+          "service": "transformer-service",
+          "ready": true,
+          "checkpoint_path": "/app/artifacts/checkpoints/smoke",
+          "device": "cpu",
+          "load_error": null,
+          "model_version": "oformer-baseline@best_model.pth",
+          "smoke_check": {
+            "status": "passed",
+            "output_feature_count": 4,
+            "rollout_steps": 3
+          },
+          "resolved_checkpoint_path": "/app/artifacts/checkpoints/smoke/best_model.pth",
+          "active_feature_count": 16,
+          "active_feature_names": [
+            "x",
+            "y",
+            "z",
+            "temperature_k",
+            "disp_x",
+            "disp_y",
+            "disp_z",
+            "vel_x",
+            "vel_y",
+            "vel_z",
+            "youngs_modulus",
+            "poissons_ratio",
+            "density",
+            "thermal_expansion",
+            "thermal_conductivity",
+            "heat_capacity"
+          ],
+          "output_feature_count": 4,
+          "output_feature_names": [
+            "temperature_k",
+            "disp_x",
+            "disp_y",
+            "disp_z"
+          ],
+          "best_loss": 0.3692703738808632,
+          "trained_node_count": 4743,
+          "architecture": "oformer"
+        },
+        "error": null
+      },
+      "ready": {
+        "http_status": 200,
+        "payload": {
+          "status": "ready",
+          "service": "transformer-service",
+          "ready": true,
+          "checkpoint_path": "/app/artifacts/checkpoints/smoke",
+          "device": "cpu",
+          "load_error": null,
+          "model_version": "oformer-baseline@best_model.pth",
+          "smoke_check": {
+            "status": "passed",
+            "output_feature_count": 4,
+            "rollout_steps": 3
+          },
+          "resolved_checkpoint_path": "/app/artifacts/checkpoints/smoke/best_model.pth",
+          "active_feature_count": 16,
+          "active_feature_names": [
+            "x",
+            "y",
+            "z",
+            "temperature_k",
+            "disp_x",
+            "disp_y",
+            "disp_z",
+            "vel_x",
+            "vel_y",
+            "vel_z",
+            "youngs_modulus",
+            "poissons_ratio",
+            "density",
+            "thermal_expansion",
+            "thermal_conductivity",
+            "heat_capacity"
+          ],
+          "output_feature_count": 4,
+          "output_feature_names": [
+            "temperature_k",
+            "disp_x",
+            "disp_y",
+            "disp_z"
+          ],
+          "best_loss": 0.3692703738808632,
+          "trained_node_count": 4743,
+          "architecture": "oformer"
+        },
+        "error": null
+      }
+    }
+  }
+}

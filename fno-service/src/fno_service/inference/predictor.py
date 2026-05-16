@@ -10,6 +10,7 @@ import torch
 
 from ..api.schemas import PredictionPayload
 from ..data.dataset import FNOGridTensors, load_fno_grid_tensors
+from ..data.preprocessing import ChannelStatistics, denormalize_channels, normalize_channels
 from ..models import FNO2d
 from ..training.checkpoints import load_checkpoint
 from ..utils.config import FNOServiceConfig
@@ -41,6 +42,8 @@ class _RuntimeArtifacts:
     output_channels: list[str]
     reference_temperature_k: float
     device: str
+    input_stats: ChannelStatistics | None
+    target_stats: ChannelStatistics | None
 
 
 class FNOInferenceService:
@@ -209,6 +212,9 @@ class FNOInferenceService:
             input_channels = _default_input_channels(tensors)
         if not output_channels:
             output_channels = ["temperature_k", "disp_x", "disp_y", "disp_z"]
+        normalization = channel_metadata.get("normalization") if isinstance(channel_metadata, dict) else {}
+        input_stats = ChannelStatistics.from_dict(normalization.get("input") if isinstance(normalization, dict) else None)
+        target_stats = ChannelStatistics.from_dict(normalization.get("target") if isinstance(normalization, dict) else None)
 
         reference_temperature_k = float(
             checkpoint.get("dataset_metadata", {}).get(
@@ -225,6 +231,8 @@ class FNOInferenceService:
             output_channels=output_channels,
             reference_temperature_k=reference_temperature_k,
             device=self._resolved_device(),
+            input_stats=input_stats,
+            target_stats=target_stats,
         )
         self._smoke_runtime(runtime)
         self._runtime = runtime
@@ -245,9 +253,12 @@ class FNOInferenceService:
         _validate_request_domain(payload)
         inputs = self._build_input_tensor(payload, runtime)
         with torch.no_grad():
-            outputs = runtime.model(inputs.to(runtime.device)).detach().cpu().numpy()[0]
-        if not np.all(np.isfinite(outputs)):
+            outputs_normalized = runtime.model(inputs.to(runtime.device)).detach().cpu().numpy()[0]
+        if not np.all(np.isfinite(outputs_normalized)):
             raise NonFiniteModelOutputError("FNO checkpoint inference produced NaN or infinite values.")
+        outputs = denormalize_channels(outputs_normalized, runtime.target_stats)
+        if not np.all(np.isfinite(outputs)):
+            raise NonFiniteModelOutputError("FNO checkpoint denormalization produced NaN or infinite values.")
 
         source_cell = _resolve_grid_cell(runtime.tensors.grid_coords, payload.source, payload.domain)
         probe_cell = _resolve_grid_cell(runtime.tensors.grid_coords, payload.probe, payload.domain)
@@ -256,9 +267,6 @@ class FNOInferenceService:
         azimuth = math.degrees(math.atan2(direction[1], direction[0]))
         horizontal = math.sqrt(direction[0] ** 2 + direction[1] ** 2)
         elevation = math.degrees(math.atan2(direction[2], horizontal))
-        magnitude = _vector_norm(
-            _sample_vector(outputs, runtime.output_channels, ("disp_x", "disp_y", "disp_z"), probe_cell)
-        )
         dx = float(payload.probe.get("x", 0.0)) - float(payload.source.get("x", 0.0))
         dy = float(payload.probe.get("y", 0.0)) - float(payload.source.get("y", 0.0))
         dz = float(payload.probe.get("z", 0.0)) - float(payload.source.get("z", 0.0))
@@ -274,10 +282,27 @@ class FNOInferenceService:
         if is_rect_2d:
             disp_z = np.zeros_like(disp_z, dtype=np.float32)
         displacement_norm = np.sqrt(disp_x**2 + disp_y**2 + disp_z**2)
+        max_displacement = float(np.max(displacement_norm))
+        max_temperature_perturbation = float(np.max(np.abs(temperature_field - runtime.reference_temperature_k)))
+        probe_displacement = _vector_norm(
+            _sample_vector(outputs, runtime.output_channels, ("disp_x", "disp_y", "disp_z"), probe_cell)
+        )
+        # Dimensionless comparative response score. Physical amplitude is reported separately
+        # as max_displacement; this score is intentionally bounded for frontend comparison.
+        magnitude = min(1.0, max(probe_displacement / max(max_displacement, 1e-12), 0.0))
 
         if is_rect_2d:
             direction[2] = 0.0
             direction = _normalize(direction)
+            elevation = 0.0
+
+        warnings = _sanity_warnings(
+            max_displacement=max_displacement,
+            max_temperature_perturbation=max_temperature_perturbation,
+            magnitude=magnitude,
+            normalization_used=runtime.input_stats is not None,
+            denormalization_used=runtime.target_stats is not None,
+        )
 
         return {
             "prediction": {
@@ -289,11 +314,8 @@ class FNOInferenceService:
                 "travel_time_ms": round(max((distance / max(vp, 0.1)) * 10.0 + time_ms * 0.05, 0.001), 6),
             },
             "field_summary": {
-                "max_displacement": round(float(np.max(displacement_norm)), 8),
-                "max_temperature_perturbation": round(
-                    float(np.max(np.abs(temperature_field - runtime.reference_temperature_k))),
-                    8,
-                ),
+                "max_displacement": round(max_displacement, 8),
+                "max_temperature_perturbation": round(max_temperature_perturbation, 8),
             },
             "model_version": runtime.model_version,
             "diagnostics": {
@@ -304,6 +326,18 @@ class FNOInferenceService:
                 "source_cell": source_cell,
                 "probe_cell": probe_cell,
                 "mode": "checkpoint",
+                "effective_domain_type": "rect_2d",
+                "domain_adaptation": "none",
+                "fallback_used": False,
+                "normalization_used": runtime.input_stats is not None,
+                "denormalization_used": runtime.target_stats is not None,
+                "normalization": _normalization_diagnostics(runtime),
+                "warnings": warnings,
+                "metric_definitions": {
+                    "max_displacement": "max(sqrt(disp_x^2 + disp_y^2)) for rect_2d; disp_z is ignored.",
+                    "max_temperature_perturbation": "max(abs(temperature_k - reference_temperature_k))",
+                    "magnitude": "bounded dimensionless local/global displacement response score",
+                },
             },
         }
 
@@ -353,7 +387,8 @@ class FNOInferenceService:
             raise ModelLoadError(
                 f"Input channel count mismatch. Built {inputs.shape[0]} channels but checkpoint expects {len(runtime.input_channels)}."
             )
-        return torch.from_numpy(inputs[:, 0, :, :]).unsqueeze(0)
+        inputs_2d = normalize_channels(inputs[:, 0, :, :], runtime.input_stats)
+        return torch.from_numpy(inputs_2d).unsqueeze(0)
 
     def _fallback_prediction(self, payload: PredictionPayload) -> dict[str, Any]:
         source = payload.source
@@ -394,6 +429,12 @@ class FNOInferenceService:
                 "mode": self._mode(),
                 "service_config": asdict(self.config),
                 "note": "Fallback response because no FNO checkpoint is configured.",
+                "effective_domain_type": payload.domain.get("type", "unknown"),
+                "domain_adaptation": "none",
+                "fallback_used": True,
+                "normalization_used": False,
+                "denormalization_used": False,
+                "warnings": ["fallback_response"],
             },
         }
 
@@ -401,10 +442,20 @@ class FNOInferenceService:
 def _validate_request_domain(payload: PredictionPayload) -> None:
     domain_type = payload.domain.get("type")
     resolution = payload.domain.get("resolution", {})
+    size = payload.domain.get("size", {})
     if domain_type != "rect_2d":
         raise UnsupportedDomainError(f"Current FNO2d inference supports only rect_2d domains, got {domain_type!r}.")
+    if float(size.get("lz", 0.0)) != 0.0:
+        raise UnsupportedDomainError(f"Current FNO2d inference requires size.lz=0.0, got {size.get('lz')!r}.")
     if int(resolution.get("nz", 1)) != 1:
         raise UnsupportedDomainError(f"Current FNO2d inference requires nz=1, got {resolution.get('nz')!r}.")
+    if abs(float(payload.source.get("z", 0.0))) > 1e-12:
+        raise UnsupportedDomainError("Current FNO2d inference requires source.z=0.0.")
+    if abs(float(payload.probe.get("z", 0.0))) > 1e-12:
+        raise UnsupportedDomainError("Current FNO2d inference requires probe.z=0.0.")
+    direction = payload.source.get("direction", [1.0, 0.0, 0.0])
+    if len(direction) == 3 and abs(float(direction[2])) > 1e-12:
+        raise UnsupportedDomainError("Current FNO2d inference requires source.direction[2]=0.0.")
 
 
 def _resolve_time_index(scenario: dict[str, Any], metadata: dict[str, Any], total_timesteps: int) -> int:
@@ -497,6 +548,37 @@ def _channel_or_zeros(outputs: np.ndarray, output_channels: list[str], name: str
     if name not in output_channels:
         return np.zeros(outputs.shape[1:], dtype=np.float32)
     return outputs[output_channels.index(name)]
+
+
+def _sanity_warnings(
+    *,
+    max_displacement: float,
+    max_temperature_perturbation: float,
+    magnitude: float,
+    normalization_used: bool,
+    denormalization_used: bool,
+) -> list[str]:
+    warnings: list[str] = []
+    if not normalization_used:
+        warnings.append("missing_input_normalization_metadata")
+    if not denormalization_used:
+        warnings.append("missing_output_denormalization_metadata")
+    if abs(max_displacement) > 1e2:
+        warnings.append("scale_outlier:max_displacement_gt_1e2")
+    if abs(max_temperature_perturbation) > 1e4:
+        warnings.append("scale_outlier:max_temperature_perturbation_gt_1e4")
+    if abs(magnitude) > 1e6:
+        warnings.append("scale_outlier:magnitude_gt_1e6")
+    return warnings
+
+
+def _normalization_diagnostics(runtime: _RuntimeArtifacts) -> dict[str, Any]:
+    return {
+        "mode": "channel_wise_standardization" if runtime.input_stats and runtime.target_stats else "unavailable",
+        "input_channel_names": runtime.input_stats.channel_names if runtime.input_stats else [],
+        "target_channel_names": runtime.target_stats.channel_names if runtime.target_stats else [],
+        "target_units": runtime.target_stats.units if runtime.target_stats else {},
+    }
 
 
 def _normalize(vector: list[float]) -> list[float]:
