@@ -4,6 +4,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Literal
 
+from pinn_service.model import PINNArchitecture
+
 
 @dataclass(frozen=True)
 class TrainingConfig:
@@ -17,9 +19,15 @@ class TrainingConfig:
     learning_rate: float = 1e-3
     min_learning_rate: float = 1e-6
     weight_decay: float = 1e-6
+    architecture: PINNArchitecture = "mlp"
     hidden_dim: int = 192
     depth: int = 6
+    mlp_layer_dims: tuple[int, ...] | None = None
+    num_blocks: int = 4
     activation: str = "tanh"
+    use_fourier_features: bool = False
+    fourier_num_frequencies: int = 6
+    fourier_scale: float = 1.0
     supervised_weight: float = 1.0
     velocity_weight: float = 0.25
     wave_residual_weight: float = 0.1
@@ -46,4 +54,5 @@ class TrainingConfig:
         payload["dataset_path"] = str(self.dataset_path)
         payload["output_dir"] = str(self.output_dir)
         payload["val_dataset_path"] = str(self.val_dataset_path) if self.val_dataset_path else None
+        payload["mlp_layer_dims"] = list(self.mlp_layer_dims) if self.mlp_layer_dims is not None else None
         return payload

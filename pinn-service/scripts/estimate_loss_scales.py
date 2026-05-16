@@ -8,7 +8,7 @@ from pathlib import Path
 import torch
 
 from pinn_service.losses import compute_hybrid_pinn_loss
-from pinn_service.model import MLP_PINN
+from pinn_service.model import create_pinn_model, parse_layer_dims
 from pinn_service.training_data import PRIMARY_OUTPUT_NAMES, load_training_data
 
 
@@ -38,9 +38,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-batches", type=int, default=4)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", default="cpu")
+    parser.add_argument("--architecture", choices=("mlp", "res_split"), default="mlp")
     parser.add_argument("--hidden-dim", type=int, default=192)
     parser.add_argument("--depth", type=int, default=6)
+    parser.add_argument("--mlp-layer-dims", default=None)
+    parser.add_argument("--num-blocks", type=int, default=4)
     parser.add_argument("--activation", choices=("tanh", "silu", "gelu", "relu"), default="tanh")
+    parser.add_argument("--use-fourier-features", action="store_true")
+    parser.add_argument("--fourier-num-frequencies", type=int, default=6)
+    parser.add_argument("--fourier-scale", type=float, default=1.0)
     parser.add_argument("--supervised-weight", type=float, default=1.0)
     parser.add_argument("--velocity-weight", type=float, default=0.25)
     parser.add_argument("--wave-residual-weight", type=float, default=0.1)
@@ -71,12 +77,18 @@ def estimate_loss_scales(args: argparse.Namespace) -> dict:
     loader = data.make_loader(batch_size=args.batch_size, shuffle=False)
 
     device = torch.device(args.device)
-    model = MLP_PINN(
+    model = create_pinn_model(
         input_dim=len(data.input_feature_names),
         output_dim=len(PRIMARY_OUTPUT_NAMES),
+        architecture=args.architecture,
         hidden_dim=args.hidden_dim,
         depth=args.depth,
         activation=args.activation,
+        mlp_layer_dims=parse_layer_dims(args.mlp_layer_dims),
+        num_blocks=args.num_blocks,
+        use_fourier_features=args.use_fourier_features,
+        fourier_num_frequencies=args.fourier_num_frequencies,
+        fourier_scale=args.fourier_scale,
     ).to(device)
 
     input_mean = torch.tensor(data.input_scaler.mean, dtype=torch.float32, device=device)
@@ -122,6 +134,7 @@ def estimate_loss_scales(args: argparse.Namespace) -> dict:
         "actual_batches": batch_count,
         "seed": args.seed,
         "device": args.device,
+        "architecture": args.architecture,
         "physics_mode": args.physics_mode,
         "loss_averages": averages,
         "current_weights": {

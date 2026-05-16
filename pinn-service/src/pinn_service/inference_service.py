@@ -7,10 +7,11 @@ from typing import Any
 
 import numpy as np
 import torch
+from torch import nn
 
 from pinn_service.inference_config import InferenceConfig
 from pinn_service.inference_utils import build_feature_vector, build_prediction_payload
-from pinn_service.model import MLP_PINN
+from pinn_service.model import create_pinn_model, parse_layer_dims
 from pinn_service.service_schemas import PINNPredictionRequest
 
 
@@ -20,7 +21,7 @@ class CheckpointNotReadyError(RuntimeError):
 
 @dataclass(frozen=True)
 class LoadedInferenceArtifacts:
-    model: MLP_PINN
+    model: nn.Module
     device: torch.device
     input_feature_names: list[str]
     output_feature_names: list[str]
@@ -30,6 +31,7 @@ class LoadedInferenceArtifacts:
     output_std: np.ndarray
     best_loss: float
     checkpoint_path: Path
+    architecture: str
 
 
 class PINNInferenceService:
@@ -78,7 +80,7 @@ class PINNInferenceService:
     def model_version(self) -> str:
         if self._artifacts is None:
             return "unloaded"
-        return f"pinn-baseline@{self._artifacts.checkpoint_path.name}"
+        return f"pinn-{self._artifacts.architecture}@{self._artifacts.checkpoint_path.name}"
 
     def predict(self, request: PINNPredictionRequest) -> dict[str, Any]:
         artifacts = self._require_artifacts()
@@ -146,12 +148,18 @@ class PINNInferenceService:
         input_feature_names = checkpoint["input_feature_names"]
         output_feature_names = checkpoint["output_feature_names"]
 
-        model = MLP_PINN(
+        model = create_pinn_model(
             input_dim=len(input_feature_names),
             output_dim=len(output_feature_names),
+            architecture=str(config.get("architecture", "mlp")),
             hidden_dim=int(config.get("hidden_dim", 192)),
             depth=int(config.get("depth", 6)),
             activation=str(config.get("activation", "tanh")),
+            mlp_layer_dims=_read_mlp_layer_dims(config.get("mlp_layer_dims")),
+            num_blocks=int(config.get("num_blocks", 4)),
+            use_fourier_features=bool(config.get("use_fourier_features", False)),
+            fourier_num_frequencies=int(config.get("fourier_num_frequencies", 6)),
+            fourier_scale=float(config.get("fourier_scale", 1.0)),
         ).to(device)
         model.load_state_dict(checkpoint["model_state_dict"])
 
@@ -169,6 +177,7 @@ class PINNInferenceService:
             output_std=np.asarray(output_scaler["std"], dtype=np.float32),
             best_loss=float(checkpoint.get("best_loss", 0.0)),
             checkpoint_path=resolved_checkpoint,
+            architecture=str(config.get("architecture", "mlp")),
         )
 
     def _run_smoke_check(self, artifacts: LoadedInferenceArtifacts) -> None:
@@ -236,6 +245,7 @@ class PINNInferenceService:
             "output_feature_names": artifacts.output_feature_names,
             "best_loss": artifacts.best_loss,
             "device": str(artifacts.device),
+            "architecture": artifacts.architecture,
         }
 
     def _build_smoke_request(self) -> PINNPredictionRequest:
@@ -304,3 +314,13 @@ class PINNInferenceService:
             if discovered:
                 return discovered[0]
         return checkpoint_path
+
+
+def _read_mlp_layer_dims(raw_value: Any) -> tuple[int, ...] | None:
+    if raw_value is None:
+        return None
+    if isinstance(raw_value, str):
+        return parse_layer_dims(raw_value)
+    if isinstance(raw_value, (list, tuple)):
+        return tuple(int(value) for value in raw_value)
+    raise ValueError(f"Unsupported mlp_layer_dims checkpoint value: {raw_value!r}")

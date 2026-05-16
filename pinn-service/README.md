@@ -127,6 +127,26 @@ pinn-service/artifacts/rod_experiments/splits/
 
 The loss-scale report is meant to drive the new normalized training mode. It estimates raw component magnitudes at random initialization so we do not have to guess `wave` and `thermal` balancing for long runs.
 
+## Architecture Variants
+
+The training stack now supports two PINN architecture families while keeping the same public input/output contract:
+
+- `mlp`: the original plain multilayer perceptron baseline;
+- `res_split`: an improved residual PINN with separate coordinate/material encoders, a residual trunk, and split temperature/displacement heads.
+
+Shared public contract:
+
+```text
+input  = [x, y, z, t, E, nu, rho, alpha, k, Cp]
+output = [T, u, v, w]
+```
+
+Important scientific note:
+
+- this PINN is still a hybrid research baseline, not a fully validated thermoelastic solver;
+- boundary conditions and initial conditions are not yet enforced through dedicated BC/IC loss terms;
+- physical structure is represented through residual losses and supervised data, but should not be overclaimed.
+
 ## Train The First PINN Baseline
 
 After building `training_samples.npz`, train the coupled thermoelastic PINN baseline:
@@ -138,6 +158,10 @@ PYTHONPATH=pinn-service/src python3 -m pinn_service.train \
   --epochs 25 \
   --batch-size 4096 \
   --device cpu \
+  --architecture mlp \
+  --hidden-dim 192 \
+  --depth 6 \
+  --activation tanh \
   --wave-residual-weight 0.1 \
   --thermal-residual-weight 0.05 \
   --reference-temperature-k 293.15 \
@@ -156,6 +180,9 @@ PYTHONPATH=pinn-service/src python3 -m pinn_service.train \
   --batch-size 8192 \
   --validation-batch-size 8192 \
   --device cpu \
+  --architecture mlp \
+  --hidden-dim 192 \
+  --depth 6 \
   --wave-residual-weight 0.1 \
   --thermal-residual-weight 0.05 \
   --reference-temperature-k 293.15 \
@@ -181,6 +208,51 @@ Artifacts:
 When `--val-dataset` is provided, `best_model.pth` is selected by `val_total_loss`. Without validation data, it falls back to training `total_loss`. `model.pth` always stores the final epoch state.
 `ReduceLROnPlateau` now tracks the same metric and lowers the learning rate when progress stalls. Early stopping uses that same target metric, so the checkpoint choice and stopping rule stay aligned.
 
+To run the improved residual variant instead of the baseline:
+
+```bash
+PYTHONPATH=pinn-service/src python3 -m pinn_service.train \
+  --dataset pinn-service/artifacts/rod_experiments/splits/train_samples.npz \
+  --val-dataset pinn-service/artifacts/rod_experiments/splits/val_samples.npz \
+  --output-dir pinn-service/artifacts/checkpoints/rod_all_rocks_res_split \
+  --epochs 2000 \
+  --batch-size 8192 \
+  --validation-batch-size 8192 \
+  --device cpu \
+  --architecture res_split \
+  --hidden-dim 192 \
+  --num-blocks 4 \
+  --activation tanh \
+  --wave-residual-weight 0.1 \
+  --thermal-residual-weight 0.05 \
+  --reference-temperature-k 293.15 \
+  --loss-balance-mode normalize \
+  --loss-scale-report pinn-service/artifacts/rod_experiments/reports/loss_scale_report.json \
+  --physics-mode coupled_thermoelastic
+```
+
+To test a tapered MLP baseline:
+
+```bash
+PYTHONPATH=pinn-service/src python3 -m pinn_service.train \
+  --dataset pinn-service/artifacts/rod_experiments/splits/train_samples.npz \
+  --val-dataset pinn-service/artifacts/rod_experiments/splits/val_samples.npz \
+  --output-dir pinn-service/artifacts/checkpoints/rod_all_rocks_mlp_tapered \
+  --epochs 2000 \
+  --batch-size 8192 \
+  --validation-batch-size 8192 \
+  --device cpu \
+  --architecture mlp \
+  --mlp-layer-dims 256,256,192,192,128,128 \
+  --activation tanh \
+  --wave-residual-weight 0.1 \
+  --thermal-residual-weight 0.05 \
+  --reference-temperature-k 293.15 \
+  --loss-balance-mode normalize \
+  --loss-scale-report pinn-service/artifacts/rod_experiments/reports/loss_scale_report.json \
+  --physics-mode coupled_thermoelastic
+```
+
 ## Recommended Long Training Command
 
 For the current four-rock rod dataset, prefer the experiment runner. It uses the deterministic train/validation split, reads the initial loss-scale report, enables normalized loss balancing, writes checkpoints, and generates the HTML training report after training:
@@ -188,6 +260,9 @@ For the current four-rock rod dataset, prefer the experiment runner. It uses the
 ```bash
 PYTHONPATH=pinn-service/src .venv-pinn/bin/python3 pinn-service/scripts/run_training_experiment.py \
   --output-dir pinn-service/artifacts/checkpoints/rod_all_rocks_2000 \
+  --architecture mlp \
+  --hidden-dim 192 \
+  --depth 6 \
   --epochs 2000 \
   --batch-size 8192 \
   --validation-batch-size 8192 \
@@ -199,6 +274,9 @@ If CUDA is not available, use:
 ```bash
 PYTHONPATH=pinn-service/src .venv-pinn/bin/python3 pinn-service/scripts/run_training_experiment.py \
   --output-dir pinn-service/artifacts/checkpoints/rod_all_rocks_cpu \
+  --architecture mlp \
+  --hidden-dim 192 \
+  --depth 6 \
   --epochs 2000 \
   --batch-size 2048 \
   --validation-batch-size 2048 \
@@ -210,11 +288,20 @@ For a quick smoke check that does not touch the main checkpoint:
 ```bash
 PYTHONPATH=pinn-service/src .venv-pinn/bin/python3 pinn-service/scripts/run_training_experiment.py \
   --output-dir /tmp/pinn-training-smoke \
+  --architecture res_split \
+  --hidden-dim 192 \
+  --num-blocks 2 \
   --epochs 1 \
   --batch-size 64 \
   --sample-limit 128 \
   --validation-sample-limit 64 \
   --device cpu
+```
+
+If you want to test Fourier coordinate features safely, add:
+
+```text
+--use-fourier-features --fourier-num-frequencies 6 --fourier-scale 1.0
 ```
 
 For a stronger reusable baseline, use the helper script:
