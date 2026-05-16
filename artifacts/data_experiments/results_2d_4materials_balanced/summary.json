@@ -1,8 +1,8 @@
 {
   "status": "ok",
-  "run_id": "2ca0d3fe-b5f9-4ac9-9647-aa92f8d39cf1",
-  "input_path": "artifacts/data_experiments/inputs/model_comparison_inputs_2d_4materials_balanced.jsonl",
-  "output_dir": "artifacts/data_experiments/results_2d_4materials_balanced",
+  "run_id": "6a0043a3-6028-4b7c-a555-5fef3e79a12f",
+  "input_path": "artifacts\\data_experiments\\inputs\\model_comparison_inputs_2d_4materials_balanced.jsonl",
+  "output_dir": "artifacts\\data_experiments\\results_2d_4materials_balanced",
   "case_count": 40,
   "models": [
     "pinn",
@@ -12,9 +12,9 @@
   ],
   "predict_call_count": 160,
   "ok_count": 160,
-  "fallback_count": 0,
+  "fallback_count": 40,
   "error_count": 0,
-  "elapsed_seconds": 226.701,
+  "elapsed_seconds": 63.286,
   "preflight": {
     "pinn": {
       "local_url": "http://localhost:9013",
@@ -117,13 +117,14 @@
           "service": "meshgraphnet",
           "dataset_id": "sandstone_comsol_real",
           "dataset_dir": "/app/datasets/sandstone_comsol_real",
+          "configured_checkpoint": "/app/outputs/checkpoints/best_model.pt",
           "checkpoint": "/app/outputs/checkpoints/best_model.pt",
-          "checkpoint_exists": true,
+          "checkpoint_exists": false,
           "dataset_exists": true,
           "device": "cpu",
-          "mode": "rollout",
+          "mode": "fallback",
           "fallback_enabled": true,
-          "model_version": "real-meshgraphnet-v1"
+          "model_version": "mgn-service-fallback-v1"
         },
         "error": null
       }
