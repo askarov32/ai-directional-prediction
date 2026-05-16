@@ -1,0 +1,195 @@
+{
+  "generator": "scripts/generate_experiment_inputs.py",
+  "catalog_path": "backend\\data\\media\\catalog.json",
+  "case_count": 40,
+  "seed": 42,
+  "materials": [
+    "sandstone",
+    "basalt"
+  ],
+  "temperatures_c": [
+    20.0,
+    60.0,
+    120.0,
+    180.0,
+    260.0,
+    320.0
+  ],
+  "pressures_mpa": [
+    5.0,
+    25.0,
+    60.0
+  ],
+  "time_ms": [
+    4.0,
+    8.0,
+    12.0,
+    16.0
+  ],
+  "frequency_hz": [
+    25.0,
+    50.0,
+    75.0
+  ],
+  "boundary_conditions": [
+    {
+      "left": "fixed",
+      "right": "free",
+      "top": "insulated",
+      "bottom": "insulated"
+    },
+    {
+      "left": "fixed",
+      "right": "fixed",
+      "top": "free",
+      "bottom": "insulated"
+    },
+    {
+      "left": "free",
+      "right": "free",
+      "top": "insulated",
+      "bottom": "fixed"
+    }
+  ],
+  "domain": {
+    "type": "rect_3d",
+    "size": {
+      "lx": 1.0,
+      "ly": 1.0,
+      "lz": 1.0
+    },
+    "resolution": {
+      "nx": 128,
+      "ny": 128,
+      "nz": 48
+    }
+  },
+  "source_template": {
+    "type": "thermal_pulse",
+    "x": 0.15,
+    "y": 0.4,
+    "z": 0.2,
+    "amplitude": 1.0,
+    "frequency_hz": 25.0,
+    "direction": [
+      1.0,
+      0.15,
+      0.1
+    ]
+  },
+  "probe_template": {
+    "x": 0.7,
+    "y": 0.55,
+    "z": 0.75
+  },
+  "source_variants": [
+    {
+      "x": 0.12,
+      "y": 0.34,
+      "z": 0.18,
+      "direction": [
+        1.0,
+        0.1,
+        0.08
+      ],
+      "amplitude": 0.8
+    },
+    {
+      "x": 0.18,
+      "y": 0.42,
+      "z": 0.26,
+      "direction": [
+        0.92,
+        0.24,
+        0.16
+      ],
+      "amplitude": 1.0
+    },
+    {
+      "x": 0.24,
+      "y": 0.58,
+      "z": 0.34,
+      "direction": [
+        0.85,
+        -0.18,
+        0.28
+      ],
+      "amplitude": 1.2
+    },
+    {
+      "x": 0.31,
+      "y": 0.47,
+      "z": 0.22,
+      "direction": [
+        0.78,
+        0.32,
+        0.24
+      ],
+      "amplitude": 0.9
+    }
+  ],
+  "probe_variants": [
+    {
+      "x": 0.68,
+      "y": 0.52,
+      "z": 0.52
+    },
+    {
+      "x": 0.74,
+      "y": 0.6,
+      "z": 0.6
+    },
+    {
+      "x": 0.58,
+      "y": 0.66,
+      "z": 0.7
+    },
+    {
+      "x": 0.8,
+      "y": 0.48,
+      "z": 0.78
+    }
+  ],
+  "case_ids": [
+    "case_001_basalt",
+    "case_002_basalt",
+    "case_003_basalt",
+    "case_004_sandstone",
+    "case_005_sandstone",
+    "case_006_basalt",
+    "case_007_sandstone",
+    "case_008_basalt",
+    "case_009_sandstone",
+    "case_010_sandstone",
+    "case_011_basalt",
+    "case_012_sandstone",
+    "case_013_basalt",
+    "case_014_sandstone",
+    "case_015_basalt",
+    "case_016_basalt",
+    "case_017_sandstone",
+    "case_018_basalt",
+    "case_019_basalt",
+    "case_020_basalt",
+    "case_021_basalt",
+    "case_022_basalt",
+    "case_023_sandstone",
+    "case_024_sandstone",
+    "case_025_sandstone",
+    "case_026_sandstone",
+    "case_027_basalt",
+    "case_028_sandstone",
+    "case_029_basalt",
+    "case_030_sandstone",
+    "case_031_basalt",
+    "case_032_basalt",
+    "case_033_basalt",
+    "case_034_sandstone",
+    "case_035_basalt",
+    "case_036_sandstone",
+    "case_037_basalt",
+    "case_038_basalt",
+    "case_039_sandstone",
+    "case_040_basalt"
+  ]
+}

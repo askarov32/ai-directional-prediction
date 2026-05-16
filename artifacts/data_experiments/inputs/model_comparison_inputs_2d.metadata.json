@@ -1,0 +1,26 @@
+{
+  "generator": "scripts/create_2d_model_inputs.py",
+  "created_at": "2026-05-16T19:27:45.990510+00:00",
+  "input": "artifacts/data_experiments/inputs/model_comparison_inputs.jsonl",
+  "output": "artifacts/data_experiments/inputs/model_comparison_inputs_2d.jsonl",
+  "source_case_count": 40,
+  "converted_case_count": 40,
+  "materials": [
+    "basalt",
+    "sandstone"
+  ],
+  "domain": {
+    "requested_domain_type": "rect_2d",
+    "domain_type": "rect_2d",
+    "source_z": 0.0,
+    "probe_z": 0.0,
+    "direction_z": 0.0,
+    "domain_lz": 0.0,
+    "domain_nz": 1
+  },
+  "validation": {
+    "valid": true,
+    "invalid_case_count": 0,
+    "errors": {}
+  }
+}
