@@ -27,6 +27,29 @@ The pilot dataset is `/Users/temporary/unik/sandstone experiment ROD/` with 4448
 
 ## Data preparation
 
+Strict 2D batch conversion from `rod_experiments_2d`:
+
+```bash
+PYTHONPATH=transformer-service/src python transformer-service/scripts/build_2d_transformer_datasets.py \
+  --input-root pinn-service/artifacts/rod_experiments_2d \
+  --output-root transformer-service/artifacts/datasets_2d
+```
+
+This writes per-rock pair datasets such as:
+
+```text
+transformer-service/artifacts/datasets_2d/granite_transformer_2d
+transformer-service/artifacts/datasets_2d/limestone_transformer_2d
+transformer-service/artifacts/datasets_2d/sandstone_transformer_2d
+transformer-service/artifacts/datasets_2d/basalt_transformer_2d
+```
+
+and:
+
+```text
+transformer-service/artifacts/datasets_2d/manifest.json
+```
+
 ```bash
 PYTHONPATH=transformer-service/src python3 -m transformer_service.cli \
   --sandstone-dir "/Users/temporary/unik/sandstone experiment ROD" \
@@ -44,8 +67,8 @@ Produces:
 
 ```bash
 PYTHONPATH=transformer-service/src python3 -m transformer_service.train \
-  --dataset transformer-service/artifacts/sandstone/pairs.npz \
-  --output-dir transformer-service/artifacts/checkpoints/baseline \
+  --dataset transformer-service/artifacts/datasets_2d/limestone_transformer_2d/pairs.npz \
+  --output-dir transformer-service/artifacts/checkpoints/baseline_2d \
   --epochs 200 --device cpu
 ```
 
@@ -73,7 +96,7 @@ The FastAPI app mirrors `pinn-service`:
 
 ```bash
 PYTHONPATH=transformer-service/src \
-TRANSFORMER_CHECKPOINT_PATH=transformer-service/artifacts/checkpoints/baseline \
+TRANSFORMER_CHECKPOINT_PATH=transformer-service/artifacts/checkpoints/baseline_2d \
 python3 -m uvicorn transformer_service.service_app:app --host 0.0.0.0 --port 9004
 ```
 
@@ -85,11 +108,11 @@ Endpoints:
 
 ## Current scope
 
-This first version is a baseline:
+Current practical scope:
 
 - only supervised data MSE on `(T, u, v, w)`
-- single sandstone configuration (one COMSOL sample)
+- strict 2D training is now supported through `rod_experiments_2d` batch conversion
 - no physics-informed residuals yet
-- not wired into `docker-compose.yml` or backend `PredictionRouter`
+- wired into `docker-compose.yml` and backend routing
 
 These are next-iteration tasks.

@@ -786,3 +786,52 @@ PYTHONPATH=pinn-service/src python3 -m pinn_service.cli \
   --output-dir /path/to/output \
   --build-training-matrix
 ```
+
+## Strict 2D Retraining Workflow
+
+The current practical 2D-only path is:
+
+1. build strict 2D PINN artifacts under `pinn-service/artifacts/rod_experiments_2d`;
+2. train `PINN` with `--physics-mode plane_strain_2d`;
+3. batch-convert those 2D artifacts into per-rock `FNO`, `Transformer`, and `MGN` datasets;
+4. switch `.env` to `baseline_2d` / `checkpoints_2d` checkpoints;
+5. rerun direct model predictions and regenerate only 2D charts.
+
+One-command 2D comparison refresh:
+
+```bash
+python scripts/run_2d_comparison_pipeline.py \
+  --input artifacts/data_experiments/inputs/model_comparison_inputs_2d_4materials_balanced.jsonl \
+  --results-dir artifacts/data_experiments/results_2d_4materials_balanced \
+  --figures-dir figures/results_2d_4materials_balanced \
+  --tables-dir tables/results_2d_4materials_balanced
+```
+
+Batch FNO dataset build from strict 2D PINN artifacts:
+
+```bash
+PYTHONPATH=fno-service/src python fno-service/scripts/build_2d_fno_datasets.py \
+  --input-root pinn-service/artifacts/rod_experiments_2d \
+  --output-root fno-service/artifacts/datasets_2d \
+  --grid-res 1 32 32 \
+  --max-timesteps 64 \
+  --validate
+```
+
+Batch Transformer dataset build:
+
+```bash
+PYTHONPATH=transformer-service/src python transformer-service/scripts/build_2d_transformer_datasets.py \
+  --input-root pinn-service/artifacts/rod_experiments_2d \
+  --output-root transformer-service/artifacts/datasets_2d
+```
+
+Batch MeshGraphNet dataset build:
+
+```bash
+python mgn-service/scripts/build_2d_mgn_datasets.py \
+  --input-root pinn-service/artifacts/rod_experiments_2d \
+  --registry-root mgn-service/datasets \
+  --k-nearest 12 \
+  --target-mode delta
+```

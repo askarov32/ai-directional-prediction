@@ -1,0 +1,41 @@
+{
+  "source_dataset": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments_2d/training_samples_all_rocks.npz",
+  "source_metadata": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments_2d/training_samples_all_rocks_metadata.json",
+  "seed": 42,
+  "val_fraction": 0.1,
+  "train_path": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments_2d/splits/train_samples.npz",
+  "val_path": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments_2d/splits/val_samples.npz",
+  "train_rows": 145728,
+  "val_rows": 16192,
+  "total_rows": 161920,
+  "per_rock": {
+    "granite": {
+      "start": 0,
+      "stop": 46230,
+      "rows": 46230,
+      "train_rows": 41607,
+      "val_rows": 4623
+    },
+    "limestone": {
+      "start": 46230,
+      "stop": 92460,
+      "rows": 46230,
+      "train_rows": 41607,
+      "val_rows": 4623
+    },
+    "sandstone": {
+      "start": 92460,
+      "stop": 115690,
+      "rows": 23230,
+      "train_rows": 20907,
+      "val_rows": 2323
+    },
+    "basalt": {
+      "start": 115690,
+      "stop": 161920,
+      "rows": 46230,
+      "train_rows": 41607,
+      "val_rows": 4623
+    }
+  }
+}

@@ -33,7 +33,7 @@ class TrainingConfig:
     wave_residual_weight: float = 0.1
     thermal_residual_weight: float = 0.05
     reference_temperature_k: float = 293.15
-    physics_mode: Literal["coupled_thermoelastic", "simple_heat"] = "coupled_thermoelastic"
+    physics_mode: Literal["coupled_thermoelastic", "simple_heat", "plane_strain_2d"] = "coupled_thermoelastic"
     loss_balance_mode: Literal["fixed", "normalize"] = "fixed"
     supervised_loss_scale: float = 1.0
     velocity_loss_scale: float = 1.0

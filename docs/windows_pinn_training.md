@@ -166,6 +166,66 @@ Expected files after this block:
 - `pinn-service/artifacts/rod_experiments/reports/data_quality_report.html`
 - `pinn-service/artifacts/rod_experiments/reports/loss_scale_report.json`
 
+## 6.1 Build Strict 2D-Only PINN Datasets
+
+Use this block when the practical thesis experiments should be strictly `rect_2d`.
+
+It reads the already prepared `pinn-service/artifacts/rod_experiments/*/structured_dataset.npz`, selects a 2D z-plane, projects it to `z=0`, and writes separate 2D artifacts under:
+
+```text
+pinn-service/artifacts/rod_experiments_2d/
+```
+
+Default recommendation:
+
+- `--plane-policy max_nodes`
+- `--out-of-plane-mode zero`
+
+This gives more 2D training rows than the exact centerline slice and keeps the output contract compatible with `rect_2d` prediction.
+
+```powershell
+$env:PYTHONPATH="pinn-service/src"
+
+python pinn-service/scripts/build_2d_rod_experiments.py `
+  --input-root pinn-service/artifacts/rod_experiments `
+  --output-dir pinn-service/artifacts/rod_experiments_2d `
+  --plane-policy max_nodes `
+  --out-of-plane-mode zero
+
+python pinn-service/scripts/create_train_val_split.py `
+  --dataset pinn-service/artifacts/rod_experiments_2d/training_samples_all_rocks.npz `
+  --metadata pinn-service/artifacts/rod_experiments_2d/training_samples_all_rocks_metadata.json `
+  --output-dir pinn-service/artifacts/rod_experiments_2d/splits `
+  --val-fraction 0.1 `
+  --seed 42
+
+python pinn-service/scripts/estimate_loss_scales.py `
+  --dataset pinn-service/artifacts/rod_experiments_2d/splits/train_samples.npz `
+  --output-dir pinn-service/artifacts/rod_experiments_2d/reports `
+  --sample-limit 8192 `
+  --batch-size 512 `
+  --device cuda `
+  --physics-mode plane_strain_2d
+```
+
+Expected files:
+
+- `pinn-service/artifacts/rod_experiments_2d/training_samples_all_rocks.npz`
+- `pinn-service/artifacts/rod_experiments_2d/splits/train_samples.npz`
+- `pinn-service/artifacts/rod_experiments_2d/splits/val_samples.npz`
+- `pinn-service/artifacts/rod_experiments_2d/reports/loss_scale_report.json`
+
+If you specifically want the central plane instead of the densest plane, use:
+
+```powershell
+python pinn-service/scripts/build_2d_rod_experiments.py `
+  --input-root pinn-service/artifacts/rod_experiments `
+  --output-dir pinn-service/artifacts/rod_experiments_2d_center `
+  --plane-policy nearest_z `
+  --plane-z 0.0 `
+  --out-of-plane-mode zero
+```
+
 ## 7. Optional Dry Run
 
 This validates the dataset paths, validation split, loss-scale report, and resolved config without launching training.
@@ -244,6 +304,27 @@ python pinn-service/scripts/run_training_experiment.py `
   --epochs 2000 `
   --batch-size 8192 `
   --validation-batch-size 8192 `
+  --device cuda
+```
+
+For strict 2D-only training, point the runner to the 2D artifacts:
+
+```powershell
+$env:PYTHONPATH="pinn-service/src"
+
+python pinn-service/scripts/run_training_experiment.py `
+  --train-dataset pinn-service/artifacts/rod_experiments_2d/splits/train_samples.npz `
+  --val-dataset pinn-service/artifacts/rod_experiments_2d/splits/val_samples.npz `
+  --loss-scale-report pinn-service/artifacts/rod_experiments_2d/reports/loss_scale_report.json `
+  --output-dir pinn-service/artifacts/checkpoints/pinn_2d_res_split `
+  --architecture res_split `
+  --hidden-dim 192 `
+  --num-blocks 4 `
+  --activation tanh `
+  --physics-mode plane_strain_2d `
+  --epochs 80 `
+  --batch-size 4096 `
+  --validation-batch-size 4096 `
   --device cuda
 ```
 

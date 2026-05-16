@@ -52,7 +52,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--wave-residual-weight", type=float, default=0.1)
     parser.add_argument("--thermal-residual-weight", type=float, default=0.05)
     parser.add_argument("--reference-temperature-k", type=float, default=293.15)
-    parser.add_argument("--physics-mode", choices=("coupled_thermoelastic", "simple_heat"), default="coupled_thermoelastic")
+    parser.add_argument(
+        "--physics-mode",
+        choices=("coupled_thermoelastic", "simple_heat", "plane_strain_2d"),
+        default="coupled_thermoelastic",
+    )
     return parser
 
 

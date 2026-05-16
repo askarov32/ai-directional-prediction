@@ -90,6 +90,33 @@ def compute_strain_tensor(
     }
 
 
+def compute_plane_strain_tensor(
+    *,
+    disp_x: Tensor,
+    disp_y: Tensor,
+    inputs_scaled: Tensor,
+    scales: CoordinateScales,
+) -> dict[str, Tensor]:
+    u_x = first_derivative(disp_x, inputs_scaled, 0, scales.x)
+    u_y = first_derivative(disp_x, inputs_scaled, 1, scales.y)
+    v_x = first_derivative(disp_y, inputs_scaled, 0, scales.x)
+    v_y = first_derivative(disp_y, inputs_scaled, 1, scales.y)
+
+    zeros = torch.zeros_like(u_x)
+    eps_xy = 0.5 * (u_y + v_x)
+    eps_kk = u_x + v_y
+
+    return {
+        "eps_xx": u_x,
+        "eps_yy": v_y,
+        "eps_zz": zeros,
+        "eps_xy": eps_xy,
+        "eps_xz": zeros,
+        "eps_yz": zeros,
+        "eps_kk": eps_kk,
+    }
+
+
 def compute_stress_tensor(
     *,
     strain: dict[str, Tensor],
@@ -140,6 +167,27 @@ def compute_stress_divergence(
     return torch.cat([div_x, div_y, div_z], dim=1)
 
 
+def compute_stress_divergence_2d(
+    *,
+    stress: dict[str, Tensor],
+    inputs_scaled: Tensor,
+    scales: CoordinateScales,
+) -> Tensor:
+    div_x = first_derivative(stress["sigma_xx"], inputs_scaled, 0, scales.x) + first_derivative(
+        stress["sigma_xy"],
+        inputs_scaled,
+        1,
+        scales.y,
+    )
+    div_y = first_derivative(stress["sigma_xy"], inputs_scaled, 0, scales.x) + first_derivative(
+        stress["sigma_yy"],
+        inputs_scaled,
+        1,
+        scales.y,
+    )
+    return torch.cat([div_x, div_y], dim=1)
+
+
 def compute_wave_residual(
     *,
     disp_x: Tensor,
@@ -161,11 +209,39 @@ def compute_wave_residual(
     return density * acceleration - compute_stress_divergence(stress=stress, inputs_scaled=inputs_scaled, scales=scales)
 
 
+def compute_wave_residual_2d(
+    *,
+    disp_x: Tensor,
+    disp_y: Tensor,
+    density: Tensor,
+    stress: dict[str, Tensor],
+    inputs_scaled: Tensor,
+    scales: CoordinateScales,
+) -> Tensor:
+    acceleration = torch.cat(
+        [
+            second_derivative(disp_x, inputs_scaled, 3, scales.t),
+            second_derivative(disp_y, inputs_scaled, 3, scales.t),
+        ],
+        dim=1,
+    )
+    return density * acceleration - compute_stress_divergence_2d(stress=stress, inputs_scaled=inputs_scaled, scales=scales)
+
+
 def compute_temperature_laplacian(*, temperature: Tensor, inputs_scaled: Tensor, scales: CoordinateScales) -> Tensor:
     return (
         second_derivative(temperature, inputs_scaled, 0, scales.x)
         + second_derivative(temperature, inputs_scaled, 1, scales.y)
         + second_derivative(temperature, inputs_scaled, 2, scales.z)
+    )
+
+
+def compute_temperature_laplacian_2d(*, temperature: Tensor, inputs_scaled: Tensor, scales: CoordinateScales) -> Tensor:
+    return second_derivative(temperature, inputs_scaled, 0, scales.x) + second_derivative(
+        temperature,
+        inputs_scaled,
+        1,
+        scales.y,
     )
 
 
@@ -187,6 +263,24 @@ def compute_simple_heat_residual(
     )
 
 
+def compute_simple_heat_residual_2d(
+    *,
+    temperature: Tensor,
+    density: Tensor,
+    heat_capacity: Tensor,
+    thermal_conductivity: Tensor,
+    inputs_scaled: Tensor,
+    scales: CoordinateScales,
+) -> Tensor:
+    temperature_t = first_derivative(temperature, inputs_scaled, 3, scales.t)
+    thermal_diffusivity = thermal_conductivity / torch.clamp(density * heat_capacity, min=1e-12)
+    return temperature_t - thermal_diffusivity * compute_temperature_laplacian_2d(
+        temperature=temperature,
+        inputs_scaled=inputs_scaled,
+        scales=scales,
+    )
+
+
 def compute_coupled_thermal_residual(
     *,
     temperature: Tensor,
@@ -201,5 +295,23 @@ def compute_coupled_thermal_residual(
 ) -> Tensor:
     temperature_t = first_derivative(temperature, inputs_scaled, 3, scales.t)
     laplacian_t = compute_temperature_laplacian(temperature=temperature, inputs_scaled=inputs_scaled, scales=scales)
+    eps_kk_t = first_derivative(strain["eps_kk"], inputs_scaled, 3, scales.t)
+    return density * heat_capacity * temperature_t - thermal_conductivity * laplacian_t + gamma * reference_temperature_k * eps_kk_t
+
+
+def compute_coupled_thermal_residual_2d(
+    *,
+    temperature: Tensor,
+    strain: dict[str, Tensor],
+    density: Tensor,
+    heat_capacity: Tensor,
+    thermal_conductivity: Tensor,
+    gamma: Tensor,
+    reference_temperature_k: float,
+    inputs_scaled: Tensor,
+    scales: CoordinateScales,
+) -> Tensor:
+    temperature_t = first_derivative(temperature, inputs_scaled, 3, scales.t)
+    laplacian_t = compute_temperature_laplacian_2d(temperature=temperature, inputs_scaled=inputs_scaled, scales=scales)
     eps_kk_t = first_derivative(strain["eps_kk"], inputs_scaled, 3, scales.t)
     return density * heat_capacity * temperature_t - thermal_conductivity * laplacian_t + gamma * reference_temperature_k * eps_kk_t

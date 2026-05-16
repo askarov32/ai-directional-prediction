@@ -231,6 +231,25 @@ PYTHONPATH=pinn-service/src python3 -m pinn_service.train \
   --physics-mode coupled_thermoelastic
 ```
 
+For strict 2D training on `rod_experiments_2d`, use the 2D plane-strain-style physics mode:
+
+```bash
+PYTHONPATH=pinn-service/src python3 pinn-service/scripts/run_training_experiment.py \
+  --train-dataset pinn-service/artifacts/rod_experiments_2d/splits/train_samples.npz \
+  --val-dataset pinn-service/artifacts/rod_experiments_2d/splits/val_samples.npz \
+  --loss-scale-report pinn-service/artifacts/rod_experiments_2d/reports/loss_scale_report.json \
+  --output-dir pinn-service/artifacts/checkpoints/baseline_2d \
+  --architecture res_split \
+  --hidden-dim 192 \
+  --num-blocks 4 \
+  --activation tanh \
+  --physics-mode plane_strain_2d \
+  --epochs 80 \
+  --batch-size 4096 \
+  --validation-batch-size 4096 \
+  --device cpu
+```
+
 To test a tapered MLP baseline:
 
 ```bash
@@ -453,7 +472,7 @@ Typical normalized training flow:
 2. start training with `--loss-balance-mode normalize --loss-scale-report ...`;
 3. keep interpretable high-level weights such as `wave_residual_weight=0.1` and `thermal_residual_weight=0.05`, while the component scales absorb the raw unit mismatch.
 
-For backward compatibility, `--physics-mode simple_heat` keeps the older heat-equation residual and disables the wave residual contribution.
+For backward compatibility, `--physics-mode simple_heat` keeps the older heat-equation residual and disables the wave residual contribution. For strict 2D experiments, `--physics-mode plane_strain_2d` uses x-y derivatives only, zero out-of-plane strain terms, wave residuals for `[u,v]`, and a thermal residual with the x-y Laplacian.
 
 ## Inference Readiness And Diagnostics
 

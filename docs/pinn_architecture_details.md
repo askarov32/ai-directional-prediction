@@ -236,6 +236,12 @@ Where:
 
 The architecture change does not modify the public loss interface.
 
+Supported physics modes:
+
+- `coupled_thermoelastic`: 3D coupled thermoelastic residual using x, y, z, and t derivatives.
+- `simple_heat`: compatibility mode with a heat residual and no wave residual contribution.
+- `plane_strain_2d`: strict 2D mode for derived 2D artifacts; it uses x-y derivatives only, zero out-of-plane strain terms, `[u,v]` wave residuals, and an x-y thermal Laplacian.
+
 ## 8. What Is Still Not Explicitly Enforced
 
 The current implementation does **not** claim strict enforcement of:

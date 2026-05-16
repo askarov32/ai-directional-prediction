@@ -56,6 +56,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--wave-residual-weight", type=float, default=0.1)
     parser.add_argument("--thermal-residual-weight", type=float, default=0.05)
     parser.add_argument("--reference-temperature-k", type=float, default=293.15)
+    parser.add_argument(
+        "--physics-mode",
+        choices=("coupled_thermoelastic", "simple_heat", "plane_strain_2d"),
+        default="coupled_thermoelastic",
+    )
     parser.add_argument("--loss-balance-mode", choices=("fixed", "normalize"), default="normalize")
     parser.add_argument("--max-grad-norm", type=float, default=1.0)
     parser.add_argument("--lr-scheduler-patience", type=int, default=40)
@@ -123,7 +128,7 @@ def main() -> None:
         lr_scheduler_factor=args.lr_scheduler_factor,
         early_stopping_patience=args.early_stopping_patience,
         early_stopping_min_delta=args.early_stopping_min_delta,
-        physics_mode="coupled_thermoelastic",
+        physics_mode=args.physics_mode,
         sample_limit=args.sample_limit,
         validation_sample_limit=args.validation_sample_limit,
         progress_interval_batches=args.progress_interval_batches,

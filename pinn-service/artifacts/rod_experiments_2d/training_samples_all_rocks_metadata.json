@@ -1,0 +1,53 @@
+{
+  "row_counts": {
+    "granite": 46230,
+    "limestone": 46230,
+    "sandstone": 23230,
+    "basalt": 46230
+  },
+  "total_rows": 161920,
+  "input_shape": [
+    161920,
+    10
+  ],
+  "target_shape": [
+    161920,
+    20
+  ],
+  "input_feature_names": [
+    "x",
+    "y",
+    "z",
+    "t",
+    "youngs_modulus",
+    "poissons_ratio",
+    "density",
+    "thermal_expansion",
+    "thermal_conductivity",
+    "heat_capacity"
+  ],
+  "target_feature_names": [
+    "temperature_k",
+    "disp_x",
+    "disp_y",
+    "disp_z",
+    "vel_x",
+    "vel_y",
+    "vel_z",
+    "von_mises",
+    "stress_x",
+    "stress_y",
+    "stress_z",
+    "stress_xy",
+    "stress_yz",
+    "stress_xz",
+    "strain_x",
+    "strain_y",
+    "strain_z",
+    "strain_xy",
+    "strain_yz",
+    "strain_xz"
+  ],
+  "dimension": 2,
+  "out_of_plane_mode": "zero"
+}

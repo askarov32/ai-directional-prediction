@@ -66,7 +66,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--early-stopping-min-delta", type=float, default=0.0)
     parser.add_argument(
         "--physics-mode",
-        choices=("coupled_thermoelastic", "simple_heat"),
+        choices=("coupled_thermoelastic", "simple_heat", "plane_strain_2d"),
         default="coupled_thermoelastic",
     )
     parser.add_argument("--sample-limit", type=int, default=None)

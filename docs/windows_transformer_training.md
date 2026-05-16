@@ -50,7 +50,43 @@ python -c "import torch; print(torch.cuda.is_available())"
 If it prints `True`, you can use `--device cuda`.
 If it prints `False`, train with `--device cpu`.
 
-## 4. Prepare the transformer dataset from raw CSV files
+## 4. Prepare the transformer dataset from raw CSV files or strict 2D artifacts
+
+If you already built:
+
+```text
+pinn-service/artifacts/rod_experiments_2d/
+```
+
+then the preferred strict 2D path is to batch-convert those structured datasets into Transformer pair datasets.
+
+Command:
+
+```powershell
+$env:PYTHONPATH="transformer-service/src"
+
+python transformer-service/scripts/build_2d_transformer_datasets.py `
+  --input-root pinn-service/artifacts/rod_experiments_2d `
+  --output-root transformer-service/artifacts/datasets_2d
+```
+
+This creates, for example:
+
+```text
+transformer-service/artifacts/datasets_2d/granite_transformer_2d
+transformer-service/artifacts/datasets_2d/limestone_transformer_2d
+transformer-service/artifacts/datasets_2d/sandstone_transformer_2d
+transformer-service/artifacts/datasets_2d/basalt_transformer_2d
+transformer-service/artifacts/datasets_2d/manifest.json
+```
+
+For the new strict 2D baseline, prefer a dataset like:
+
+```text
+transformer-service/artifacts/datasets_2d/limestone_transformer_2d/pairs.npz
+```
+
+If you want the older one-off raw CSV path instead, it still works:
 
 The service expects the COMSOL-style CSV directory described in [transformer-service/README.md](/Users/askarovi/Documents/New%20project/transformer-service/README.md).
 
@@ -89,7 +125,7 @@ CPU:
 $env:PYTHONPATH="transformer-service/src"
 
 python -m transformer_service.train `
-  --dataset transformer-service/artifacts/sandstone/pairs.npz `
+  --dataset transformer-service/artifacts/datasets_2d/limestone_transformer_2d/pairs.npz `
   --output-dir transformer-service/artifacts/checkpoints/smoke `
   --epochs 1 `
   --device cpu
@@ -101,7 +137,7 @@ CUDA:
 $env:PYTHONPATH="transformer-service/src"
 
 python -m transformer_service.train `
-  --dataset transformer-service/artifacts/sandstone/pairs.npz `
+  --dataset transformer-service/artifacts/datasets_2d/limestone_transformer_2d/pairs.npz `
   --output-dir transformer-service/artifacts/checkpoints/smoke `
   --epochs 1 `
   --device cuda
@@ -115,8 +151,8 @@ CPU:
 $env:PYTHONPATH="transformer-service/src"
 
 python -m transformer_service.train `
-  --dataset transformer-service/artifacts/sandstone/pairs.npz `
-  --output-dir transformer-service/artifacts/checkpoints/baseline `
+  --dataset transformer-service/artifacts/datasets_2d/limestone_transformer_2d/pairs.npz `
+  --output-dir transformer-service/artifacts/checkpoints/baseline_2d `
   --epochs 200 `
   --device cpu
 ```
@@ -127,8 +163,8 @@ CUDA:
 $env:PYTHONPATH="transformer-service/src"
 
 python -m transformer_service.train `
-  --dataset transformer-service/artifacts/sandstone/pairs.npz `
-  --output-dir transformer-service/artifacts/checkpoints/baseline `
+  --dataset transformer-service/artifacts/datasets_2d/limestone_transformer_2d/pairs.npz `
+  --output-dir transformer-service/artifacts/checkpoints/baseline_2d `
   --epochs 200 `
   --device cuda
 ```
@@ -143,8 +179,8 @@ You can increase this:
 $env:PYTHONPATH="transformer-service/src"
 
 python -m transformer_service.train `
-  --dataset transformer-service/artifacts/sandstone/pairs.npz `
-  --output-dir transformer-service/artifacts/checkpoints/baseline `
+  --dataset transformer-service/artifacts/datasets_2d/limestone_transformer_2d/pairs.npz `
+  --output-dir transformer-service/artifacts/checkpoints/baseline_2d `
   --epochs 200 `
   --n-tokens 2048 `
   --device cuda
@@ -170,10 +206,10 @@ training_config.json
 scalers.json
 ```
 
-Typical baseline path:
+Typical strict 2D baseline path:
 
 ```text
-transformer-service/artifacts/checkpoints/baseline
+transformer-service/artifacts/checkpoints/baseline_2d
 ```
 
 ## 9. Connect the trained checkpoint to the service
@@ -181,7 +217,7 @@ transformer-service/artifacts/checkpoints/baseline
 In `.env`, point the service to the trained checkpoint directory:
 
 ```env
-TRANSFORMER_CHECKPOINT_PATH=/app/artifacts/checkpoints/baseline
+TRANSFORMER_CHECKPOINT_PATH=/app/artifacts/checkpoints/baseline_2d
 TRANSFORMER_DEVICE=cpu
 ```
 
@@ -253,7 +289,7 @@ Train on CPU or reinstall CUDA-enabled PyTorch.
 Check `.env`:
 
 ```env
-TRANSFORMER_CHECKPOINT_PATH=/app/artifacts/checkpoints/baseline
+TRANSFORMER_CHECKPOINT_PATH=/app/artifacts/checkpoints/baseline_2d
 ```
 
 Then rebuild/restart:

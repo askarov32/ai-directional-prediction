@@ -133,3 +133,54 @@ def test_hybrid_loss_runs_with_both_architectures():
 
         assert torch.isfinite(loss)
         assert metrics["total_loss"] >= 0.0
+
+
+def test_plane_strain_2d_loss_runs_without_out_of_plane_velocity_target():
+    input_scaler_mean = torch.tensor(
+        [0.5, 0.5, 0.0, 0.1, 4.0e10, 0.25, 2650.0, 7.5e-6, 2.7, 790.0],
+        dtype=torch.float32,
+    )
+    input_scaler_std = torch.tensor([0.2, 0.2, 1.0, 0.05, 1.0e9, 0.05, 20.0, 1.0e-6, 0.3, 15.0], dtype=torch.float32)
+    output_scaler_mean = torch.tensor([293.15, 0.0, 0.0, 0.0], dtype=torch.float32)
+    output_scaler_std = torch.tensor([10.0, 1.0e-3, 1.0e-3, 1.0], dtype=torch.float32)
+    inputs_scaled = torch.tensor(
+        [
+            [0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.5, -0.4, 0.0, -0.2, 0.1, -0.2, 0.2, 0.1, -0.3, 0.1],
+            [-0.6, 0.3, 0.0, 0.8, -0.15, 0.15, -0.1, 0.0, 0.2, -0.2],
+            [0.2, 0.7, 0.0, 0.4, 0.05, 0.05, -0.05, -0.1, 0.1, 0.0],
+        ],
+        dtype=torch.float32,
+    )
+    primary_targets_scaled = torch.zeros(4, 4, dtype=torch.float32)
+    velocity_targets = torch.zeros(4, 3, dtype=torch.float32)
+    model = create_pinn_model(
+        input_dim=10,
+        output_dim=4,
+        architecture="res_split",
+        hidden_dim=96,
+        num_blocks=2,
+        activation="tanh",
+    )
+
+    loss, metrics = compute_hybrid_pinn_loss(
+        model=model,
+        inputs_scaled=inputs_scaled,
+        primary_targets_scaled=primary_targets_scaled,
+        velocity_targets=velocity_targets,
+        input_scaler_mean=input_scaler_mean,
+        input_scaler_std=input_scaler_std,
+        output_scaler_mean=output_scaler_mean,
+        output_scaler_std=output_scaler_std,
+        supervised_weight=1.0,
+        velocity_weight=0.25,
+        wave_residual_weight=0.1,
+        thermal_residual_weight=0.05,
+        reference_temperature_k=293.15,
+        physics_mode="plane_strain_2d",
+        loss_balance_mode="fixed",
+    )
+
+    assert torch.isfinite(loss)
+    assert metrics["wave_residual_loss"] >= 0.0
+    assert metrics["thermal_residual_loss"] >= 0.0
