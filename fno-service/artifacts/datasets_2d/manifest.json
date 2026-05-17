@@ -1,0 +1,245 @@
+{
+  "source_root": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d",
+  "output_root": "C:\\Users\\Insar\\university\\ai-directional-prediction\\fno-service\\artifacts\\datasets_2d",
+  "dataset_count": 4,
+  "grid_resolution_zyx": [
+    1,
+    32,
+    32
+  ],
+  "max_timesteps": 64,
+  "datasets": [
+    {
+      "rock": "basalt",
+      "source_structured_dataset": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\basalt\\structured_dataset.npz",
+      "source_metadata": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\basalt\\dataset_metadata.json",
+      "output_dir": "C:\\Users\\Insar\\university\\ai-directional-prediction\\fno-service\\artifacts\\datasets_2d\\basalt_fno_2d",
+      "grid_resolution_zyx": [
+        1,
+        32,
+        32
+      ],
+      "selected_timesteps": 64,
+      "full_timesteps": 201,
+      "validation": {
+        "grid_dynamic_shape": [
+          64,
+          4,
+          1,
+          32,
+          32
+        ],
+        "grid_static_shape": [
+          7,
+          1,
+          32,
+          32
+        ],
+        "grid_masks_shape": [
+          1,
+          1,
+          32,
+          32
+        ],
+        "grid_coords_shape": [
+          3,
+          1,
+          32,
+          32
+        ],
+        "field_names": [
+          "temperature_k",
+          "disp_x",
+          "disp_y",
+          "disp_z"
+        ],
+        "static_feature_names": [
+          "youngs_modulus",
+          "poissons_ratio",
+          "density",
+          "thermal_expansion",
+          "thermal_conductivity",
+          "thermal_density",
+          "heat_capacity"
+        ],
+        "mask_names": [
+          "grid_valid_mask"
+        ]
+      }
+    },
+    {
+      "rock": "granite",
+      "source_structured_dataset": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\granite\\structured_dataset.npz",
+      "source_metadata": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\granite\\dataset_metadata.json",
+      "output_dir": "C:\\Users\\Insar\\university\\ai-directional-prediction\\fno-service\\artifacts\\datasets_2d\\granite_fno_2d",
+      "grid_resolution_zyx": [
+        1,
+        32,
+        32
+      ],
+      "selected_timesteps": 64,
+      "full_timesteps": 201,
+      "validation": {
+        "grid_dynamic_shape": [
+          64,
+          4,
+          1,
+          32,
+          32
+        ],
+        "grid_static_shape": [
+          7,
+          1,
+          32,
+          32
+        ],
+        "grid_masks_shape": [
+          1,
+          1,
+          32,
+          32
+        ],
+        "grid_coords_shape": [
+          3,
+          1,
+          32,
+          32
+        ],
+        "field_names": [
+          "temperature_k",
+          "disp_x",
+          "disp_y",
+          "disp_z"
+        ],
+        "static_feature_names": [
+          "youngs_modulus",
+          "poissons_ratio",
+          "density",
+          "thermal_expansion",
+          "thermal_conductivity",
+          "thermal_density",
+          "heat_capacity"
+        ],
+        "mask_names": [
+          "grid_valid_mask"
+        ]
+      }
+    },
+    {
+      "rock": "limestone",
+      "source_structured_dataset": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\limestone\\structured_dataset.npz",
+      "source_metadata": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\limestone\\dataset_metadata.json",
+      "output_dir": "C:\\Users\\Insar\\university\\ai-directional-prediction\\fno-service\\artifacts\\datasets_2d\\limestone_fno_2d",
+      "grid_resolution_zyx": [
+        1,
+        32,
+        32
+      ],
+      "selected_timesteps": 64,
+      "full_timesteps": 201,
+      "validation": {
+        "grid_dynamic_shape": [
+          64,
+          4,
+          1,
+          32,
+          32
+        ],
+        "grid_static_shape": [
+          7,
+          1,
+          32,
+          32
+        ],
+        "grid_masks_shape": [
+          1,
+          1,
+          32,
+          32
+        ],
+        "grid_coords_shape": [
+          3,
+          1,
+          32,
+          32
+        ],
+        "field_names": [
+          "temperature_k",
+          "disp_x",
+          "disp_y",
+          "disp_z"
+        ],
+        "static_feature_names": [
+          "youngs_modulus",
+          "poissons_ratio",
+          "density",
+          "thermal_expansion",
+          "thermal_conductivity",
+          "thermal_density",
+          "heat_capacity"
+        ],
+        "mask_names": [
+          "grid_valid_mask"
+        ]
+      }
+    },
+    {
+      "rock": "sandstone",
+      "source_structured_dataset": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\sandstone\\structured_dataset.npz",
+      "source_metadata": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\sandstone\\dataset_metadata.json",
+      "output_dir": "C:\\Users\\Insar\\university\\ai-directional-prediction\\fno-service\\artifacts\\datasets_2d\\sandstone_fno_2d",
+      "grid_resolution_zyx": [
+        1,
+        32,
+        32
+      ],
+      "selected_timesteps": 64,
+      "full_timesteps": 101,
+      "validation": {
+        "grid_dynamic_shape": [
+          64,
+          4,
+          1,
+          32,
+          32
+        ],
+        "grid_static_shape": [
+          7,
+          1,
+          32,
+          32
+        ],
+        "grid_masks_shape": [
+          1,
+          1,
+          32,
+          32
+        ],
+        "grid_coords_shape": [
+          3,
+          1,
+          32,
+          32
+        ],
+        "field_names": [
+          "temperature_k",
+          "disp_x",
+          "disp_y",
+          "disp_z"
+        ],
+        "static_feature_names": [
+          "youngs_modulus",
+          "poissons_ratio",
+          "density",
+          "thermal_expansion",
+          "thermal_conductivity",
+          "thermal_density",
+          "heat_capacity"
+        ],
+        "mask_names": [
+          "grid_valid_mask"
+        ]
+      }
+    }
+  ]
+}
