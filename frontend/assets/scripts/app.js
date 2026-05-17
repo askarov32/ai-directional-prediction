@@ -1,7 +1,7 @@
 import { ApiError, createPrediction, fetchMedia, fetchModels } from "./api.js";
 import { renderDomain } from "./charts.js";
-import { applyModelDomainPolicy, buildDemoPayload, fillForm, normalizeDomainShape, readPayloadFromForm } from "./form.js";
-import { getState, setState, subscribe } from "./state.js";
+import { applyModelDomainPolicy, buildDemoPayload, fillForm, normalizeDomainShape, readPayloadFromForm, toV2Payload } from "./form.js";
+import { CONTRACT_VERSION, getState, setState, subscribe } from "./state.js";
 import { createUI } from "./ui.js";
 import { validatePayload } from "./validators.js";
 
@@ -105,18 +105,26 @@ async function handleSubmit(event) {
     return;
   }
 
+  // When the ?contract=v2 flag is active, transform the form-collected
+  // v1 payload into the v2 shape before posting. The backend dispatches
+  // by schema_version, so the same /predictions endpoint serves both.
+  const wirePayload =
+    CONTRACT_VERSION === "2.0" ? toV2Payload(payload) : payload;
+
   setState({
     loading: true,
     error: null,
-    lastRequest: payload,
+    lastRequest: wirePayload,
   });
 
   try {
-    const response = await createPrediction(payload);
+    const response = await createPrediction(wirePayload);
     setState({
       loading: false,
       lastResponse: response,
       error: null,
+      lastDiagnostics: response?.diagnostics || null,
+      lastDerivedGeometry: response?.geometry || null,
     });
   } catch (error) {
     setState({
@@ -183,5 +191,21 @@ ui.refs.copyJsonButton.addEventListener("click", async () => {
     ui.refs.copyJsonButton.textContent = "Copy JSON";
   }, 1200);
 });
+
+// Phase 5: contract toggle in the header. The text and href depend on
+// which contract is currently active.
+(function setupContractToggle() {
+  const node = document.querySelector("#contract-toggle");
+  if (!node) return;
+  if (CONTRACT_VERSION === "2.0") {
+    node.innerHTML =
+      ' · <span class="contract-badge contract-badge--v2">v2 contract</span>' +
+      ' · <a class="contract-link" href="?">Back to v1</a>';
+  } else {
+    node.innerHTML =
+      ' · <span class="contract-badge contract-badge--v1">v1 contract</span>' +
+      ' · <a class="contract-link" href="?contract=v2">Try v2 contract</a>';
+  }
+})();
 
 bootstrap();

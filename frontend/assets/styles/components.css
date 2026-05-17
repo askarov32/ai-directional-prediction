@@ -483,3 +483,38 @@ select:focus {
     text-align: left;
   }
 }
+
+/* Phase 5: contract version toggle in the hero eyebrow */
+.contract-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  font-weight: 500;
+}
+.contract-badge {
+  display: inline-block;
+  padding: 0.1em 0.55em;
+  border-radius: 999px;
+  font-size: 0.78em;
+  letter-spacing: 0.04em;
+}
+.contract-badge--v1 {
+  background: rgba(120, 130, 160, 0.18);
+  color: var(--text-muted, #555);
+}
+.contract-badge--v2 {
+  background: rgba(37, 99, 235, 0.15);
+  color: #2563eb;
+}
+.contract-link {
+  font-size: 0.78em;
+  text-decoration: underline;
+  color: var(--text-muted, #555);
+}
+.contract-link:hover { color: #2563eb; }
+
+/* fallback variant of the model pill */
+.model-pill--fallback {
+  background: rgba(245, 158, 11, 0.16);
+  color: #b45309;
+}

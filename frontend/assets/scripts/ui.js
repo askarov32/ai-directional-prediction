@@ -179,12 +179,90 @@ export function createUI() {
     refs.latencyBadge.textContent = "Latency --";
   }
 
+  function _safeNum(value, fallback = NaN) {
+    return Number.isFinite(Number(value)) ? Number(value) : fallback;
+  }
+
+  function renderResultV2(response, modelLabel) {
+    refs.resultCard.classList.add("is-live");
+    refs.resultEmpty.classList.add("is-hidden");
+    refs.resultContent.classList.remove("is-hidden");
+    refs.errorBanner.classList.add("is-hidden");
+
+    const geom = response.geometry || {};
+    const pred = response.prediction || {};
+    const therm = pred.thermal || {};
+    const disp = pred.displacement || {};
+    const dir = pred.directional_response || {};
+    const temporal = pred.temporal_response || {};
+    const modelMeta = response.model || {};
+    const diag = response.diagnostics || {};
+
+    const unitDir = geom.unit_direction || {};
+    refs.direction.textContent =
+      Number.isFinite(unitDir.x) && Number.isFinite(unitDir.y)
+        ? `[${unitDir.x.toFixed(3)}, ${unitDir.y.toFixed(3)}]`
+        : "—";
+    refs.azimuth.textContent =
+      Number.isFinite(geom.azimuth_deg) ? `${geom.azimuth_deg.toFixed(1)}°` : "—";
+    // v2 is 2D plane-strain — elevation is omitted from the contract
+    refs.elevation.textContent = "n/a (2D)";
+    refs.magnitude.textContent =
+      Number.isFinite(dir.response_magnitude_score)
+        ? dir.response_magnitude_score.toFixed(3)
+        : "—";
+
+    const travelTimeMs =
+      Number.isFinite(temporal.travel_time_s)
+        ? temporal.travel_time_s * 1000.0
+        : NaN;
+    refs.travelTime.textContent =
+      Number.isFinite(travelTimeMs) ? `${travelTimeMs.toFixed(3)} ms` : "—";
+
+    const magnitudeM = _safeNum(disp.magnitude_m);
+    refs.displacement.textContent = Number.isFinite(magnitudeM)
+      ? prettyNumber(magnitudeM)
+      : "—";
+
+    const thetaK = _safeNum(therm.temperature_perturbation_k?.value);
+    refs.temperaturePerturbation.textContent = Number.isFinite(thetaK)
+      ? prettyNumber(thetaK)
+      : "—";
+
+    refs.modelVersion.textContent = modelMeta.version || "—";
+    refs.requestId.textContent = response.request_id || "—";
+    const latencyMs = _safeNum(modelMeta.inference_time_ms);
+    refs.latencyBadge.textContent = Number.isFinite(latencyMs)
+      ? `Latency ${latencyMs.toFixed(1)} ms`
+      : "Latency —";
+
+    const fallback = modelMeta.fallback_used
+      ? ` · fallback: ${modelMeta.fallback_reason || "yes"}`
+      : "";
+    refs.modelBadge.textContent =
+      (modelLabel || modelMeta.name || "model") + fallback;
+    refs.modelBadge.className = modelMeta.fallback_used
+      ? "model-pill model-pill--fallback"
+      : "model-pill";
+    refs.modelBadge.dataset.model = modelMeta.name || "";
+
+    const waveTypeNode = document.querySelector("#result-wave-type");
+    if (waveTypeNode) {
+      waveTypeNode.textContent = diag.notes?.[0] || "v2 prototype prediction";
+    }
+  }
+
   function renderResult(response, modelLabel) {
     if (!response) {
       renderIdle(modelLabel);
       return;
     }
+    if (response.schema_version === "2.0") {
+      renderResultV2(response, modelLabel);
+      return;
+    }
 
+    // v1 legacy path — byte-identical behaviour
     refs.resultCard.classList.add("is-live");
     refs.resultEmpty.classList.add("is-hidden");
     refs.resultContent.classList.remove("is-hidden");
