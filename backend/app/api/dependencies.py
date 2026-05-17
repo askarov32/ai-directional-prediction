@@ -4,14 +4,17 @@ from functools import lru_cache
 
 from app.core.config import Settings, get_settings
 from app.domain.services.medium_catalog import MediumCatalogService
+from app.domain.services.medium_catalog_v2 import MediumCatalogServiceV2
 from app.domain.services.prediction_router import PredictionRouter
 from app.domain.use_cases.predict_direction import PredictDirectionUseCase
+from app.domain.use_cases.predict_direction_v2 import PredictDirectionV2UseCase
 from app.infrastructure.adapters.response_normalizer import ResponseNormalizer
 from app.infrastructure.clients.fno_client import FNOClient
 from app.infrastructure.clients.meshgraphnet_client import MeshGraphNetClient
 from app.infrastructure.clients.pinn_client import PINNClient
 from app.infrastructure.clients.transformer_client import TransformerClient
 from app.infrastructure.repositories.media_repository import MediaRepository
+from app.infrastructure.repositories.media_repository_v2 import MediaRepositoryV2
 
 
 @lru_cache
@@ -69,4 +72,26 @@ def get_predict_direction_use_case() -> PredictDirectionUseCase:
         medium_catalog=get_medium_catalog_service(),
         prediction_router=get_prediction_router(),
         response_normalizer=get_response_normalizer(),
+    )
+
+
+# --- v2 DI -------------------------------------------------------------
+
+
+@lru_cache
+def get_media_repository_v2() -> MediaRepositoryV2:
+    settings = get_app_settings()
+    return MediaRepositoryV2(settings.media_catalog_v2_path)
+
+
+@lru_cache
+def get_medium_catalog_service_v2() -> MediumCatalogServiceV2:
+    return MediumCatalogServiceV2(get_media_repository_v2())
+
+
+@lru_cache
+def get_predict_direction_v2_use_case() -> PredictDirectionV2UseCase:
+    return PredictDirectionV2UseCase(
+        medium_catalog=get_medium_catalog_service_v2(),
+        prediction_router=get_prediction_router(),
     )
