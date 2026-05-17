@@ -47,10 +47,18 @@ Touch only `backend/app/`:
     probe{x_m,y_m}), `ObservationSchema` (time_s),
     `ScenarioPrototypeSchema` (thermal_source_type,
     mechanical_constraint, boundary_condition_type).
-  - Add `PredictionResponseV2Schema` with the four nested blocks of
-    PDF §5: `prediction.thermal`, `prediction.displacement`,
-    `prediction.directional_response`, `optional_outputs`,
-    `diagnostics`, plus top-level `model`/`material`/`geometry`.
+  - Add `PredictionResponseV2Schema` with the nested blocks of
+    PDF §5 plus a temporal-response promotion:
+    `prediction.thermal`, `prediction.displacement`,
+    `prediction.directional_response`,
+    `prediction.temporal_response.travel_time_s` (**required**,
+    moved out of optional_outputs per resolution 2026-05-17),
+    `optional_outputs`, `diagnostics`, plus top-level
+    `model` / `material` / `geometry`.
+  - `optional_outputs` schema explicitly declares `confidence_score`,
+    `field_grid`, `strain`, `stress`, `field_summary.*`.
+    `confidence_score`, `strain`, `stress` are typed as nullable and
+    documented to be `null` for every route in v2.
   - Keep `PredictionRequestSchema` / `PredictionResponseSchema` (v1)
     untouched.
 - [ ] `backend/app/domain/entities/prediction.py`
@@ -105,10 +113,18 @@ v2 cases) passes and the v1 suite is still green.
     `fallback_reason`, `diagnostics.warnings`,
     `diagnostics.notes=["Prototype prediction; not a field-validated
     thermoelastic simulation."]`.
+  - Always populate `prediction.temporal_response.travel_time_s` from
+    whatever the remote returned (`travel_time_ms` / 1000 if v1 flat,
+    `prediction_raw.travel_time_s` if v2). Fail loudly if missing —
+    travel-time is required.
   - Old flat fields (`direction_vector`, `azimuth_deg`,
     `max_displacement`, `max_temperature_perturbation`) survive only
     inside `optional_outputs.field_summary` and
     `prediction.directional_response`.
+  - `optional_outputs.field_grid` is included only when the request
+    asked for it via `model_runtime.requested_outputs` AND the
+    remote returned it; otherwise `null`. `confidence_score`,
+    `strain`, `stress` are always `null` in v2.
 - [ ] `backend/app/domain/use_cases/predict_direction.py`
   - Before calling the model client, build the enriched v2 payload
     (PDF §4.2 / §6.1) from request + medium + `derived_quantities`.
@@ -156,21 +172,29 @@ the change additive so a v1-shaped payload still works (status quo).
 - [ ] `pinn-service/src/pinn_service/service_app.py`
   - `PINNPredictionRequest` gains v2 fields; predict returns
     `prediction_raw.temperature_k`, `displacement_m.u`,
-    `displacement_m.v`. Stress/strain only into `optional_outputs`.
+    `displacement_m.v`, **and `prediction_raw.travel_time_s`**
+    (required for all services in v2). Stress/strain stay `null`
+    in `optional_outputs`.
   - New test: `pinn-service/tests/test_api_contract_v2.py`.
 - [ ] `fno-service/src/fno_service/api/routes.py`
-  - Same shape. `model_runtime.representation="grid"`, `rect_2d`
-    keeps `z=0` and ignores it. `field_summary` populated when
-    sampling is cheap; `field_grid` only if size is safe.
+  - Same shape, including `prediction_raw.travel_time_s`.
+    `model_runtime.representation="grid"`, `rect_2d` keeps `z=0`
+    and ignores it. `field_summary` populated when sampling is
+    cheap. **`field_grid` is the only route that may emit it**,
+    and only when the caller listed `"field_grid"` in
+    `model_runtime.requested_outputs` AND grid size ≤ 128×128.
   - Test: `fno-service/tests/test_api_contract_v2.py`.
 - [ ] `mgn-service/src/service/api.py`
   - Real rollout when artifacts are present; otherwise deterministic
     v2 response with `diagnostics.fallback_used=true,
     fallback_reason="missing-artifact"`.
+  - Either path must populate `prediction_raw.travel_time_s`
+    (fallback uses analytical `r/V_p`). `field_grid` always `null`.
 - [ ] `transformer-service/src/transformer_service/service_app.py`
-  - Same v2 response. Demo/mock path explicitly tagged
-    `fallback_used=true, fallback_reason="demo-mode"` if no checkpoint
-    is loaded.
+  - Same v2 response, including required
+    `prediction_raw.travel_time_s`. Demo/mock path explicitly
+    tagged `fallback_used=true, fallback_reason="demo-mode"` if
+    no checkpoint is loaded. `field_grid` always `null`.
 
 **Done when:** every service container starts on `docker-compose up`,
 returns 200 on `/health`, and a v2 request returns a v2-shaped
@@ -282,9 +306,28 @@ fallback status. No JS console errors.
   missing `alpha_1_K` are marked `thermoelastic_supported: false`
   and rejected with HTTP 400 for thermoelastic requests. No
   literature defaults are injected.
-- Optional outputs (`field_grid`, `travel_time_s`): include from
-  Phase 4 or postpone to a v2.1? PDF lists them as optional so the
-  default is omit.
+- ~~Optional outputs (`field_grid`, `travel_time_s`)~~ **Resolved
+  2026-05-17. Hybrid (option C):**
+  - `travel_time_s` is **promoted out of optional_outputs** into a
+    required temporal output at
+    `prediction.temporal_response.travel_time_s`. All four model
+    routes must populate it (every service already computes it
+    internally). Rationale: travel-time accuracy vs the analytical
+    reference `t = r/V_p` is the headline accuracy chart in the
+    thesis defence — it must not live behind an `optional` gate.
+  - `optional_outputs.field_summary.{max_displacement_m,
+    max_temperature_perturbation_k}` stays for backward
+    compatibility with v1 consumers.
+  - `optional_outputs.field_grid` is declared in the schema but
+    **opt-in only**: the client must list `"field_grid"` inside
+    `model_runtime.requested_outputs` to receive it. Only the FNO
+    route returns it in v2; other routes leave it `null`. Capped
+    at Nx×Ny ≤ 128×128 so a single response stays under ~1.5 MB.
+  - `optional_outputs.confidence_score` is declared but always
+    `null` in v2 — implementation deferred to v2.1.
+  - `optional_outputs.strain` and `optional_outputs.stress` are
+    declared but always `null` in v2 (PDF §3 explicitly forbids
+    making them mandatory predictions in this prototype).
 - Frontend rollout: serve old `frontend/` until Phase 5 ships, or
   feature-flag v2 rendering via `?contract=v2`? Recommend the second
   — smaller blast radius.
