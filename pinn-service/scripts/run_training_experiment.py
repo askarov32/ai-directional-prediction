@@ -8,6 +8,7 @@ from pathlib import Path
 
 import torch
 
+from pinn_service.model import parse_layer_dims
 from pinn_service.train import load_loss_scales_from_report
 from pinn_service.trainer import train_pinn
 from pinn_service.training_config import TrainingConfig
@@ -37,14 +38,29 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--learning-rate", type=float, default=5e-4)
     parser.add_argument("--min-learning-rate", type=float, default=1e-6)
     parser.add_argument("--weight-decay", type=float, default=1e-6)
+    parser.add_argument("--architecture", choices=("mlp", "res_split"), default="mlp")
     parser.add_argument("--hidden-dim", type=int, default=192)
     parser.add_argument("--depth", type=int, default=6)
+    parser.add_argument(
+        "--mlp-layer-dims",
+        default=None,
+        help="Optional comma-separated hidden sizes for the mlp baseline, for example 256,256,192,192,128,128.",
+    )
+    parser.add_argument("--num-blocks", type=int, default=4)
     parser.add_argument("--activation", choices=("tanh", "silu", "gelu", "relu"), default="tanh")
+    parser.add_argument("--use-fourier-features", action="store_true")
+    parser.add_argument("--fourier-num-frequencies", type=int, default=6)
+    parser.add_argument("--fourier-scale", type=float, default=1.0)
     parser.add_argument("--supervised-weight", type=float, default=1.0)
     parser.add_argument("--velocity-weight", type=float, default=0.25)
     parser.add_argument("--wave-residual-weight", type=float, default=0.1)
     parser.add_argument("--thermal-residual-weight", type=float, default=0.05)
     parser.add_argument("--reference-temperature-k", type=float, default=293.15)
+    parser.add_argument(
+        "--physics-mode",
+        choices=("coupled_thermoelastic", "simple_heat", "plane_strain_2d"),
+        default="coupled_thermoelastic",
+    )
     parser.add_argument("--loss-balance-mode", choices=("fixed", "normalize"), default="normalize")
     parser.add_argument("--max-grad-norm", type=float, default=1.0)
     parser.add_argument("--lr-scheduler-patience", type=int, default=40)
@@ -88,9 +104,15 @@ def main() -> None:
         learning_rate=args.learning_rate,
         min_learning_rate=args.min_learning_rate,
         weight_decay=args.weight_decay,
+        architecture=args.architecture,
         hidden_dim=args.hidden_dim,
         depth=args.depth,
+        mlp_layer_dims=parse_layer_dims(args.mlp_layer_dims),
+        num_blocks=args.num_blocks,
         activation=args.activation,
+        use_fourier_features=args.use_fourier_features,
+        fourier_num_frequencies=args.fourier_num_frequencies,
+        fourier_scale=args.fourier_scale,
         supervised_weight=args.supervised_weight,
         velocity_weight=args.velocity_weight,
         wave_residual_weight=args.wave_residual_weight,
@@ -106,7 +128,7 @@ def main() -> None:
         lr_scheduler_factor=args.lr_scheduler_factor,
         early_stopping_patience=args.early_stopping_patience,
         early_stopping_min_delta=args.early_stopping_min_delta,
-        physics_mode="coupled_thermoelastic",
+        physics_mode=args.physics_mode,
         sample_limit=args.sample_limit,
         validation_sample_limit=args.validation_sample_limit,
         progress_interval_batches=args.progress_interval_batches,

@@ -1,0 +1,5 @@
+model,total_rows,ok_rows,failed_rows,fallback_count,error_rows,timeout_rows
+pinn,40,40,0,0,0,0
+mgn,40,40,0,0,0,0
+fno,40,40,0,0,0,0
+transformer,40,40,0,0,0,0

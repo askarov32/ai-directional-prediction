@@ -1,0 +1,49 @@
+dataset_id: sandstone_rod_2d
+rock_type: sandstone
+physics:
+  type: thermoelastic_wave
+  heat_transfer: true
+  solid_mechanics: true
+  thermal_expansion: true
+geometry:
+  mesh_file: ''
+  dimension: 2
+  graph_source: knn
+scenario:
+  type: heated_rod
+  initial_temperature: 1499.97705078125
+  background_temperature: 293.1494140625
+  source_center: &id001
+  - -0.001950611942447722
+  - 0.0020928492303937674
+  - 0.0
+  source_radius: 0.12
+material:
+  source: data_materials.csv
+  has_nodewise_materials: true
+  young_modulus: 27391264768.0
+  poisson_ratio: 0.22456546127796173
+  density: 2568.478271484375
+  thermal_expansion: 1.0097816812049132e-05
+  thermal_conductivity: 5.252178192138672
+  heat_capacity: 779.521728515625
+time:
+  start: 0.0
+  end: 0.009999999776482582
+  step: 9.999999747378752e-05
+training:
+  target_mode: delta
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15000000000000005
+boundary_conditions:
+  mechanical: unknown
+  thermal: unknown
+paths:
+  raw_dir: ''
+source:
+  type: heated_rod
+  initial_temperature: 1499.97705078125
+  background_temperature: 293.1494140625
+  center: *id001
+  radius: 0.12

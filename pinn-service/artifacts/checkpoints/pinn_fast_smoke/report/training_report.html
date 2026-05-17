@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PINN Training Report</title>
+  <style>
+    body { margin: 0; background: #0f172a; color: #e5eefb; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    main { width: min(1200px, calc(100% - 48px)); margin: 40px auto 72px; }
+    h1, h2, p { margin: 0; }
+    h1 { font-size: 34px; }
+    h2 { font-size: 22px; margin-top: 28px; }
+    p { color: #94a3b8; margin-top: 10px; }
+    .panel { background: #172033; border: 1px solid #334155; border-radius: 18px; padding: 22px; margin-top: 18px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .metric { background: #111827; border: 1px solid #263244; border-radius: 14px; padding: 14px; }
+    .metric span { display: block; color: #94a3b8; font-size: 12px; }
+    .metric strong { display: block; margin-top: 6px; font-size: 18px; color: #f8fafc; }
+    .chart-grid { display: grid; gap: 16px; margin-top: 18px; }
+    .chart img { display: block; width: 100%; height: auto; border-radius: 14px; border: 1px solid #263244; background: #111827; }
+    ul { margin: 14px 0 0; padding-left: 18px; color: #cbd5e1; }
+    code { color: #dbeafe; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>PINN Training Report</h1>
+  <p>Metrics source: <code>C:\Users\Insar\university\ai-directional-prediction\pinn-service\artifacts\checkpoints\pinn_fast_smoke\metrics.json</code></p>
+  <section class="panel">
+    <h2>Overview</h2>
+    <div class="grid"><div class="metric"><span>epochs_recorded</span><strong>20</strong></div><div class="metric"><span>best_metric</span><strong>val_total_loss</strong></div><div class="metric"><span>best_loss</span><strong>1.191</strong></div><div class="metric"><span>final_total_loss</span><strong>1.232</strong></div><div class="metric"><span>final_val_total_loss</span><strong>1.191</strong></div><div class="metric"><span>final_learning_rate</span><strong>0.0005</strong></div><div class="metric"><span>max_grad_norm</span><strong>66.55</strong></div><div class="metric"><span>stopped_early</span><strong>false</strong></div></div>
+  </section>
+  <section class="panel">
+    <h2>Reading Notes</h2>
+    <ul><li>Validation metrics are present and best checkpoint selection follows validation loss.</li></ul>
+  </section>
+  <section class="panel">
+    <h2>Charts</h2>
+    <div class="chart-grid"><section class="chart"><img src="total_loss.svg" alt="total_loss chart"></section><section class="chart"><img src="component_loss.svg" alt="component_loss chart"></section><section class="chart"><img src="normalized_loss.svg" alt="normalized_loss chart"></section><section class="chart"><img src="optimization.svg" alt="optimization chart"></section></div>
+  </section>
+</main>
+</body>
+</html>

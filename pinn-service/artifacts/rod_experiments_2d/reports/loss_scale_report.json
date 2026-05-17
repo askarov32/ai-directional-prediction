@@ -1,0 +1,31 @@
+{
+  "dataset": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\splits\\train_samples.npz",
+  "sample_limit": 4096,
+  "batch_size": 256,
+  "max_batches": 2,
+  "actual_batches": 2,
+  "seed": 42,
+  "device": "cuda",
+  "architecture": "mlp",
+  "physics_mode": "plane_strain_2d",
+  "loss_averages": {
+    "supervised_loss": 0.7503382563591003,
+    "velocity_consistency_loss": 163.20599365234375,
+    "wave_residual_loss": 284641542012928.0,
+    "thermal_residual_loss": 4.123545516746002e+19,
+    "total_loss": 2.0618012494680556e+18
+  },
+  "current_weights": {
+    "supervised_weight": 1.0,
+    "velocity_weight": 0.25,
+    "wave_residual_weight": 0.1,
+    "thermal_residual_weight": 0.05
+  },
+  "rough_balancing_weights": {
+    "supervised_weight": 1.0,
+    "velocity_weight": 0.004597492037929974,
+    "wave_residual_weight": 2.6360813360300762e-15,
+    "thermal_residual_weight": 1.8196434435170537e-20
+  },
+  "note": "rough_balancing_weights scale each residual near the supervised loss magnitude at random initialization; treat them as diagnostics, not final hyperparameters."
+}

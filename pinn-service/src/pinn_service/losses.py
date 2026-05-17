@@ -9,12 +9,16 @@ from torch.nn import functional as F
 from pinn_service.physics import (
     CoordinateScales,
     compute_coupled_thermal_residual,
+    compute_coupled_thermal_residual_2d,
     compute_lame_parameters,
+    compute_plane_strain_tensor,
     compute_simple_heat_residual,
+    compute_simple_heat_residual_2d,
     compute_strain_tensor,
     compute_stress_tensor,
     compute_thermoelastic_gamma,
     compute_wave_residual,
+    compute_wave_residual_2d,
     first_derivative,
 )
 
@@ -33,7 +37,7 @@ INPUT_FEATURE_INDEXES = {
 }
 
 
-PhysicsMode = Literal["coupled_thermoelastic", "simple_heat"]
+PhysicsMode = Literal["coupled_thermoelastic", "simple_heat", "plane_strain_2d"]
 LossBalanceMode = Literal["fixed", "normalize"]
 
 
@@ -83,13 +87,22 @@ def compute_hybrid_pinn_loss(
     lambda_, mu = compute_lame_parameters(material["youngs_modulus"], material["poissons_ratio"])
     gamma = compute_thermoelastic_gamma(lambda_, mu, material["thermal_expansion"])
 
-    strain = compute_strain_tensor(
-        disp_x=disp_x,
-        disp_y=disp_y,
-        disp_z=disp_z,
-        inputs_scaled=inputs_scaled,
-        scales=scales,
-    )
+    is_plane_strain_2d = physics_mode == "plane_strain_2d"
+    if is_plane_strain_2d:
+        strain = compute_plane_strain_tensor(
+            disp_x=disp_x,
+            disp_y=disp_y,
+            inputs_scaled=inputs_scaled,
+            scales=scales,
+        )
+    else:
+        strain = compute_strain_tensor(
+            disp_x=disp_x,
+            disp_y=disp_y,
+            disp_z=disp_z,
+            inputs_scaled=inputs_scaled,
+            scales=scales,
+        )
     stress = compute_stress_tensor(
         strain=strain,
         temperature_delta=temperature - reference_temperature_k,
@@ -98,19 +111,41 @@ def compute_hybrid_pinn_loss(
         gamma=gamma,
     )
 
-    wave_residual = compute_wave_residual(
-        disp_x=disp_x,
-        disp_y=disp_y,
-        disp_z=disp_z,
-        density=material["density"],
-        stress=stress,
-        inputs_scaled=inputs_scaled,
-        scales=scales,
-    )
+    if is_plane_strain_2d:
+        wave_residual = compute_wave_residual_2d(
+            disp_x=disp_x,
+            disp_y=disp_y,
+            density=material["density"],
+            stress=stress,
+            inputs_scaled=inputs_scaled,
+            scales=scales,
+        )
+    else:
+        wave_residual = compute_wave_residual(
+            disp_x=disp_x,
+            disp_y=disp_y,
+            disp_z=disp_z,
+            density=material["density"],
+            stress=stress,
+            inputs_scaled=inputs_scaled,
+            scales=scales,
+        )
     wave_residual_loss = torch.mean(torch.sum(wave_residual.pow(2), dim=1, keepdim=True))
 
     if physics_mode == "coupled_thermoelastic":
         thermal_residual = compute_coupled_thermal_residual(
+            temperature=temperature,
+            strain=strain,
+            density=material["density"],
+            heat_capacity=material["heat_capacity"],
+            thermal_conductivity=material["thermal_conductivity"],
+            gamma=gamma,
+            reference_temperature_k=reference_temperature_k,
+            inputs_scaled=inputs_scaled,
+            scales=scales,
+        )
+    elif physics_mode == "plane_strain_2d":
+        thermal_residual = compute_coupled_thermal_residual_2d(
             temperature=temperature,
             strain=strain,
             density=material["density"],
@@ -142,6 +177,7 @@ def compute_hybrid_pinn_loss(
         inputs_scaled=inputs_scaled,
         time_scale=scales.t,
         velocity_targets=velocity_targets,
+        planar=is_plane_strain_2d,
     )
 
     normalized_losses = _normalize_loss_components(
@@ -185,17 +221,19 @@ def _velocity_consistency_loss(
     inputs_scaled: Tensor,
     time_scale: Tensor,
     velocity_targets: Tensor | None,
+    planar: bool = False,
 ) -> Tensor:
-    velocity_prediction = torch.cat(
-        [
-            first_derivative(disp_x, inputs_scaled, 3, time_scale),
-            first_derivative(disp_y, inputs_scaled, 3, time_scale),
-            first_derivative(disp_z, inputs_scaled, 3, time_scale),
-        ],
-        dim=1,
-    )
+    velocity_components = [
+        first_derivative(disp_x, inputs_scaled, 3, time_scale),
+        first_derivative(disp_y, inputs_scaled, 3, time_scale),
+    ]
+    if not planar:
+        velocity_components.append(first_derivative(disp_z, inputs_scaled, 3, time_scale))
+    velocity_prediction = torch.cat(velocity_components, dim=1)
     if velocity_targets is None:
         return torch.zeros((), dtype=velocity_prediction.dtype, device=velocity_prediction.device)
+    if planar:
+        velocity_targets = velocity_targets[:, :2]
     return F.mse_loss(velocity_prediction, velocity_targets)
 
 

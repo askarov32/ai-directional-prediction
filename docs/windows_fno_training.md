@@ -102,6 +102,58 @@ If it prints `False`, do not start the longer GPU training command yet. Use CPU 
 
 ## 6. Prepare The FNO Dataset
 
+If you already built strict 2D PINN artifacts under:
+
+```text
+pinn-service/artifacts/rod_experiments_2d/
+```
+
+the fastest path is to batch-convert them into per-rock FNO datasets in one command.
+
+This creates, for example:
+
+```text
+fno-service/artifacts/datasets_2d/granite_fno_2d
+fno-service/artifacts/datasets_2d/limestone_fno_2d
+fno-service/artifacts/datasets_2d/sandstone_fno_2d
+fno-service/artifacts/datasets_2d/basalt_fno_2d
+```
+
+Batch conversion command:
+
+```powershell
+$env:PYTHONPATH="fno-service/src"
+
+python fno-service/scripts/build_2d_fno_datasets.py `
+  --input-root pinn-service/artifacts/rod_experiments_2d `
+  --output-root fno-service/artifacts/datasets_2d `
+  --grid-res 1 32 32 `
+  --max-timesteps 64 `
+  --validate
+```
+
+This also writes:
+
+```text
+fno-service/artifacts/datasets_2d/manifest.json
+```
+
+If you want to convert only one or two rocks:
+
+```powershell
+$env:PYTHONPATH="fno-service/src"
+
+python fno-service/scripts/build_2d_fno_datasets.py `
+  --input-root pinn-service/artifacts/rod_experiments_2d `
+  --output-root fno-service/artifacts/datasets_2d `
+  --rocks granite limestone `
+  --grid-res 1 32 32 `
+  --max-timesteps 64 `
+  --validate
+```
+
+If you prefer a one-off conversion for a single explicit structured dataset, the older direct path still works:
+
 The current easiest Windows path is to derive the FNO regular-grid dataset from an already built PINN `structured_dataset.npz` inside:
 
 ```text
@@ -153,6 +205,18 @@ Important:
 - this is the current MVP path for `FNO2d`.
 - if you want another rock, replace `limestone` with the rock folder that actually exists on your machine.
 
+For the current strict 2D retraining path, prefer datasets from:
+
+```text
+fno-service/artifacts/datasets_2d/<rock>_fno_2d
+```
+
+for example:
+
+```text
+fno-service/artifacts/datasets_2d/limestone_fno_2d
+```
+
 ## 7. Optional Dry Run
 
 This checks the resolved training config without starting training:
@@ -162,7 +226,7 @@ $env:PYTHONPATH="fno-service/src"
 
 python fno-service/scripts/train_fno.py `
   --config fno-service/configs/train_fno.yaml `
-  --dataset-path fno-service/artifacts/datasets/limestone_fno `
+  --dataset-path fno-service/artifacts/datasets_2d/limestone_fno_2d `
   --output-dir "$env:TEMP\fno-dry-run" `
   --epochs 1 `
   --batch-size 1 `
@@ -185,7 +249,7 @@ $env:PYTHONPATH="fno-service/src"
 
 python fno-service/scripts/train_fno.py `
   --config fno-service/configs/train_fno.yaml `
-  --dataset-path fno-service/artifacts/datasets/limestone_fno `
+  --dataset-path fno-service/artifacts/datasets_2d/limestone_fno_2d `
   --output-dir "$env:TEMP\fno-training-smoke" `
   --epochs 1 `
   --batch-size 1 `
@@ -207,8 +271,8 @@ $env:PYTHONPATH="fno-service/src"
 
 python fno-service/scripts/train_fno.py `
   --config fno-service/configs/train_fno.yaml `
-  --dataset-path fno-service/artifacts/datasets/limestone_fno `
-  --output-dir fno-service/artifacts/checkpoints/baseline `
+  --dataset-path fno-service/artifacts/datasets_2d/limestone_fno_2d `
+  --output-dir fno-service/artifacts/checkpoints/baseline_2d `
   --epochs 20 `
   --batch-size 4 `
   --learning-rate 0.001 `
@@ -229,8 +293,8 @@ $env:PYTHONPATH="fno-service/src"
 
 python fno-service/scripts/train_fno.py `
   --config fno-service/configs/train_fno.yaml `
-  --dataset-path fno-service/artifacts/datasets/limestone_fno `
-  --output-dir fno-service/artifacts/checkpoints/baseline `
+  --dataset-path fno-service/artifacts/datasets_2d/limestone_fno_2d `
+  --output-dir fno-service/artifacts/checkpoints/baseline_2d `
   --epochs 500 `
   --batch-size 4 `
   --learning-rate 0.001 `
@@ -251,8 +315,8 @@ $env:PYTHONPATH="fno-service/src"
 
 python fno-service/scripts/train_fno.py `
   --config fno-service/configs/train_fno.yaml `
-  --dataset-path fno-service/artifacts/datasets/limestone_fno `
-  --output-dir fno-service/artifacts/checkpoints/baseline `
+  --dataset-path fno-service/artifacts/datasets_2d/limestone_fno_2d `
+  --output-dir fno-service/artifacts/checkpoints/baseline_2d `
   --epochs 20 `
   --batch-size 2 `
   --width 16 `
@@ -277,8 +341,8 @@ $env:PYTHONPATH="fno-service/src"
 
 python fno-service/scripts/train_fno.py `
   --config fno-service/configs/train_fno.yaml `
-  --dataset-path fno-service/artifacts/datasets/limestone_fno `
-  --output-dir fno-service/artifacts/checkpoints/baseline_cpu `
+  --dataset-path fno-service/artifacts/datasets_2d/limestone_fno_2d `
+  --output-dir fno-service/artifacts/checkpoints/baseline_2d_cpu `
   --epochs 10 `
   --batch-size 1 `
   --width 8 `
@@ -302,12 +366,12 @@ On pure PowerShell, it is safer to use the explicit Python commands from section
 
 After training, check:
 
-- `fno-service/artifacts/checkpoints/baseline/model.pth`
-- `fno-service/artifacts/checkpoints/baseline/best_model.pth`
-- `fno-service/artifacts/checkpoints/baseline/metrics.json`
-- `fno-service/artifacts/checkpoints/baseline/metrics.csv`
-- `fno-service/artifacts/checkpoints/baseline/training_config.json`
-- `fno-service/artifacts/checkpoints/baseline/channel_metadata.json`
+- `fno-service/artifacts/checkpoints/baseline_2d/model.pth`
+- `fno-service/artifacts/checkpoints/baseline_2d/best_model.pth`
+- `fno-service/artifacts/checkpoints/baseline_2d/metrics.json`
+- `fno-service/artifacts/checkpoints/baseline_2d/metrics.csv`
+- `fno-service/artifacts/checkpoints/baseline_2d/training_config.json`
+- `fno-service/artifacts/checkpoints/baseline_2d/channel_metadata.json`
 
 Now pay special attention to:
 
@@ -339,7 +403,14 @@ The default compose setup already points FNO to:
 
 ```text
 FNO_CHECKPOINT_PATH=/app/artifacts/checkpoints/baseline
-FNO_DATASET_PATH=/app/artifacts/datasets/limestone_fno
+FNO_DATASET_PATH=/app/artifacts/datasets/sandstone_fno
+```
+
+For strict 2D retrained weights, switch it to:
+
+```text
+FNO_CHECKPOINT_PATH=/app/artifacts/checkpoints/baseline_2d
+FNO_DATASET_PATH=/app/artifacts/datasets_2d/limestone_fno_2d
 ```
 
 So after training, restart the FNO service:

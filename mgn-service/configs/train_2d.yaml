@@ -1,0 +1,39 @@
+include: configs/base.yaml
+
+data:
+  registry_dir: datasets
+  processed_subdir: processed
+  k_nearest: 12
+  target_mode: delta
+  train_ratio: 0.70
+  val_ratio: 0.15
+  test_ratio: 0.15
+  min_std: 1.0e-8
+  use_mesh_edges: false
+
+training:
+  device: auto
+  use_amp: true
+  epochs: 200
+  lr: 0.0003
+  weight_decay: 0.000001
+  grad_clip: 1.0
+  early_stopping_patience: 30
+  seed: 42
+  checkpoint_dir: outputs/checkpoints_2d
+  log_dir: outputs/logs_2d
+  resume_checkpoint: ""
+  freeze_encoder_processor: false
+
+inference:
+  device: auto
+  checkpoint: outputs/checkpoints_2d/best_model.pt
+  dataset_id: granite_rod_2d
+  rollout_steps: 100
+  initial_state_source: from_dataset
+  output_dir: outputs/predictions_2d
+  figures_dir: outputs/figures_2d
+  animation_dir: outputs/animations_2d
+  export_vtk: false
+  animate: false
+  risk_threshold: 0.8

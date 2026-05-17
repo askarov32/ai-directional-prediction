@@ -1,0 +1,21 @@
+{
+  "metrics_json_path": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\checkpoints\\pinn_fast_smoke\\metrics.json",
+  "metrics_csv_path": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\checkpoints\\pinn_fast_smoke\\metrics.csv",
+  "epochs_recorded": 20,
+  "validation_enabled": true,
+  "stopped_early": false,
+  "completed_epochs": 20,
+  "best_metric_name": "val_total_loss",
+  "best_loss": 1.1907079219818115,
+  "initial_total_loss": 2.603111043572426,
+  "final_total_loss": 1.2316290587186813,
+  "initial_val_total_loss": 1.4376356601715088,
+  "final_val_total_loss": 1.1907079219818115,
+  "initial_learning_rate": 0.0005,
+  "final_learning_rate": 0.0005,
+  "max_grad_norm": 66.54767048358917,
+  "min_best_so_far": 1.1907079219818115,
+  "learning_rate_changed": false,
+  "epochs_without_improvement": 0,
+  "latest_epoch": 20
+}

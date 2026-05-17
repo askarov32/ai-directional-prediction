@@ -1,0 +1,49 @@
+dataset_id: basalt_rod_2d
+rock_type: basalt
+physics:
+  type: thermoelastic_wave
+  heat_transfer: true
+  solid_mechanics: true
+  thermal_expansion: true
+geometry:
+  mesh_file: ''
+  dimension: 2
+  graph_source: knn
+scenario:
+  type: heated_rod
+  initial_temperature: 1500.0
+  background_temperature: 293.1499938964844
+  source_center: &id001
+  - -0.001950611942447722
+  - 0.0020928492303937674
+  - 0.0
+  source_radius: 0.12
+material:
+  source: data_materials.csv
+  has_nodewise_materials: true
+  young_modulus: 69456388096.0
+  poisson_ratio: 0.27130475640296936
+  density: 3007.826171875
+  thermal_expansion: 6.358698101394111e-06
+  thermal_conductivity: 5.44730281829834
+  heat_capacity: 846.6926879882812
+time:
+  start: 0.0
+  end: 0.00019999999494757503
+  step: 9.999999974752427e-07
+training:
+  target_mode: delta
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15000000000000005
+boundary_conditions:
+  mechanical: unknown
+  thermal: unknown
+paths:
+  raw_dir: ''
+source:
+  type: heated_rod
+  initial_temperature: 1500.0
+  background_temperature: 293.1499938964844
+  center: *id001
+  radius: 0.12

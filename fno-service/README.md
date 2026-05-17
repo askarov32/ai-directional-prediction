@@ -82,6 +82,32 @@ PYTHONPATH=fno-service/src python fno-service/scripts/prepare_fno_dataset.py \
   --validate
 ```
 
+Batch conversion from strict 2D PINN artifacts:
+
+```bash
+PYTHONPATH=fno-service/src python fno-service/scripts/build_2d_fno_datasets.py \
+  --input-root pinn-service/artifacts/rod_experiments_2d \
+  --output-root fno-service/artifacts/datasets_2d \
+  --grid-res 1 32 32 \
+  --max-timesteps 64 \
+  --validate
+```
+
+This writes per-rock datasets such as:
+
+```text
+fno-service/artifacts/datasets_2d/granite_fno_2d
+fno-service/artifacts/datasets_2d/limestone_fno_2d
+fno-service/artifacts/datasets_2d/sandstone_fno_2d
+fno-service/artifacts/datasets_2d/basalt_fno_2d
+```
+
+and a batch manifest:
+
+```text
+fno-service/artifacts/datasets_2d/manifest.json
+```
+
 Expected FNO layout:
 
 ```text
@@ -146,6 +172,18 @@ Clean 2D inference reports:
 ```text
 diagnostics.effective_domain_type = rect_2d
 diagnostics.domain_adaptation = none
+```
+
+For strict 2D retraining, prefer datasets derived from:
+
+```text
+pinn-service/artifacts/rod_experiments_2d
+```
+
+and save checkpoints into:
+
+```text
+fno-service/artifacts/checkpoints/baseline_2d
 ```
 
 ## Training

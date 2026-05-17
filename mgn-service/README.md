@@ -94,8 +94,51 @@ datasets/<dataset_id>/processed/
 
 Если `.mphtxt` отсутствует или не совпадает по числу узлов с CSV, проект не падает: строится kNN-граф по координатам из CSV, а в `metadata.json` пишется `graph_source`.
 
+## 3b. Strict 2D bridge из `rod_experiments_2d`
 
-## 3b. Универсальное переформатирование под MeshGraphNet/FNO/PINN/Transformer
+Если основной thesis pipeline уже собрал:
+
+```text
+pinn-service/artifacts/rod_experiments_2d/
+```
+
+можно не возвращаться к raw CSV для первого 2D-retrain MeshGraphNet. Вместо этого используй bridge-скрипт:
+
+```bash
+python scripts/build_2d_mgn_datasets.py \
+  --input-root ../pinn-service/artifacts/rod_experiments_2d \
+  --registry-root datasets \
+  --k-nearest 12 \
+  --target-mode delta
+```
+
+Он создаёт dataset ids:
+
+```text
+datasets/granite_rod_2d
+datasets/limestone_rod_2d
+datasets/sandstone_rod_2d
+datasets/basalt_rod_2d
+```
+
+Каждый из них уже содержит:
+
+```text
+scenario.yaml
+processed/graph.pt
+processed/trajectories.pt
+processed/metadata.json
+processed/normalization.json
+```
+
+Для отдельного 2D checkpoint path используй:
+
+```text
+configs/train_2d.yaml
+```
+
+
+## 3c. Универсальное переформатирование под MeshGraphNet/FNO/PINN/Transformer
 
 Если нужен датасет, который подходит не только под MeshGraphNet, используй новый скрипт:
 
@@ -152,6 +195,18 @@ outputs/logs/test_metrics.json
 
 ```bash
 python scripts/train_base_model.py --config configs/base.yaml --dataset_ids sandstone_comsol_real --epochs 3
+```
+
+Strict 2D baseline:
+
+```bash
+python scripts/train_base_model.py --config configs/train_2d.yaml --dataset_ids limestone_rod_2d --epochs 200
+```
+
+Multi-rock strict 2D baseline:
+
+```bash
+python scripts/train_base_model.py --config configs/train_2d.yaml --dataset_ids granite_rod_2d limestone_rod_2d sandstone_rod_2d basalt_rod_2d --epochs 200
 ```
 
 ## 5. Дообучение на новой породе / сценарии

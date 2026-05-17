@@ -13,7 +13,7 @@ from torch import optim
 from torch.utils.data import DataLoader
 
 from pinn_service.losses import compute_hybrid_pinn_loss
-from pinn_service.model import MLP_PINN
+from pinn_service.model import create_pinn_model
 from pinn_service.training_config import TrainingConfig
 from pinn_service.training_data import LoadedTrainingData, PRIMARY_OUTPUT_NAMES, load_training_data, save_scalers
 
@@ -85,12 +85,18 @@ def train_pinn(config: TrainingConfig) -> TrainingArtifacts:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     device = torch.device(config.device)
-    model = MLP_PINN(
+    model = create_pinn_model(
         input_dim=len(data.input_feature_names),
         output_dim=len(PRIMARY_OUTPUT_NAMES),
+        architecture=config.architecture,
         hidden_dim=config.hidden_dim,
         depth=config.depth,
         activation=config.activation,
+        mlp_layer_dims=config.mlp_layer_dims,
+        num_blocks=config.num_blocks,
+        use_fourier_features=config.use_fourier_features,
+        fourier_num_frequencies=config.fourier_num_frequencies,
+        fourier_scale=config.fourier_scale,
     ).to(device)
 
     optimizer = optim.AdamW(

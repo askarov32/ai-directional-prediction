@@ -1,0 +1,116 @@
+{
+  "builder": "pinn-service/scripts/build_2d_rod_experiments.py",
+  "input_root": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments",
+  "output_root": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments_2d",
+  "plane_policy": "max_nodes",
+  "plane_z": 0.0,
+  "z_round_decimals": 8,
+  "z_tolerance": null,
+  "out_of_plane_mode": "zero",
+  "dimension": 2,
+  "experiments": [
+    {
+      "rock_id": "granite",
+      "source_structured_dataset": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments/granite/structured_dataset.npz",
+      "source_metadata": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments/granite/dataset_metadata.json",
+      "structured_dataset": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments_2d/granite/structured_dataset.npz",
+      "metadata": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments_2d/granite/dataset_metadata.json",
+      "training_matrix": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments_2d/granite/training_samples.npz",
+      "node_count": 230,
+      "training_rows": 46230,
+      "selected_plane_z": 0.5,
+      "selected_plane_node_count": 230
+    },
+    {
+      "rock_id": "limestone",
+      "source_structured_dataset": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments/limestone/structured_dataset.npz",
+      "source_metadata": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments/limestone/dataset_metadata.json",
+      "structured_dataset": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments_2d/limestone/structured_dataset.npz",
+      "metadata": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments_2d/limestone/dataset_metadata.json",
+      "training_matrix": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments_2d/limestone/training_samples.npz",
+      "node_count": 230,
+      "training_rows": 46230,
+      "selected_plane_z": 0.5,
+      "selected_plane_node_count": 230
+    },
+    {
+      "rock_id": "sandstone",
+      "source_structured_dataset": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments/sandstone/structured_dataset.npz",
+      "source_metadata": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments/sandstone/dataset_metadata.json",
+      "structured_dataset": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments_2d/sandstone/structured_dataset.npz",
+      "metadata": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments_2d/sandstone/dataset_metadata.json",
+      "training_matrix": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments_2d/sandstone/training_samples.npz",
+      "node_count": 230,
+      "training_rows": 23230,
+      "selected_plane_z": 0.5,
+      "selected_plane_node_count": 230
+    },
+    {
+      "rock_id": "basalt",
+      "source_structured_dataset": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments/basalt/structured_dataset.npz",
+      "source_metadata": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments/basalt/dataset_metadata.json",
+      "structured_dataset": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments_2d/basalt/structured_dataset.npz",
+      "metadata": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments_2d/basalt/dataset_metadata.json",
+      "training_matrix": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments_2d/basalt/training_samples.npz",
+      "node_count": 230,
+      "training_rows": 46230,
+      "selected_plane_z": 0.5,
+      "selected_plane_node_count": 230
+    }
+  ],
+  "combined_training_matrix": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments_2d/training_samples_all_rocks.npz",
+  "combined_training_matrix_metadata": "/Users/askarovi/Documents/New project/pinn-service/artifacts/rod_experiments_2d/training_samples_all_rocks_metadata.json",
+  "combined_training_matrix_summary": {
+    "row_counts": {
+      "granite": 46230,
+      "limestone": 46230,
+      "sandstone": 23230,
+      "basalt": 46230
+    },
+    "total_rows": 161920,
+    "input_shape": [
+      161920,
+      10
+    ],
+    "target_shape": [
+      161920,
+      20
+    ],
+    "input_feature_names": [
+      "x",
+      "y",
+      "z",
+      "t",
+      "youngs_modulus",
+      "poissons_ratio",
+      "density",
+      "thermal_expansion",
+      "thermal_conductivity",
+      "heat_capacity"
+    ],
+    "target_feature_names": [
+      "temperature_k",
+      "disp_x",
+      "disp_y",
+      "disp_z",
+      "vel_x",
+      "vel_y",
+      "vel_z",
+      "von_mises",
+      "stress_x",
+      "stress_y",
+      "stress_z",
+      "stress_xy",
+      "stress_yz",
+      "stress_xz",
+      "strain_x",
+      "strain_y",
+      "strain_z",
+      "strain_xy",
+      "strain_yz",
+      "strain_xz"
+    ],
+    "dimension": 2,
+    "out_of_plane_mode": "zero"
+  }
+}
