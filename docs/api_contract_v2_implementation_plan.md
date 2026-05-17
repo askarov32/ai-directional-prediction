@@ -204,9 +204,25 @@ response (live curl from the host).
 
 ## Phase 5 — Frontend
 
-Order: request builder → renderer → cosmetic copy. Each step is shipped
-and reviewed independently to keep blast radius small.
+Order: feature flag → request builder → renderer → cosmetic copy.
+Each step is shipped and reviewed independently to keep blast radius
+small. Default stays v1 until defense; flag flips after one week green.
 
+- [ ] `frontend/assets/scripts/state.js` **(first — gate every other
+  change behind it)**
+  - Export `CONTRACT_VERSION` derived from the URL:
+    `new URLSearchParams(location.search).get("contract") === "v2"
+    ? "2.0" : "1.0"`.
+  - Track `contractVersion`, `lastDerivedGeometry`, `lastDiagnostics`
+    for the debug panel.
+  - Every v2-specific branch in `form.js` / `ui.js` / `charts.js` /
+    `api.js` is gated by `CONTRACT_VERSION === "2.0"`. The v1 path
+    stays byte-identical to today's behaviour.
+- [ ] `frontend/index.html`
+  - Add a small "Try v2 contract" link in the header. Hard-coded
+    `href="?contract=v2"`; when already on v2 it becomes
+    "Back to v1 contract" with `href="?"`.
+  - No other changes in this step.
 - [ ] `frontend/assets/scripts/form.js`
   - `DEMO_TEMPLATE` → v2 shape (`schema_version: "2.0"`,
     `thermal_state`, `geometry.dimension: 2`, `observation.time_s`,
@@ -228,13 +244,22 @@ and reviewed independently to keep blast radius small.
 - [ ] `frontend/assets/scripts/charts.js`
   - SVG preview keyed off `geometry.source`/`geometry.probe`. Optional
     heatmap only when `optional_outputs.field_grid != null`.
-- [ ] `frontend/assets/scripts/state.js`
-  - Track `contractVersion`, `lastDerivedGeometry`, `lastDiagnostics`
-    for the debug panel.
-- [ ] `frontend/index.html`
-  - Section labels: *Thermal input*, *Geometry*, *Observation*,
-    *Simplified scenario*. Remove visible 3D fields from the default
-    demo. Result section: cards listed above.
+- [ ] `frontend/index.html` — v2-only section labels
+  - Inside the v2 branch only: section labels become *Thermal
+    input*, *Geometry*, *Observation*, *Simplified scenario*.
+    Remove visible 3D fields. Result section: cards listed above.
+  - The v1 markup stays present and untouched so `?contract=v1`
+    (or no flag) keeps the current demo working.
+
+### Default-flip rollout (after Phase 5 + tests are green)
+
+- [ ] Wait one week after Phase 6 ships with no production errors
+  attributable to v2.
+- [ ] Flip the default in `state.js`: v2 becomes the default,
+  `?contract=v1` keeps the old path alive for one more release.
+- [ ] One release later: delete the v1 branches (forms, renderer,
+  styles), delete v1 schemas in `backend/app/schemas/prediction.py`,
+  and delete the `?contract=` query parameter handling.
 
 **Done when:** `docker-compose up` → open frontend → submit demo →
 result panel shows T, θ, u, v, |u|, distance, azimuth, model badge,
@@ -328,6 +353,11 @@ fallback status. No JS console errors.
   - `optional_outputs.strain` and `optional_outputs.stress` are
     declared but always `null` in v2 (PDF §3 explicitly forbids
     making them mandatory predictions in this prototype).
-- Frontend rollout: serve old `frontend/` until Phase 5 ships, or
-  feature-flag v2 rendering via `?contract=v2`? Recommend the second
-  — smaller blast radius.
+- ~~Frontend rollout~~ **Resolved 2026-05-17. Feature flag (option B):**
+  one frontend bundle, behaviour gated by a `?contract=v2` query
+  parameter. Default stays v1 until the thesis defense is done plus
+  one week of green runs, then the default flips to v2 and v1 lives
+  behind `?contract=v1` for one more release before removal. No
+  parallel `/v2/` route, no duplicated `index.html`. Backend Phase 3
+  already accepts both contracts, so the flag is purely cosmetic on
+  the wire.
