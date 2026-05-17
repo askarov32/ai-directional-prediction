@@ -21,16 +21,21 @@ from src.data.scenario import default_scenario, normalize_scenario_schema, save_
 DEFAULT_INPUT_ROOT = Path("pinn-service/artifacts/rod_experiments_2d")
 DEFAULT_REGISTRY_ROOT = Path("mgn-service/datasets")
 
-DYNAMIC_FIELD_NAMES = ["temperature", "u", "v", "w", "ut", "vt", "wt"]
-DYNAMIC_FIELD_UNITS = {
-    "temperature": "K",
-    "u": "m",
-    "v": "m",
-    "w": "m",
-    "ut": "m/s",
-    "vt": "m/s",
-    "wt": "m/s",
-}
+DYNAMIC_FIELD_NAMES = [
+    "solid.ex", "solid.exy", "solid.exz",
+    "solid.ey", "solid.eyz", "solid.ez",
+    "solid.mises",
+    "solid.sx", "solid.sxy", "solid.sxz",
+    "solid.sy", "solid.syz", "solid.sz",
+    "t",
+    "u", "ut", "v", "vt", "w", "wt",
+]
+DYNAMIC_FIELD_UNITS = {name: "?" for name in DYNAMIC_FIELD_NAMES}
+DYNAMIC_FIELD_UNITS.update({
+    "t": "K",
+    "u": "m", "v": "m", "w": "m",
+    "ut": "m/s", "vt": "m/s", "wt": "m/s",
+})
 MATERIAL_FEATURE_NAMES = [
     "young_modulus",
     "poisson_ratio",
@@ -240,13 +245,47 @@ def build_processed_dataset(
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
     coords = payload["initial_coordinates"].astype(np.float32)
     times = payload["times"].astype(np.float32)
-    temperature = payload["temperature"].astype(np.float32).T[:, :, None]
-    displacement = np.transpose(payload["displacement"].astype(np.float32), (1, 0, 2))
-    velocity = np.transpose(payload["velocity"].astype(np.float32), (1, 0, 2))
+    temperature = payload["temperature"].astype(np.float32).T  # (T, N)
+    displacement = np.transpose(payload["displacement"].astype(np.float32), (1, 0, 2))  # (T,N,3)
+    velocity = np.transpose(payload["velocity"].astype(np.float32), (1, 0, 2))  # (T,N,3)
+    stress_normal = np.transpose(
+        payload["stress_normal"].astype(np.float32), (1, 0, 2)
+    )  # (T,N,4) — (xx, yy, zz, mises)
+    stress_shear = np.transpose(
+        payload["stress_shear"].astype(np.float32), (1, 0, 2)
+    )  # (T,N,3) — (xy, xz, yz)
+    strain = np.transpose(
+        payload["strain"].astype(np.float32), (1, 0, 2)
+    )  # (T,N,6) — (xx, yy, zz, xy, xz, yz)
     material_static = payload["material_static"].astype(np.float32)
     thermal_properties = payload["thermal_properties"].astype(np.float32)
 
-    dynamic_state = np.concatenate([temperature, displacement, velocity], axis=2).astype(np.float32)
+    # Assemble 20-field dynamic state in the exact order the
+    # sandstone_comsol_real checkpoint was trained on (its metadata
+    # carries field_names; this dataset must match cardinality and
+    # order to load state_dict cleanly).
+    T_steps, N = temperature.shape
+    dynamic_state = np.zeros((T_steps, N, len(DYNAMIC_FIELD_NAMES)), dtype=np.float32)
+    dynamic_state[..., 0] = strain[..., 0]   # solid.ex (εxx)
+    dynamic_state[..., 1] = strain[..., 3]   # solid.exy
+    dynamic_state[..., 2] = strain[..., 4]   # solid.exz  — ~0 in plane-strain
+    dynamic_state[..., 3] = strain[..., 1]   # solid.ey (εyy)
+    dynamic_state[..., 4] = strain[..., 5]   # solid.eyz  — ~0 in plane-strain
+    dynamic_state[..., 5] = strain[..., 2]   # solid.ez (εzz) — ~0 in plane-strain
+    dynamic_state[..., 6] = stress_normal[..., 3]  # solid.mises
+    dynamic_state[..., 7] = stress_normal[..., 0]  # solid.sx
+    dynamic_state[..., 8] = stress_shear[..., 0]   # solid.sxy
+    dynamic_state[..., 9] = stress_shear[..., 1]   # solid.sxz — ~0 in plane-strain
+    dynamic_state[..., 10] = stress_normal[..., 1]  # solid.sy
+    dynamic_state[..., 11] = stress_shear[..., 2]   # solid.syz — ~0 in plane-strain
+    dynamic_state[..., 12] = stress_normal[..., 2]  # solid.sz  — nonzero in plane-strain
+    dynamic_state[..., 13] = temperature  # t
+    dynamic_state[..., 14] = displacement[..., 0]  # u
+    dynamic_state[..., 15] = velocity[..., 0]       # ut
+    dynamic_state[..., 16] = displacement[..., 1]  # v
+    dynamic_state[..., 17] = velocity[..., 1]       # vt
+    dynamic_state[..., 18] = displacement[..., 2]  # w  — ~0 in plane-strain
+    dynamic_state[..., 19] = velocity[..., 2]       # wt — ~0 in plane-strain
     node_static_raw, static_names = build_node_static(coords, scenario)
     thermal_static = thermal_properties[:, 0, :]
     node_material_raw = np.column_stack(
@@ -261,6 +300,15 @@ def build_processed_dataset(
     ).astype(np.float32)
     node_static_raw = np.concatenate([node_static_raw, node_material_raw], axis=1).astype(np.float32)
     static_names = static_names + MATERIAL_FEATURE_NAMES
+    # Pad with a single zero column so node_in_dim matches the
+    # sandstone_comsol_real checkpoint exactly (node_in_dim=80,
+    # out_dim=20). The padded feature is constant 0 across all nodes
+    # and does not influence the trained MLP because the corresponding
+    # weight column was learned on a feature whose data we don't have.
+    n_nodes = node_static_raw.shape[0]
+    pad_col = np.zeros((n_nodes, 1), dtype=np.float32)
+    node_static_raw = np.concatenate([node_static_raw, pad_col], axis=1).astype(np.float32)
+    static_names = static_names + ["checkpoint_pad_0"]
 
     dyn_norm = FeatureNormalizer(min_std=min_std).fit(DYNAMIC_FIELD_NAMES, dynamic_state)
     static_norm = FeatureNormalizer(min_std=min_std).fit(static_names, node_static_raw)
@@ -356,14 +404,23 @@ def split_samples(time_steps: int, train_ratio: float, val_ratio: float) -> tupl
 
 
 def write_preview_csv(path: Path, field_names: list[str], field_units: dict[str, str], payload: np.lib.npyio.NpzFile) -> None:
+    disp = payload["displacement"].astype(np.float32)
+    vel = payload["velocity"].astype(np.float32)
+    sn = payload["stress_normal"].astype(np.float32)  # (xx, yy, zz, mises)
+    ss = payload["stress_shear"].astype(np.float32)   # (xy, xz, yz)
+    eps = payload["strain"].astype(np.float32)        # (xx, yy, zz, xy, xz, yz)
     dynamic_arrays = {
+        # 7 legacy keys kept for backward compat
         "temperature": payload["temperature"].astype(np.float32),
-        "u": payload["displacement"][:, :, 0].astype(np.float32),
-        "v": payload["displacement"][:, :, 1].astype(np.float32),
-        "w": payload["displacement"][:, :, 2].astype(np.float32),
-        "ut": payload["velocity"][:, :, 0].astype(np.float32),
-        "vt": payload["velocity"][:, :, 1].astype(np.float32),
-        "wt": payload["velocity"][:, :, 2].astype(np.float32),
+        "u": disp[:, :, 0], "v": disp[:, :, 1], "w": disp[:, :, 2],
+        "ut": vel[:, :, 0], "vt": vel[:, :, 1], "wt": vel[:, :, 2],
+        # 20-field schema (checkpoint metadata field_names)
+        "solid.ex": eps[:, :, 0], "solid.ey": eps[:, :, 1], "solid.ez": eps[:, :, 2],
+        "solid.exy": eps[:, :, 3], "solid.exz": eps[:, :, 4], "solid.eyz": eps[:, :, 5],
+        "solid.mises": sn[:, :, 3],
+        "solid.sx": sn[:, :, 0], "solid.sy": sn[:, :, 1], "solid.sz": sn[:, :, 2],
+        "solid.sxy": ss[:, :, 0], "solid.sxz": ss[:, :, 1], "solid.syz": ss[:, :, 2],
+        "t": payload["temperature"].astype(np.float32),
     }
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as handle:

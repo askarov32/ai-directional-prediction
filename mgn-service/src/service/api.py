@@ -252,6 +252,27 @@ def enrich_response_from_summary(response: dict[str, Any]) -> dict[str, Any]:
 
     response["summary_metrics_path"] = str(summary_path)
 
+    # api-contract-v2 §7.1 — propagate the enriched (real-rollout)
+    # values into the v2 blocks that make_direction_response() seeded
+    # with the deterministic stub values.
+    opt = response.get("optional_outputs") or {}
+    fs = opt.setdefault("field_summary", {})
+    if max_displacement is not None:
+        fs["max_displacement_m"] = max_displacement
+    if max_temperature_perturbation is not None:
+        fs["max_temperature_perturbation_k"] = max_temperature_perturbation
+    response["optional_outputs"] = opt
+
+    raw = response.get("prediction_raw") or {}
+    if max_temperature_perturbation is not None:
+        raw["temperature_perturbation_k"] = max_temperature_perturbation
+    response["prediction_raw"] = raw
+
+    diag = response.get("diagnostics") or {}
+    diag["mode"] = "rollout"
+    diag["rollout_source"] = "summary_metrics.json"
+    response["diagnostics"] = diag
+
     return response
 
 
