@@ -1,5 +1,8 @@
 const DEFAULT_API_BASE_URL = window.location.protocol === "file:" ? "http://localhost:8000/api/v1" : "/api/v1";
 const REQUEST_TIMEOUT_MS = Number(window.THESIS_APP_CONFIG?.requestTimeoutMs || 600000);
+const MEDIUM_ID_ALIASES = {
+  sandstone_medium: "sandstone",
+};
 
 export const API_BASE_URL = normalizeBaseUrl(window.THESIS_APP_CONFIG?.apiBaseUrl || DEFAULT_API_BASE_URL);
 
@@ -27,6 +30,16 @@ export class ApiError extends Error {
 
 function normalizeBaseUrl(value) {
   return String(value || "").replace(/\/$/, "");
+}
+
+function normalizeMediumDescriptor(medium) {
+  if (!medium || typeof medium !== "object") {
+    return medium;
+  }
+  return {
+    ...medium,
+    id: MEDIUM_ID_ALIASES[medium.id] || medium.id,
+  };
 }
 
 function buildRequestId() {
@@ -129,7 +142,9 @@ async function request(path, options = {}) {
 }
 
 export function fetchMedia() {
-  return request("/media");
+  return request("/media").then((media) =>
+    Array.isArray(media) ? media.map(normalizeMediumDescriptor) : []
+  );
 }
 
 export function fetchModels() {

@@ -22,6 +22,19 @@
   }
 }
 
+@keyframes flowPulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.9);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+}
+
 .hero,
 .card {
   animation: fadeUp 260ms ease both;
@@ -41,11 +54,18 @@
   animation: revealArrow 480ms ease forwards;
 }
 
+.viz-flow-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: flowPulse 1.35s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero,
   .card,
   .result-card.is-live .result-content,
   .viz-arrow.is-active,
+  .viz-flow-dot,
   .button,
   input,
   select {
