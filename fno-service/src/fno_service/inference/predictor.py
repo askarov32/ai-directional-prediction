@@ -343,17 +343,20 @@ class FNOInferenceService:
                     "magnitude": "bounded dimensionless local/global displacement response score",
                 },
             },
-            # api-contract-v2 §7.1 — additive v2 blocks. FNO does not
-            # expose per-point u/v in this aggregation path, so leave
-            # those null; backend's normalizer falls back to
-            # field_summary for displacement magnitude.
+            # api-contract-v2 §7.1 — additive v2 blocks. We sample the
+            # predicted field at the probe cell so the contract carries
+            # the actual per-point neural outputs instead of nulls.
             "schema_version": "2.0",
             "prediction_raw": {
-                "temperature_k": None,
-                "temperature_perturbation_k": round(
-                    max_temperature_perturbation, 8
+                "temperature_k": float(temperature_field[probe_cell[0], probe_cell[1]]),
+                "temperature_perturbation_k": float(
+                    temperature_field[probe_cell[0], probe_cell[1]]
+                    - runtime.reference_temperature_k
                 ),
-                "displacement_m": {"u": None, "v": None},
+                "displacement_m": {
+                    "u": float(disp_x[probe_cell[0], probe_cell[1]]),
+                    "v": float(disp_y[probe_cell[0], probe_cell[1]]),
+                },
                 "travel_time_s": travel_time_ms / 1000.0,
                 "response_magnitude_score": round(float(magnitude), 6),
             },
