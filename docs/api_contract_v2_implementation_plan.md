@@ -66,10 +66,26 @@ Touch only `backend/app/`:
     `derive_elastic_constants(material)` (PDF §6.2 — implements both
     E/ν and Vp/Vs/ρ paths).
   - Unit-tested in isolation (no FastAPI, no IO).
-- [ ] `backend/data/media/catalog.json`
-  - Add `young_modulus_pa`, `poisson_ratio` where derivable, OR add a
-    `derivation` field explaining the Vp/Vs/ρ formula source. Do not
-    silently change any existing numeric value.
+- [ ] `backend/data/media/catalog.json` — **replace** with a JSON
+  projection of the canonical thesis table
+  `AI_Termoelastic_Waves_Geology/chapters/tables/combined_geological_media_parameters.csv`
+  (10 materials: granite, granodiorite, basalt, diabase, gabbro,
+  sandstone, limestone, marble, schist, quartzite).
+  - Carry over every field from the CSV: `rho_kg_m3`, `Vp_m_s`,
+    `Vs_m_s`, `E_Pa`, `nu`, `mu_Pa`, `K_Pa`, `lambda_Pa`, `alpha_1_K`,
+    `k_W_mK`, `Cp_J_kgK`, `C_J_m3K`, `gamma_Pa_K`, `porosity_percent`.
+  - Each entry has `metadata.source_table:
+    "combined_geological_media_parameters.csv"` for provenance.
+  - Materials without `alpha_1_K` (granodiorite, basalt, diabase,
+    gabbro, schist, quartzite) are flagged
+    `thermoelastic_supported: false`. The backend rejects
+    `POST /api/v1/predictions` for these media with HTTP 400 and a
+    clear reason; the frontend disables the submit button when one
+    is selected for a thermoelastic scenario.
+  - `derived_quantities.derive_elastic_constants(...)` does **not**
+    recompute `E`, `nu`, `mu`, `K`, `lambda` — it reads them from the
+    catalog. On startup it verifies `|E_csv - 9Kμ/(3K+μ)| / E_csv <
+    0.01` and logs a warning on mismatch (CSV-typo guard).
 
 **Done when:** `pytest backend/tests/test_prediction_schema.py` (new
 v2 cases) passes and the v1 suite is still green.
@@ -258,10 +274,14 @@ fallback status. No JS console errors.
 
 ## Open questions to clear with the author before Phase 1
 
-- Catalog enrichment: do we add `young_modulus_pa` / `poisson_ratio`
-  with literature defaults per material, or compute them on the fly
-  from `Vp`, `Vs`, `ρ`? The PDF allows both — pick one for the thesis
-  numbers.
+- ~~Catalog enrichment~~ **Resolved 2026-05-17.** Catalog is replaced
+  by a JSON projection of
+  `chapters/tables/combined_geological_media_parameters.csv`. All
+  elastic moduli come straight from the CSV (already derived from
+  midpoint Vₚ/Vₛ/ρ under isotropic assumptions). Materials with
+  missing `alpha_1_K` are marked `thermoelastic_supported: false`
+  and rejected with HTTP 400 for thermoelastic requests. No
+  literature defaults are injected.
 - Optional outputs (`field_grid`, `travel_time_s`): include from
   Phase 4 or postpone to a v2.1? PDF lists them as optional so the
   default is omit.
