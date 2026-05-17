@@ -77,18 +77,22 @@ const CHANNEL_UNITS = {
 };
 
 function buildBoxGeometry() {
-  const width = 1000;
-  const height = 650;
-  const margin = 90;
-  return { width, height, margin };
+  return {
+    width: 1000,
+    height: 620,
+    marginLeft: 90,
+    marginRight: 70,
+    marginTop: 105,
+    marginBottom: 70,
+  };
 }
 
 function projectPoint(point, box) {
-  const innerWidth = box.width - box.margin * 2;
-  const innerHeight = box.height - box.margin * 2;
+  const innerWidth = box.width - box.marginLeft - box.marginRight;
+  const innerHeight = box.height - box.marginTop - box.marginBottom;
   return {
-    x: box.margin + clamp(point.x, 0, 1) * innerWidth,
-    y: box.height - box.margin - clamp(point.y, 0, 1) * innerHeight,
+    x: box.marginLeft + clamp(point.x, 0, 1) * innerWidth,
+    y: box.marginTop + (1 - clamp(point.y, 0, 1)) * innerHeight,
   };
 }
 
@@ -213,7 +217,7 @@ function buildTooltipMarkup(point, lines, align = "right") {
   const offsetX = align === "left" ? -width - 18 : 22;
   const offsetY = -78;
   const x = clamp(point.x + offsetX, 18, 1000 - width - 18);
-  const y = clamp(point.y + offsetY, 18, 650 - height - 18);
+  const y = clamp(point.y + offsetY, 18, 620 - height - 18);
 
   return `
     <g class="geometry-tooltip" aria-hidden="true">
@@ -298,10 +302,12 @@ function buildUnitDirectionMarkup(box, source, unitDirection) {
 }
 
 function buildAxisLabels(box) {
-  const xBase = projectPoint({ x: 1, y: 0 }, box);
-  const yBase = projectPoint({ x: 0, y: 1 }, box);
-  const xLabel = `<text x="${xBase.x + 10}" y="${xBase.y + 22}" font-family="JetBrains Mono, monospace" font-size="13" fill="${COLORS.meta}">x · 1.00 m</text>`;
-  const yLabel = `<text x="${yBase.x - 50}" y="${yBase.y - 10}" font-family="JetBrains Mono, monospace" font-size="13" fill="${COLORS.meta}">y · 1.00 m</text>`;
+  const xLabelX = box.width - box.marginRight + 10;
+  const xLabelY = box.height - box.marginBottom + 28;
+  const yLabelX = box.marginLeft - 55;
+  const yLabelY = box.marginTop - 12;
+  const xLabel = `<text x="${xLabelX}" y="${xLabelY}" font-family="JetBrains Mono, monospace" font-size="13" fill="${COLORS.meta}" text-anchor="end">x · 1.00 m</text>`;
+  const yLabel = `<text x="${yLabelX}" y="${yLabelY}" font-family="JetBrains Mono, monospace" font-size="13" fill="${COLORS.meta}">y · 1.00 m</text>`;
   return `${xLabel}${yLabel}`;
 }
 
@@ -357,13 +363,13 @@ export function renderGeometryDiagram(svg, geometry, directionalResponse, option
       tooltipAlign: probe.x > 0.72 ? "left" : "right",
     })}
     ${buildUnitDirectionMarkup(box, source, unitDirection)}
-    <text x="${box.margin}" y="52" font-family="Avenir Next, Segoe UI, sans-serif" font-size="16" font-weight="600" fill="${COLORS.label}">
+    <text x="${box.marginLeft}" y="45" font-family="Avenir Next, Segoe UI, sans-serif" font-size="16" font-weight="600" fill="${COLORS.label}">
       ${escapeHtml(modelLabel)}
     </text>
-    <text x="${box.margin}" y="76" font-family="Avenir Next, Segoe UI, sans-serif" font-size="13" fill="${COLORS.meta}">
+    <text x="${box.marginLeft}" y="70" font-family="Avenir Next, Segoe UI, sans-serif" font-size="13" fill="${COLORS.meta}">
       Fixed 1.00 m x 1.00 m domain
     </text>
-    <text x="${box.margin}" y="${box.height - 26}" font-family="Avenir Next, Segoe UI, sans-serif" font-size="12.5" fill="${COLORS.meta}">
+    <text x="${box.marginLeft}" y="${box.height - 18}" font-family="Avenir Next, Segoe UI, sans-serif" font-size="12.5" fill="${COLORS.meta}">
       Source-to-probe geometry for the normalized prediction response.
     </text>
     ${buildAxisLabels(box)}

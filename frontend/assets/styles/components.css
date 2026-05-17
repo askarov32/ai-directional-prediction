@@ -85,7 +85,12 @@ h3 {
   font-size: 0.92rem;
 }
 
+.is-hidden {
+  display: none !important;
+}
+
 .card {
+  min-width: 0;
   background:
     linear-gradient(180deg, rgba(30, 41, 59, 0.88), rgba(15, 23, 42, 0.72));
   border: 1px solid rgba(148, 163, 184, 0.2);
@@ -123,10 +128,29 @@ h3 {
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .card__header--result {
-  align-items: center;
+  align-items: flex-start;
+}
+
+.card__header > div {
+  min-width: 0;
+}
+
+.result-badges {
+  justify-content: flex-end;
+}
+
+@media (max-width: 700px) {
+  .card__header--result {
+    flex-direction: column;
+  }
+
+  .result-badges {
+    justify-content: flex-start;
+  }
 }
 
 .field {
@@ -405,22 +429,6 @@ select:focus {
   color: var(--muted);
 }
 
-.visual-stage {
-  margin-top: 1.25rem;
-  padding: 0.7rem;
-  background:
-    radial-gradient(circle at 18% 24%, rgba(110, 211, 247, 0.09), transparent 18rem),
-    rgba(8, 17, 31, 0.42);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: calc(var(--radius-lg) + 2px);
-}
-
-.visual-stage svg {
-  width: 100%;
-  min-height: 380px;
-  border-radius: var(--radius-md);
-}
-
 .geometry-point {
   cursor: pointer;
   outline: none;
@@ -493,9 +501,9 @@ select:focus {
   background: rgba(8, 17, 31, 0.24);
 }
 
-.result-content.is-hidden,
-.error-banner.is-hidden {
-  display: none;
+.result-content {
+  display: grid;
+  gap: 1rem;
 }
 
 .result-card-grid {
@@ -508,7 +516,9 @@ select:focus {
   display: grid;
   align-content: start;
   gap: 0.9rem;
+  min-width: 0;
   padding: 1rem;
+  overflow: hidden;
   border: 1px solid rgba(148, 163, 184, 0.15);
   border-radius: var(--radius-lg);
   background:
@@ -561,6 +571,7 @@ select:focus {
   font-family: "JetBrains Mono", monospace;
   font-size: clamp(0.86rem, 1vw, 0.98rem);
   overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .result-kv small {
@@ -573,10 +584,6 @@ select:focus {
 .result-note {
   margin: 0;
   text-align: left;
-}
-
-.result-note.is-hidden {
-  display: none;
 }
 
 .displacement-vector-card {
@@ -695,11 +702,6 @@ select:focus {
   border: 1px solid var(--border-soft);
   font-size: 0.76rem;
   font-weight: 700;
-}
-
-.diagnostics-badge.is-hidden,
-.diagnostics-fallback-reason.is-hidden {
-  display: none;
 }
 
 .diagnostics-badge--normal {
