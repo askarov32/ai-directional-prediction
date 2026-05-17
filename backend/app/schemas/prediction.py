@@ -333,7 +333,7 @@ class ThermalPredictionV2Schema(BaseModel):
 
 
 class DisplacementPredictionV2Schema(BaseModel):
-    components_m: dict[str, float]
+    components_m: dict[str, float | None]
     magnitude_m: float | None
     components_source: str
     magnitude_source: str
