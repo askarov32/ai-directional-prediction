@@ -19,6 +19,11 @@ analytics
 # pinn-service/artifacts
 # fno-service/artifacts
 *.pt
+!mgn-service/outputs/checkpoints/
+!mgn-service/outputs/checkpoints/.gitkeep
+!mgn-service/outputs/checkpoints/*.pt
+!mgn-service/outputs/checkpoints_finetuned/.gitkeep
+!mgn-service/outputs/checkpoints_finetuned/*.pt
 .venv-pinn
 .idea
 clean-data

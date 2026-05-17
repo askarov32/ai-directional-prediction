@@ -20,6 +20,9 @@ outputs/**
 !outputs/
 !outputs/**/
 !outputs/**/.gitkeep
+!outputs/checkpoints/
+!outputs/checkpoints/.gitkeep
+!outputs/checkpoints/*.pt
 
 datasets/**/raw/
 datasets/**/processed/
