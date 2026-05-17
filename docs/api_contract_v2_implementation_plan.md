@@ -357,6 +357,14 @@ fallback status. No JS console errors.
   - `optional_outputs.strain` and `optional_outputs.stress` are
     declared but always `null` in v2 (PDF §3 explicitly forbids
     making them mandatory predictions in this prototype).
+- **Resolved 2026-05-17. Reference temperature is fixed at 273.15 K.**
+  The rock initial temperature is always 0 °C across the prototype
+  (matches the COMSOL training data setup).
+  `thermal_state.reference_temperature_k` is therefore implicit in
+  v2: clients send only `source_temperature_k`. Explicit override
+  is rejected with HTTP 400 /
+  `error_code: "reference_temperature_override_disabled"`. Frontend
+  does not render the field.
 - ~~Frontend rollout~~ **Resolved 2026-05-17. Feature flag (option B):**
   one frontend bundle, behaviour gated by a `?contract=v2` query
   parameter. Default stays v1 until the thesis defense is done plus
