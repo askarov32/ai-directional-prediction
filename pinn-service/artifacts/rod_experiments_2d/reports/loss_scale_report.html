@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>PINN Initial Loss Scale Report</title>
+  <style>
+    body { margin: 0; background: #0f172a; color: #e5eefb; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    main { width: min(900px, calc(100% - 48px)); margin: 40px auto 72px; }
+    .card { background: #172033; border: 1px solid #334155; border-radius: 18px; padding: 22px; margin-top: 18px; }
+    p, td { color: #cbd5e1; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    td, th { border-bottom: 1px solid #263244; padding: 11px 12px; text-align: right; }
+    td:first-child, th:first-child { text-align: left; }
+    th { color: #bfdbfe; }
+    code { color: #dbeafe; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>PINN Initial Loss Scale Report</h1>
+  <p>Dataset: <code>C:\Users\Insar\university\ai-directional-prediction\pinn-service\artifacts\rod_experiments_2d\splits\train_samples.npz</code></p>
+  <section class="card">
+    <h2>Average Loss Components</h2>
+    <table><thead><tr><th>component</th><th>value</th></tr></thead><tbody><tr><td>supervised_loss</td><td>0.750338</td></tr><tr><td>velocity_consistency_loss</td><td>163.206</td></tr><tr><td>wave_residual_loss</td><td>2.84642e+14</td></tr><tr><td>thermal_residual_loss</td><td>4.12355e+19</td></tr><tr><td>total_loss</td><td>2.0618e+18</td></tr></tbody></table>
+  </section>
+  <section class="card">
+    <h2>Rough Balancing Weights</h2>
+    <p>rough_balancing_weights scale each residual near the supervised loss magnitude at random initialization; treat them as diagnostics, not final hyperparameters.</p>
+    <table><thead><tr><th>weight</th><th>value</th></tr></thead><tbody><tr><td>supervised_weight</td><td>1</td></tr><tr><td>velocity_weight</td><td>0.00459749</td></tr><tr><td>wave_residual_weight</td><td>2.63608e-15</td></tr><tr><td>thermal_residual_weight</td><td>1.81964e-20</td></tr></tbody></table>
+  </section>
+</main>
+</body>
+</html>

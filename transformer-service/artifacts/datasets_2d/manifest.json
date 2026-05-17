@@ -1,0 +1,59 @@
+{
+  "source_root": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d",
+  "output_root": "C:\\Users\\Insar\\university\\ai-directional-prediction\\transformer-service\\artifacts\\datasets_2d",
+  "dataset_count": 4,
+  "datasets": [
+    {
+      "rock": "basalt",
+      "source_structured_dataset": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\basalt\\structured_dataset.npz",
+      "source_metadata": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\basalt\\dataset_metadata.json",
+      "output_dir": "C:\\Users\\Insar\\university\\ai-directional-prediction\\transformer-service\\artifacts\\datasets_2d\\basalt_transformer_2d",
+      "pairs_path": "C:\\Users\\Insar\\university\\ai-directional-prediction\\transformer-service\\artifacts\\datasets_2d\\basalt_transformer_2d\\pairs.npz",
+      "scalers_path": "C:\\Users\\Insar\\university\\ai-directional-prediction\\transformer-service\\artifacts\\datasets_2d\\basalt_transformer_2d\\scalers.json",
+      "metadata_path": "C:\\Users\\Insar\\university\\ai-directional-prediction\\transformer-service\\artifacts\\datasets_2d\\basalt_transformer_2d\\dataset_metadata.json",
+      "node_count": 230,
+      "time_steps": 201,
+      "input_channels": 16,
+      "target_channels": 4
+    },
+    {
+      "rock": "granite",
+      "source_structured_dataset": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\granite\\structured_dataset.npz",
+      "source_metadata": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\granite\\dataset_metadata.json",
+      "output_dir": "C:\\Users\\Insar\\university\\ai-directional-prediction\\transformer-service\\artifacts\\datasets_2d\\granite_transformer_2d",
+      "pairs_path": "C:\\Users\\Insar\\university\\ai-directional-prediction\\transformer-service\\artifacts\\datasets_2d\\granite_transformer_2d\\pairs.npz",
+      "scalers_path": "C:\\Users\\Insar\\university\\ai-directional-prediction\\transformer-service\\artifacts\\datasets_2d\\granite_transformer_2d\\scalers.json",
+      "metadata_path": "C:\\Users\\Insar\\university\\ai-directional-prediction\\transformer-service\\artifacts\\datasets_2d\\granite_transformer_2d\\dataset_metadata.json",
+      "node_count": 230,
+      "time_steps": 201,
+      "input_channels": 16,
+      "target_channels": 4
+    },
+    {
+      "rock": "limestone",
+      "source_structured_dataset": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\limestone\\structured_dataset.npz",
+      "source_metadata": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\limestone\\dataset_metadata.json",
+      "output_dir": "C:\\Users\\Insar\\university\\ai-directional-prediction\\transformer-service\\artifacts\\datasets_2d\\limestone_transformer_2d",
+      "pairs_path": "C:\\Users\\Insar\\university\\ai-directional-prediction\\transformer-service\\artifacts\\datasets_2d\\limestone_transformer_2d\\pairs.npz",
+      "scalers_path": "C:\\Users\\Insar\\university\\ai-directional-prediction\\transformer-service\\artifacts\\datasets_2d\\limestone_transformer_2d\\scalers.json",
+      "metadata_path": "C:\\Users\\Insar\\university\\ai-directional-prediction\\transformer-service\\artifacts\\datasets_2d\\limestone_transformer_2d\\dataset_metadata.json",
+      "node_count": 230,
+      "time_steps": 201,
+      "input_channels": 16,
+      "target_channels": 4
+    },
+    {
+      "rock": "sandstone",
+      "source_structured_dataset": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\sandstone\\structured_dataset.npz",
+      "source_metadata": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\sandstone\\dataset_metadata.json",
+      "output_dir": "C:\\Users\\Insar\\university\\ai-directional-prediction\\transformer-service\\artifacts\\datasets_2d\\sandstone_transformer_2d",
+      "pairs_path": "C:\\Users\\Insar\\university\\ai-directional-prediction\\transformer-service\\artifacts\\datasets_2d\\sandstone_transformer_2d\\pairs.npz",
+      "scalers_path": "C:\\Users\\Insar\\university\\ai-directional-prediction\\transformer-service\\artifacts\\datasets_2d\\sandstone_transformer_2d\\scalers.json",
+      "metadata_path": "C:\\Users\\Insar\\university\\ai-directional-prediction\\transformer-service\\artifacts\\datasets_2d\\sandstone_transformer_2d\\dataset_metadata.json",
+      "node_count": 230,
+      "time_steps": 101,
+      "input_channels": 16,
+      "target_channels": 4
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "source_root": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d",
+  "registry_root": "C:\\Users\\Insar\\university\\ai-directional-prediction\\mgn-service\\datasets",
+  "dataset_count": 4,
+  "datasets": [
+    {
+      "rock": "basalt",
+      "dataset_id": "basalt_rod_2d",
+      "dataset_root": "C:\\Users\\Insar\\university\\ai-directional-prediction\\mgn-service\\datasets\\basalt_rod_2d",
+      "processed_dir": "C:\\Users\\Insar\\university\\ai-directional-prediction\\mgn-service\\datasets\\basalt_rod_2d\\processed",
+      "source_structured_dataset": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\basalt\\structured_dataset.npz",
+      "source_metadata": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\basalt\\dataset_metadata.json",
+      "node_count": 230,
+      "time_steps": 201,
+      "field_names": [
+        "temperature",
+        "u",
+        "v",
+        "w",
+        "ut",
+        "vt",
+        "wt"
+      ],
+      "node_in_dim": 66,
+      "edge_in_dim": 4
+    },
+    {
+      "rock": "granite",
+      "dataset_id": "granite_rod_2d",
+      "dataset_root": "C:\\Users\\Insar\\university\\ai-directional-prediction\\mgn-service\\datasets\\granite_rod_2d",
+      "processed_dir": "C:\\Users\\Insar\\university\\ai-directional-prediction\\mgn-service\\datasets\\granite_rod_2d\\processed",
+      "source_structured_dataset": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\granite\\structured_dataset.npz",
+      "source_metadata": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\granite\\dataset_metadata.json",
+      "node_count": 230,
+      "time_steps": 201,
+      "field_names": [
+        "temperature",
+        "u",
+        "v",
+        "w",
+        "ut",
+        "vt",
+        "wt"
+      ],
+      "node_in_dim": 66,
+      "edge_in_dim": 4
+    },
+    {
+      "rock": "limestone",
+      "dataset_id": "limestone_rod_2d",
+      "dataset_root": "C:\\Users\\Insar\\university\\ai-directional-prediction\\mgn-service\\datasets\\limestone_rod_2d",
+      "processed_dir": "C:\\Users\\Insar\\university\\ai-directional-prediction\\mgn-service\\datasets\\limestone_rod_2d\\processed",
+      "source_structured_dataset": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\limestone\\structured_dataset.npz",
+      "source_metadata": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\limestone\\dataset_metadata.json",
+      "node_count": 230,
+      "time_steps": 201,
+      "field_names": [
+        "temperature",
+        "u",
+        "v",
+        "w",
+        "ut",
+        "vt",
+        "wt"
+      ],
+      "node_in_dim": 66,
+      "edge_in_dim": 4
+    },
+    {
+      "rock": "sandstone",
+      "dataset_id": "sandstone_rod_2d",
+      "dataset_root": "C:\\Users\\Insar\\university\\ai-directional-prediction\\mgn-service\\datasets\\sandstone_rod_2d",
+      "processed_dir": "C:\\Users\\Insar\\university\\ai-directional-prediction\\mgn-service\\datasets\\sandstone_rod_2d\\processed",
+      "source_structured_dataset": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\sandstone\\structured_dataset.npz",
+      "source_metadata": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\sandstone\\dataset_metadata.json",
+      "node_count": 230,
+      "time_steps": 101,
+      "field_names": [
+        "temperature",
+        "u",
+        "v",
+        "w",
+        "ut",
+        "vt",
+        "wt"
+      ],
+      "node_in_dim": 66,
+      "edge_in_dim": 4
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "node_count": 230,
+  "time_steps": 201,
+  "input_channels": 16,
+  "target_channels": 4,
+  "raw_node_counts": {
+    "structured_dataset_nodes": 230,
+    "structured_dataset_timesteps": 201,
+    "intersection": 230
+  },
+  "n_pairs": 200,
+  "train_size": 160,
+  "val_size": 40,
+  "time_start": 0.0,
+  "time_end": 0.00019999999494757503,
+  "time_step": 9.999999974752427e-07,
+  "input_channel_names": [
+    "x",
+    "y",
+    "z",
+    "temperature_k",
+    "disp_x",
+    "disp_y",
+    "disp_z",
+    "vel_x",
+    "vel_y",
+    "vel_z",
+    "youngs_modulus",
+    "poissons_ratio",
+    "density",
+    "thermal_expansion",
+    "thermal_conductivity",
+    "heat_capacity"
+  ],
+  "target_channel_names": [
+    "temperature_k",
+    "disp_x",
+    "disp_y",
+    "disp_z"
+  ],
+  "dataset_kind": "transformer_pairs_from_structured_2d",
+  "rock_id": "limestone",
+  "source_structured_dataset": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\limestone\\structured_dataset.npz",
+  "source_metadata": "C:\\Users\\Insar\\university\\ai-directional-prediction\\pinn-service\\artifacts\\rod_experiments_2d\\limestone\\dataset_metadata.json",
+  "dimension": 2,
+  "effective_domain_type": "rect_2d"
+}
