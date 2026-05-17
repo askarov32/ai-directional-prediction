@@ -60,7 +60,11 @@ def build_feature_vector(
         "source_y": float(request.source.y),
         "source_z": float(request.source.z),
         "source_amplitude": float(request.source.amplitude),
-        "source_frequency_hz": float(request.source.frequency_hz),
+        # source_frequency_hz feature retained at 0.0 for back-compat with
+        # checkpoints whose LEGACY_FEATURE_NAMES list it; Phase 4a removed
+        # its physical use, so the value is held constant per
+        # api-contract-v2 §4 "frequency removed entirely".
+        "source_frequency_hz": 0.0,
         "source_dir_x": float(request.source.direction[0]),
         "source_dir_y": float(request.source.direction[1]),
         "source_dir_z": float(request.source.direction[2]),
@@ -117,7 +121,12 @@ def build_prediction_payload(
 
     time_ms = float(request.scenario.time_ms)
     amplitude = max(float(request.source.amplitude), 1e-6)
-    frequency_hz = max(float(request.source.frequency_hz), 1e-6)
+    # NOTE (api-contract-v2, Phase 4a): source.frequency_hz has no
+    # physical referent in the COMSOL training data — the simulation is
+    # a transient thermal step, not a harmonic source. The historical
+    # frequency_factor multiplier biased predictions toward the
+    # client-supplied phantom parameter. Removed so that predictions
+    # depend only on geometry, material, and observation time.
     temperature_c = float(request.scenario.temperature_c)
     pressure_mpa = float(request.scenario.pressure_mpa)
     density = float(props.rho)
@@ -132,7 +141,6 @@ def build_prediction_payload(
     attenuation = _distance_attenuation(source_probe_distance, density, porosity)
     thermal_factor = 1.0 + max(temperature_c, 0.0) * thermal_expansion * 18.0
     pressure_factor = 1.0 + pressure_mpa / 2500.0
-    frequency_factor = 0.85 + min(frequency_hz / 180.0, 1.1) * 0.35
     source_factor = _source_type_factor(request.source.type)
     compliance_factor = _compliance_factor(vp, vs, density)
     medium_factor = _medium_response_factor(
@@ -173,7 +181,7 @@ def build_prediction_payload(
         amplitude
         * attenuation
         * response_window
-        * frequency_factor
+        # frequency_factor removed (Phase 4a): no physical referent
         * thermal_factor
         * pressure_factor
         * source_factor

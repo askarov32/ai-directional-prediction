@@ -353,7 +353,11 @@ class FNOInferenceService:
             temperature_c = float(payload.scenario.get("temperature_c", 20.0))
             pressure_mpa = float(payload.scenario.get("pressure_mpa", 1.0))
             amplitude = float(payload.source.get("amplitude", 1.0))
-            frequency_hz = float(payload.source.get("frequency_hz", 1.0))
+            # Phase 4a (api-contract-v2): frequency_hz has no physical
+            # referent in the COMSOL training data (thermal step, not
+            # harmonic source). The previous max(frequency_hz, 1.0)
+            # multiplier on the temperature channel is removed so the
+            # injected source intensity depends only on amplitude.
             source_direction = _normalize(
                 [float(value) for value in payload.source.get("direction", [1.0, 0.0, 0.0])]
             )
@@ -362,7 +366,7 @@ class FNOInferenceService:
                 temp_index = field_names.index("temperature_k")
                 base_temperature = runtime.reference_temperature_k + temperature_c
                 dynamic[temp_index, 0] = dynamic[temp_index, 0] * 0.35 + base_temperature * 0.65
-                dynamic[temp_index, 0] += source_mask * (0.15 * amplitude * max(frequency_hz, 1.0))
+                dynamic[temp_index, 0] += source_mask * (0.15 * amplitude)
                 dynamic[temp_index, 0] += pressure_mpa * 0.02
 
             if payload.domain.get("type") == "rect_2d":
