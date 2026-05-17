@@ -113,10 +113,15 @@ attaches them and derives constants.
 > v2 request has no `thermal_state` block at all** — every thermal
 > parameter is a training-data invariant.
 
-> **Source frequency is fixed at 25 Hz.** The training data uses a
-> single thermal-pulse frequency. The request does not carry a
-> `frequency_hz` field. Explicit override rejected with `HTTP 400 /
-> error_code: "frequency_override_disabled"`.
+> **Source frequency is removed entirely.** The v1 contract carried a
+> `frequency_hz` field, but the COMSOL simulation is a transient
+> thermal-elastic problem with a *step-like* heated rod — there is no
+> oscillating source, so `frequency_hz` has no physical referent in
+> the training data. (Inside `pinn-service` and `fno-service`,
+> `frequency_hz` was used as a heuristic output-magnitude multiplier;
+> that code is removed during Phase 4.) v2 has **no source-frequency
+> field**. Clients that send `frequency_hz` are rejected with
+> `HTTP 400 / error_code: "frequency_field_removed"`.
 
 ### 2.2 Required / optional / derived inputs
 
@@ -125,7 +130,7 @@ attaches them and derives constants.
 | Model          | `model`                                                          | `allow_fallback` (default `true`)   | `model_runtime.representation`, routing target URL                   |
 | Material       | `medium_id` resolved from catalog                                | manual property override (rare)     | `derived.shear_modulus_pa`, `bulk_modulus_pa`, `lame_lambda_pa`, `C` |
 | Thermal state  | *(nothing — fully fixed)*                                        | every thermal field rejected (locked to training data) | `T_ref = 273.15 K`, `T_source = 1500 K`, `θ = 1226.85 K`             |
-| Source pulse   | *(nothing — fully fixed)*                                        | `frequency_hz` rejected (locked)                      | `frequency_hz = 25.0`                                               |
+| Source pulse   | *(nothing — `frequency_hz` removed entirely)*                    | `frequency_hz` rejected with `frequency_field_removed` | none — concept does not exist in v2                                |
 | Domain         | *(nothing — fully fixed)*                                        | `domain.size` rejected (locked)                       | `lx = ly = 1.0 m`, `dimension = 2`                                  |
 | Geometry       | `geometry.dimension=2`, `source.{x_m,y_m}`, `probe.{x_m,y_m}`    | source direction as comparison vector | `propagation_vector_m`, `distance_m`, `unit_direction`, `azimuth_deg` |
 | Observation    | `observation.time_s`                                             | time array for batch prediction     | `time_ms` for v1 compatibility                                       |
@@ -437,7 +442,7 @@ All errors return HTTP 4xx/5xx and a JSON body of the form:
 | `material_thermoelastic_unsupported`      | 400  | Catalog entry has `thermoelastic_supported: false`.                  |
 | `reference_temperature_override_disabled` | 400  | Client sent `reference_temperature_k`; v2 fixes it at 273.15 K.      |
 | `source_temperature_override_disabled`    | 400  | Client sent `source_temperature_k`; v2 fixes it at 1500 K.           |
-| `frequency_override_disabled`             | 400  | Client sent `frequency_hz`; v2 fixes it at 25 Hz.                    |
+| `frequency_field_removed`                 | 400  | Client sent `frequency_hz`; the field is removed entirely in v2 (no physical referent in COMSOL training data). |
 | `domain_override_disabled`                | 400  | Client sent `domain.size` or `domain.resolution`; v2 fixes domain at 1 m × 1 m. |
 | `geometry_out_of_domain`                  | 400  | `source` or `probe` coordinate outside `[0, 1] m`.                   |
 | `invalid_geometry`                        | 400  | `source == probe`, non-finite coords, or `dimension != 2`.           |

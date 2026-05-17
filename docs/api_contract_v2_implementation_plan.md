@@ -179,6 +179,12 @@ the change additive so a v1-shaped payload still works (status quo).
     `displacement_m.v`, **and `prediction_raw.travel_time_s`**
     (required for all services in v2). Stress/strain stay `null`
     in `optional_outputs`.
+  - **Remove `frequency_hz` usage** from `inference_utils.py`:
+    drop `frequency_factor` (line 135) and the
+    `source_frequency_hz` feature attached to model inputs
+    (line 63). `frequency_hz` had no learned physics behind it —
+    it was a magnitude multiplier on the output. Removing it
+    makes the prediction depend only on geometry and material.
   - New test: `pinn-service/tests/test_api_contract_v2.py`.
 - [ ] `fno-service/src/fno_service/api/routes.py`
   - Same shape, including `prediction_raw.travel_time_s`.
@@ -187,6 +193,11 @@ the change additive so a v1-shaped payload still works (status quo).
     cheap. **`field_grid` is the only route that may emit it**,
     and only when the caller listed `"field_grid"` in
     `model_runtime.requested_outputs` AND grid size ≤ 128×128.
+  - **Remove `frequency_hz` heuristic** from
+    `inference/predictor.py` (line 365 — the
+    `0.15 * amplitude * max(freq, 1)` term added to the
+    temperature channel). It is not part of the trained model;
+    it is a magnitude kludge that biases the output.
   - Test: `fno-service/tests/test_api_contract_v2.py`.
 - [ ] `mgn-service/src/service/api.py`
   - Real rollout when artifacts are present; otherwise deterministic
@@ -367,7 +378,7 @@ fallback status. No JS console errors.
   | Reference temp      | 273.15 K (0 °C) | `reference_temperature_override_disabled` |
   | Source temp         | 1500 K          | `source_temperature_override_disabled`    |
   | (⇒ θ = 1226.85 K)   |                |                                             |
-  | Source frequency    | 25 Hz           | `frequency_override_disabled`             |
+  | Source frequency    | **removed**     | `frequency_field_removed` (no physical referent in COMSOL data) |
   | Domain size         | 1 m × 1 m       | `domain_override_disabled`                |
   | Dimension           | 2 (plane-strain)| reject `dimension != 2`                   |
   | Coord bounds        | `x_m, y_m ∈ [0, 1]` | `geometry_out_of_domain`              |
