@@ -129,6 +129,47 @@ class PINNInferenceService:
                 "Flat response fields combine neural outputs with geometry/material postprocessing "
                 "to keep the MVP API backward-compatible."
             ),
+            # api-contract-v2 §7.1 — fallback flag always present.
+            "fallback_used": False,
+            "fallback_reason": None,
+            "warnings": [],
+        }
+
+        # api-contract-v2 §7.1 — additive v2 blocks shipped alongside v1
+        # flat fields. The backend's remote_response_schema_v2 prefers
+        # these when present so v2 callers get direct per-point fields.
+        feature_names = artifacts.output_feature_names or []
+        output_map = (
+            dict(zip(feature_names, [float(value) for value in outputs.tolist()]))
+            if feature_names
+            else {}
+        )
+        payload["schema_version"] = "2.0"
+        payload["prediction_raw"] = {
+            "temperature_k": output_map.get("temperature_k"),
+            "temperature_perturbation_k": (
+                output_map["temperature_k"] - self.config.reference_temperature_k
+                if "temperature_k" in output_map
+                else None
+            ),
+            "displacement_m": {
+                "u": output_map.get("disp_x"),
+                "v": output_map.get("disp_y"),
+            },
+            "travel_time_s": payload["travel_time_ms"] / 1000.0,
+            "response_magnitude_score": payload.get("magnitude"),
+        }
+        payload["optional_outputs"] = {
+            "confidence_score": None,
+            "field_summary": {
+                "max_displacement_m": payload["max_displacement"],
+                "max_temperature_perturbation_k": payload[
+                    "max_temperature_perturbation"
+                ],
+            },
+            "field_grid": None,
+            "strain": None,
+            "stress": None,
         }
         return payload
 

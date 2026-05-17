@@ -122,16 +122,49 @@ def make_direction_response(payload: PredictionPayload) -> dict[str, Any]:
     pressure_mpa = float(scenario.get("pressure_mpa", 1.0))
     time_ms = float(scenario.get("time_ms", 1.0))
 
+    travel_time_ms = round(
+        max((distance / max(vp, 0.1)) * 10.0 + time_ms * 0.15, 0.001), 6
+    )
+    max_displacement = round(
+        0.0012 + temperature_c / 300000.0 + pressure_mpa / 250000.0, 8
+    )
+    max_temperature_perturbation = round(max(temperature_c, 0.0) / 140.0 + 0.5, 8)
     return {
         "direction_vector": [round(x, 6) for x in direction],
         "azimuth_deg": round(azimuth_deg, 4),
         "elevation_deg": round(elevation_deg, 4),
         "magnitude": 1.0,
         "wave_type": "dominant_p",
-        "travel_time_ms": round(max((distance / max(vp, 0.1)) * 10.0 + time_ms * 0.15, 0.001), 6),
-        "max_displacement": round(0.0012 + temperature_c / 300000.0 + pressure_mpa / 250000.0, 8),
-        "max_temperature_perturbation": round(max(temperature_c, 0.0) / 140.0 + 0.5, 8),
+        "travel_time_ms": travel_time_ms,
+        "max_displacement": max_displacement,
+        "max_temperature_perturbation": max_temperature_perturbation,
         "model_version": "real-meshgraphnet-v1",
+        # api-contract-v2 §7.1 — additive v2 blocks. MGN returns the
+        # deterministic stub here, so per-point u/v aren't available.
+        "schema_version": "2.0",
+        "prediction_raw": {
+            "temperature_k": None,
+            "temperature_perturbation_k": max_temperature_perturbation,
+            "displacement_m": {"u": None, "v": None},
+            "travel_time_s": travel_time_ms / 1000.0,
+            "response_magnitude_score": 1.0,
+        },
+        "optional_outputs": {
+            "confidence_score": None,
+            "field_summary": {
+                "max_displacement_m": max_displacement,
+                "max_temperature_perturbation_k": max_temperature_perturbation,
+            },
+            "field_grid": None,
+            "strain": None,
+            "stress": None,
+        },
+        "diagnostics": {
+            "fallback_used": False,
+            "fallback_reason": None,
+            "warnings": [],
+            "mode": "deterministic",
+        },
     }
 
 def _get_metric_value(

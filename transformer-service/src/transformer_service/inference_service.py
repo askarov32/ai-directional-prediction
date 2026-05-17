@@ -124,6 +124,51 @@ class TransformerInferenceService:
                 "Baseline transformer-service inference uses checkpoint coords and "
                 "autoregressive rollout; direction blends model output with source/probe geometry."
             ),
+            # api-contract-v2 §7.1
+            "fallback_used": False,
+            "fallback_reason": None,
+            "warnings": [],
+        }
+
+        # api-contract-v2 §7.1 — additive v2 blocks shipped alongside the
+        # legacy flat fields. Backend's normalizer prefers them.
+        channels = artifacts.target_channel_names or []
+        final_values = (
+            payload["model_outputs"]["final_step_values"]
+            if isinstance(payload.get("model_outputs"), dict)
+            else []
+        )
+        channel_map = (
+            dict(zip(channels, final_values))
+            if channels and len(final_values) == len(channels)
+            else {}
+        )
+        payload["schema_version"] = "2.0"
+        payload["prediction_raw"] = {
+            "temperature_k": channel_map.get("temperature_k"),
+            "temperature_perturbation_k": (
+                channel_map["temperature_k"] - self.config.reference_temperature_k
+                if "temperature_k" in channel_map
+                else None
+            ),
+            "displacement_m": {
+                "u": channel_map.get("disp_x"),
+                "v": channel_map.get("disp_y"),
+            },
+            "travel_time_s": payload["travel_time_ms"] / 1000.0,
+            "response_magnitude_score": payload.get("magnitude"),
+        }
+        payload["optional_outputs"] = {
+            "confidence_score": None,
+            "field_summary": {
+                "max_displacement_m": payload["max_displacement"],
+                "max_temperature_perturbation_k": payload[
+                    "max_temperature_perturbation"
+                ],
+            },
+            "field_grid": None,
+            "strain": None,
+            "stress": None,
         }
         return payload
 
