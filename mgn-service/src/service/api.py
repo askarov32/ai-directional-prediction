@@ -276,6 +276,59 @@ def enrich_response_from_summary(response: dict[str, Any]) -> dict[str, Any]:
     return response
 
 
+def enrich_response_with_probe_sample(
+    response: dict[str, Any], probe: dict[str, Any]
+) -> dict[str, Any]:
+    """Sample the trained MGN trajectory at the probe node so the v2
+    prediction_raw block carries real per-point T, u, v values
+    (not just the field-aggregate summary)."""
+    prediction_path = PROJECT_ROOT / "outputs" / "predictions" / "prediction.pt"
+    if not prediction_path.exists():
+        return response
+    try:
+        import torch as _torch  # local import — keep top of file clean
+        bundle = _torch.load(prediction_path, map_location="cpu", weights_only=False)
+    except Exception:
+        return response
+    if not isinstance(bundle, dict):
+        return response
+    traj = bundle.get("trajectory")
+    coords = bundle.get("coords")
+    field_names = bundle.get("field_names")
+    if traj is None or coords is None or field_names is None:
+        return response
+    try:
+        traj_np = traj.detach().cpu().numpy()
+        coords_np = coords.detach().cpu().numpy()
+    except Exception:
+        return response
+    field_list = list(field_names)
+    px = float(probe.get("x", 0.0))
+    py = float(probe.get("y", 0.0))
+    pz = float(probe.get("z", 0.0))
+    # nearest-node index on coords[:, :3]
+    import numpy as _np
+    diffs = coords_np[:, :3] - _np.array([px, py, pz], dtype=coords_np.dtype)
+    node_idx = int(_np.argmin(_np.sum(diffs * diffs, axis=1)))
+    last_step = traj_np[-1, node_idx, :]  # (F,)
+    name_to_value = {n: float(v) for n, v in zip(field_list, last_step.tolist())}
+
+    raw = response.get("prediction_raw") or {}
+    if "t" in name_to_value:
+        raw["temperature_k"] = name_to_value["t"]
+    if "u" in name_to_value:
+        raw.setdefault("displacement_m", {})
+        raw["displacement_m"]["u"] = name_to_value["u"]
+    if "v" in name_to_value:
+        raw.setdefault("displacement_m", {})
+        raw["displacement_m"]["v"] = name_to_value["v"]
+    response["prediction_raw"] = raw
+    diag = response.get("diagnostics") or {}
+    diag["probe_node_index"] = node_idx
+    response["diagnostics"] = diag
+    return response
+
+
 @app.post("/predict")
 async def predict(payload: PredictionPayload) -> dict[str, Any]:
     dataset_dir = PROJECT_ROOT / "datasets" / MGN_DATASET_ID
@@ -367,5 +420,8 @@ async def predict(payload: PredictionPayload) -> dict[str, Any]:
 
     response = make_direction_response(payload)
     response = enrich_response_from_summary(response)
+    response = enrich_response_with_probe_sample(
+        response, payload.probe if hasattr(payload, "probe") else {}
+    )
 
     return response
