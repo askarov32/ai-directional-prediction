@@ -1,0 +1,288 @@
+[
+  {
+    "id": "granite",
+    "name": "Granite",
+    "category": "igneous intrusive",
+    "thermoelastic_supported": true,
+    "properties": {
+      "rho_kg_m3": 2650.0,
+      "vp_m_s": 5850.0,
+      "vs_m_s": 3400.0,
+      "young_modulus_pa": 76275800000.0,
+      "poisson_ratio": 0.244953,
+      "shear_modulus_pa": 30634000000.0,
+      "bulk_modulus_pa": 49844300000.0,
+      "lame_lambda_pa": 29421600000.0,
+      "thermal_conductivity_w_mk": 2.5,
+      "heat_capacity_j_kgk": 850.0,
+      "volumetric_heat_capacity_j_m3k": 2252500.0,
+      "thermal_expansion_1_k": 7.9e-06,
+      "thermoelastic_gamma_pa_k": 1181310.0,
+      "porosity_summary": "total 45.5"
+    },
+    "metadata": {
+      "source_table": "combined_geological_media_parameters.csv",
+      "value_type": "mixed",
+      "source_files": "Insar/data/\u0442\u0430\u0431\u043b\u0438\u0446\u0430 10 \u044d\u043b\u0435\u043c\u0435\u043d\u0442\u043e\u0432.tex; Insar/data/Table: Coefficient of Thermal Expansion.pdf",
+      "notes": "Source ranges converted to SI; midpoint used for model-ready effective value: rho 2.6-2.7 g/cm3, Vp 5.5-6.2 km/s, Vs 3.2-3.6 km/s; alpha from thermal-expansion PDF; total porosity range 34-57%; elastic moduli, E, nu, K, lambda, and mu derived from midpoint rho, Vp, and Vs under isotropic assumptions"
+    }
+  },
+  {
+    "id": "granodiorite",
+    "name": "Granodiorite",
+    "category": "igneous intrusive",
+    "thermoelastic_supported": false,
+    "properties": {
+      "rho_kg_m3": 2795.0,
+      "vp_m_s": 6100.0,
+      "vs_m_s": 3500.0,
+      "young_modulus_pa": 85912400000.0,
+      "poisson_ratio": 0.254607,
+      "shear_modulus_pa": 34238800000.0,
+      "bulk_modulus_pa": 58350300000.0,
+      "lame_lambda_pa": 35524400000.0,
+      "thermal_conductivity_w_mk": 2.4,
+      "heat_capacity_j_kgk": null,
+      "volumetric_heat_capacity_j_m3k": null,
+      "thermal_expansion_1_k": null,
+      "thermoelastic_gamma_pa_k": null,
+      "porosity_summary": null
+    },
+    "metadata": {
+      "source_table": "combined_geological_media_parameters.csv",
+      "value_type": "mixed",
+      "source_files": "Insar/data/\u0442\u0430\u0431\u043b\u0438\u0446\u0430 10 \u044d\u043b\u0435\u043c\u0435\u043d\u0442\u043e\u0432.tex",
+      "notes": "Source ranges converted to SI; midpoint used for model-ready effective value: rho 2.77-2.82 g/cm3, Vp 5.8-6.4 km/s, Vs 3.3-3.7 km/s; Cp missing in source, so volumetric heat capacity is not computed; linear thermal expansion coefficient not found in inspected data, so gamma is not computed; elastic moduli, E, nu, K, lambda, and mu derived from midpoint rho, Vp, and Vs under isotropic assumptions",
+      "limitation": "alpha_1_K (thermal expansion) is not available for this material in the source table; thermoelastic predictions are not supported. Only elastic/geometric quantities are usable."
+    }
+  },
+  {
+    "id": "basalt",
+    "name": "Basalt",
+    "category": "igneous volcanic",
+    "thermoelastic_supported": false,
+    "properties": {
+      "rho_kg_m3": 3000.0,
+      "vp_m_s": 6550.0,
+      "vs_m_s": 3700.0,
+      "young_modulus_pa": 103963000000.0,
+      "poisson_ratio": 0.265682,
+      "shear_modulus_pa": 41070000000.0,
+      "bulk_modulus_pa": 73947500000.0,
+      "lame_lambda_pa": 46567500000.0,
+      "thermal_conductivity_w_mk": 1.95,
+      "heat_capacity_j_kgk": 1300.0,
+      "volumetric_heat_capacity_j_m3k": 3900000.0,
+      "thermal_expansion_1_k": null,
+      "thermoelastic_gamma_pa_k": null,
+      "porosity_summary": "total 19.0"
+    },
+    "metadata": {
+      "source_table": "combined_geological_media_parameters.csv",
+      "value_type": "mixed",
+      "source_files": "Insar/data/\u0442\u0430\u0431\u043b\u0438\u0446\u0430 10 \u044d\u043b\u0435\u043c\u0435\u043d\u0442\u043e\u0432.tex",
+      "notes": "Source ranges converted to SI; midpoint used for model-ready effective value: rho 2.9-3.1 g/cm3, Vp 6.3-6.8 km/s, Vs 3.5-3.9 km/s; linear thermal expansion coefficient not found in inspected data, so gamma is not computed; total porosity range 3-35%; elastic moduli, E, nu, K, lambda, and mu derived from midpoint rho, Vp, and Vs under isotropic assumptions",
+      "limitation": "alpha_1_K (thermal expansion) is not available for this material in the source table; thermoelastic predictions are not supported. Only elastic/geometric quantities are usable."
+    }
+  },
+  {
+    "id": "diabase",
+    "name": "Diabase",
+    "category": "igneous hypabyssal",
+    "thermoelastic_supported": false,
+    "properties": {
+      "rho_kg_m3": 2975.0,
+      "vp_m_s": 6450.0,
+      "vs_m_s": 3600.0,
+      "young_modulus_pa": 98222400000.0,
+      "poisson_ratio": 0.273763,
+      "shear_modulus_pa": 38556000000.0,
+      "bulk_modulus_pa": 72359400000.0,
+      "lame_lambda_pa": 46655400000.0,
+      "thermal_conductivity_w_mk": 2.5,
+      "heat_capacity_j_kgk": 850.0,
+      "volumetric_heat_capacity_j_m3k": 2528750.0,
+      "thermal_expansion_1_k": null,
+      "thermoelastic_gamma_pa_k": null,
+      "porosity_summary": null
+    },
+    "metadata": {
+      "source_table": "combined_geological_media_parameters.csv",
+      "value_type": "mixed",
+      "source_files": "Insar/data/\u0442\u0430\u0431\u043b\u0438\u0446\u0430 10 \u044d\u043b\u0435\u043c\u0435\u043d\u0442\u043e\u0432.tex",
+      "notes": "Source ranges converted to SI; midpoint used for model-ready effective value: rho 2.9-3.05 g/cm3, Vp 6.2-6.7 km/s, Vs 3.4-3.8 km/s; linear thermal expansion coefficient not found in inspected data, so gamma is not computed; elastic moduli, E, nu, K, lambda, and mu derived from midpoint rho, Vp, and Vs under isotropic assumptions",
+      "limitation": "alpha_1_K (thermal expansion) is not available for this material in the source table; thermoelastic predictions are not supported. Only elastic/geometric quantities are usable."
+    }
+  },
+  {
+    "id": "gabbro",
+    "name": "Gabbro",
+    "category": "igneous intrusive mafic",
+    "thermoelastic_supported": false,
+    "properties": {
+      "rho_kg_m3": 3075.0,
+      "vp_m_s": 6950.0,
+      "vs_m_s": 3800.0,
+      "young_modulus_pa": 114274000000.0,
+      "poisson_ratio": 0.286785,
+      "shear_modulus_pa": 44403000000.0,
+      "bulk_modulus_pa": 89326200000.0,
+      "lame_lambda_pa": 59724200000.0,
+      "thermal_conductivity_w_mk": 2.3,
+      "heat_capacity_j_kgk": 1000.0,
+      "volumetric_heat_capacity_j_m3k": 3075000.0,
+      "thermal_expansion_1_k": null,
+      "thermoelastic_gamma_pa_k": null,
+      "porosity_summary": "total 43.5"
+    },
+    "metadata": {
+      "source_table": "combined_geological_media_parameters.csv",
+      "value_type": "mixed",
+      "source_files": "Insar/data/\u0442\u0430\u0431\u043b\u0438\u0446\u0430 10 \u044d\u043b\u0435\u043c\u0435\u043d\u0442\u043e\u0432.tex",
+      "notes": "Source ranges converted to SI; midpoint used for model-ready effective value: rho 2.95-3.2 g/cm3, Vp 6.7-7.2 km/s, Vs 3.6-4.0 km/s; linear thermal expansion coefficient not found in inspected data, so gamma is not computed; total porosity range 42-45%; elastic moduli, E, nu, K, lambda, and mu derived from midpoint rho, Vp, and Vs under isotropic assumptions",
+      "limitation": "alpha_1_K (thermal expansion) is not available for this material in the source table; thermoelastic predictions are not supported. Only elastic/geometric quantities are usable."
+    }
+  },
+  {
+    "id": "sandstone",
+    "name": "Sandstone",
+    "category": "sedimentary siliciclastic",
+    "thermoelastic_supported": true,
+    "properties": {
+      "rho_kg_m3": 2725.0,
+      "vp_m_s": 5000.0,
+      "vs_m_s": 2850.0,
+      "young_modulus_pa": 55749300000.0,
+      "poisson_ratio": 0.259369,
+      "shear_modulus_pa": 22133800000.0,
+      "bulk_modulus_pa": 38613200000.0,
+      "lame_lambda_pa": 23857400000.0,
+      "thermal_conductivity_w_mk": 2.25,
+      "heat_capacity_j_kgk": 1000.0,
+      "volumetric_heat_capacity_j_m3k": 2725000.0,
+      "thermal_expansion_1_k": 1.16e-05,
+      "thermoelastic_gamma_pa_k": 1343740.0,
+      "porosity_summary": "total 31.5; effective 26.5"
+    },
+    "metadata": {
+      "source_table": "combined_geological_media_parameters.csv",
+      "value_type": "mixed",
+      "source_files": "Insar/data/\u0442\u0430\u0431\u043b\u0438\u0446\u0430 10 \u044d\u043b\u0435\u043c\u0435\u043d\u0442\u043e\u0432.tex; Insar/data/Table: Coefficient of Thermal Expansion.pdf",
+      "notes": "Source ranges converted to SI; midpoint used for model-ready effective value: rho 2.65-2.8 g/cm3, Vp 4.5-5.5 km/s, Vs 2.5-3.2 km/s; alpha from thermal-expansion PDF; total porosity range 14-49%; effective porosity range 12-41%; elastic moduli, E, nu, K, lambda, and mu derived from midpoint rho, Vp, and Vs under isotropic assumptions"
+    }
+  },
+  {
+    "id": "limestone",
+    "name": "Limestone",
+    "category": "sedimentary carbonate",
+    "thermoelastic_supported": true,
+    "properties": {
+      "rho_kg_m3": 2675.0,
+      "vp_m_s": 5400.0,
+      "vs_m_s": 3000.0,
+      "young_modulus_pa": 61477200000.0,
+      "poisson_ratio": 0.276786,
+      "shear_modulus_pa": 24075000000.0,
+      "bulk_modulus_pa": 45903000000.0,
+      "lame_lambda_pa": 29853000000.0,
+      "thermal_conductivity_w_mk": 2.55,
+      "heat_capacity_j_kgk": 1050.0,
+      "volumetric_heat_capacity_j_m3k": 2808750.0,
+      "thermal_expansion_1_k": 8e-06,
+      "thermoelastic_gamma_pa_k": 1101670.0,
+      "porosity_summary": "total 31.5; effective 18.0"
+    },
+    "metadata": {
+      "source_table": "combined_geological_media_parameters.csv",
+      "value_type": "mixed",
+      "source_files": "Insar/data/\u0442\u0430\u0431\u043b\u0438\u0446\u0430 10 \u044d\u043b\u0435\u043c\u0435\u043d\u0442\u043e\u0432.tex; Insar/data/Table: Coefficient of Thermal Expansion.pdf",
+      "notes": "Source ranges converted to SI; midpoint used for model-ready effective value: rho 2.6-2.75 g/cm3, Vp 4.8-6.0 km/s, Vs 2.6-3.4 km/s; alpha from thermal-expansion PDF; total porosity range 7-56%; effective porosity range 0-36%; elastic moduli, E, nu, K, lambda, and mu derived from midpoint rho, Vp, and Vs under isotropic assumptions"
+    }
+  },
+  {
+    "id": "marble",
+    "name": "Marble",
+    "category": "metamorphic carbonate",
+    "thermoelastic_supported": true,
+    "properties": {
+      "rho_kg_m3": 2725.0,
+      "vp_m_s": 6150.0,
+      "vs_m_s": 3450.0,
+      "young_modulus_pa": 82409100000.0,
+      "poisson_ratio": 0.270399,
+      "shear_modulus_pa": 32434300000.0,
+      "bulk_modulus_pa": 59820600000.0,
+      "lame_lambda_pa": 38197700000.0,
+      "thermal_conductivity_w_mk": 2.8,
+      "heat_capacity_j_kgk": 850.0,
+      "volumetric_heat_capacity_j_m3k": 2316250.0,
+      "thermal_expansion_1_k": 9.8e-06,
+      "thermoelastic_gamma_pa_k": 1758720.0,
+      "porosity_summary": null
+    },
+    "metadata": {
+      "source_table": "combined_geological_media_parameters.csv",
+      "value_type": "mixed",
+      "source_files": "Insar/data/\u0442\u0430\u0431\u043b\u0438\u0446\u0430 10 \u044d\u043b\u0435\u043c\u0435\u043d\u0442\u043e\u0432.tex; Insar/data/Table: Coefficient of Thermal Expansion.pdf",
+      "notes": "Source ranges converted to SI; midpoint used for model-ready effective value: rho 2.65-2.8 g/cm3, Vp 5.8-6.5 km/s, Vs 3.2-3.7 km/s; alpha range from thermal-expansion PDF; midpoint used; elastic moduli, E, nu, K, lambda, and mu derived from midpoint rho, Vp, and Vs under isotropic assumptions"
+    }
+  },
+  {
+    "id": "schist",
+    "name": "Schist",
+    "category": "metamorphic foliated",
+    "thermoelastic_supported": false,
+    "properties": {
+      "rho_kg_m3": 2800.0,
+      "vp_m_s": 5500.0,
+      "vs_m_s": 3100.0,
+      "young_modulus_pa": 68195600000.0,
+      "poisson_ratio": 0.2672,
+      "shear_modulus_pa": 26908000000.0,
+      "bulk_modulus_pa": 48822700000.0,
+      "lame_lambda_pa": 30884000000.0,
+      "thermal_conductivity_w_mk": 2.75,
+      "heat_capacity_j_kgk": 1150.0,
+      "volumetric_heat_capacity_j_m3k": 3220000.0,
+      "thermal_expansion_1_k": null,
+      "thermoelastic_gamma_pa_k": null,
+      "porosity_summary": "total 26.5; effective 27.5"
+    },
+    "metadata": {
+      "source_table": "combined_geological_media_parameters.csv",
+      "value_type": "mixed",
+      "source_files": "Insar/data/\u0442\u0430\u0431\u043b\u0438\u0446\u0430 10 \u044d\u043b\u0435\u043c\u0435\u043d\u0442\u043e\u0432.tex",
+      "notes": "Source ranges converted to SI; midpoint used for model-ready effective value: rho 2.7-2.9 g/cm3, Vp 5.0-6.0 km/s, Vs 2.8-3.4 km/s; linear thermal expansion coefficient not found in inspected data, so gamma is not computed; total porosity range 4-49%; effective porosity range 22-33%; elastic moduli, E, nu, K, lambda, and mu derived from midpoint rho, Vp, and Vs under isotropic assumptions",
+      "limitation": "alpha_1_K (thermal expansion) is not available for this material in the source table; thermoelastic predictions are not supported. Only elastic/geometric quantities are usable."
+    }
+  },
+  {
+    "id": "quartzite",
+    "name": "Quartzite",
+    "category": "metamorphic quartz-rich",
+    "thermoelastic_supported": false,
+    "properties": {
+      "rho_kg_m3": 2650.0,
+      "vp_m_s": 6150.0,
+      "vs_m_s": 3550.0,
+      "young_modulus_pa": 83501500000.0,
+      "poisson_ratio": 0.250149,
+      "shear_modulus_pa": 33396600000.0,
+      "bulk_modulus_pa": 55700800000.0,
+      "lame_lambda_pa": 33436400000.0,
+      "thermal_conductivity_w_mk": 5.1,
+      "heat_capacity_j_kgk": 1000.0,
+      "volumetric_heat_capacity_j_m3k": 2650000.0,
+      "thermal_expansion_1_k": null,
+      "thermoelastic_gamma_pa_k": null,
+      "porosity_summary": null
+    },
+    "metadata": {
+      "source_table": "combined_geological_media_parameters.csv",
+      "value_type": "mixed",
+      "source_files": "Insar/data/\u0442\u0430\u0431\u043b\u0438\u0446\u0430 10 \u044d\u043b\u0435\u043c\u0435\u043d\u0442\u043e\u0432.tex",
+      "notes": "Source ranges converted to SI; midpoint used for model-ready effective value: rho 2.6-2.7 g/cm3, Vp 5.8-6.5 km/s, Vs 3.3-3.8 km/s; linear thermal expansion coefficient not found in inspected data, so gamma is not computed; elastic moduli, E, nu, K, lambda, and mu derived from midpoint rho, Vp, and Vs under isotropic assumptions",
+      "limitation": "alpha_1_K (thermal expansion) is not available for this material in the source table; thermoelastic predictions are not supported. Only elastic/geometric quantities are usable."
+    }
+  }
+]
