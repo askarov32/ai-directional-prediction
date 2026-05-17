@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Thermoelastic Wave Direction Predictor</title>
+    <title>AI-assisted Directional Prediction Prototype</title>
     <link rel="stylesheet" href="assets/styles/reset.css?v=20260501b" />
     <link rel="stylesheet" href="assets/styles/variables.css?v=20260501b" />
     <link rel="stylesheet" href="assets/styles/base.css?v=20260501b" />
@@ -14,15 +14,19 @@
   <body>
     <div class="page-shell">
       <header class="hero">
-        <p class="eyebrow">
-          Directional Prediction Workspace
-          <span id="contract-toggle" class="contract-toggle"></span>
-        </p>
-        <h1>AI directional prediction of thermoelastic-wave propagation in geological media</h1>
+        <div>
+          <p class="eyebrow">Directional Prediction Workspace</p>
+          <h1>AI-assisted 2D directional prediction in geological media</h1>
+        </div>
         <p class="hero__lead">
-          A calmer interface for configuring one thermoelastic scenario, routing it to MeshGraphNet, FNO, Transformer, or PINN,
-          and reading the normalized response without unnecessary visual noise.
+          Configure a planar source-probe scenario, compare MeshGraphNet, FNO, Transformer, and PINN routes, and inspect the normalized prediction response.
         </p>
+        <div class="hero__meta">
+          <span>Research prototype</span>
+          <span>Fixed 1 m x 1 m domain</span>
+          <span>Model comparison</span>
+        </div>
+        <p class="hero__note">Prototype prediction; not a field-validated thermoelastic simulation.</p>
       </header>
 
       <main class="workspace">
@@ -31,14 +35,14 @@
             <div>
               <h2>Prediction setup</h2>
               <p class="section-description">
-                Start with the medium and model. Keep the scenario visible. Open advanced sections only when needed.
+                Select the model route, material, source, probe, and observation time.
               </p>
             </div>
           </div>
 
           <section class="section-block section-block--first">
             <div class="section-heading">
-              <h3>Base selection</h3>
+              <h3>Model and material</h3>
               <p>Choose the geological preset and the model route.</p>
             </div>
 
@@ -47,6 +51,7 @@
                 <span class="field__label">Geological medium</span>
                 <select id="medium-select" name="medium_id"></select>
                 <small class="field__hint">Loaded from the backend catalog.</small>
+                <small class="field__error" data-error-for="medium"></small>
               </label>
 
               <label class="field">
@@ -60,31 +65,80 @@
 
           <section class="section-block">
             <div class="section-heading">
-              <h3>Scenario</h3>
-              <p>Primary thermoelastic inputs for the current run.</p>
+              <h3>Source point</h3>
+              <p>Coordinates inside the fixed 1 m by 1 m plane.</p>
             </div>
 
             <div class="field-grid field-grid--two">
               <label class="field">
-                <span class="field__label">Temperature (°C)</span>
-                <input id="temperature-input" name="scenario_temperature_c" type="number" step="0.1" />
-                <small class="field__hint" id="temperature-range-hint"></small>
-                <small class="field__error" data-error-for="scenario.temperature_c"></small>
+                <span class="field__label">Source X (m)</span>
+                <input id="source-x-input" name="source_x" type="number" min="0" max="1" step="0.01" />
               </label>
 
               <label class="field">
-                <span class="field__label">Pressure (MPa)</span>
-                <input id="pressure-input" name="scenario_pressure_mpa" type="number" step="0.1" />
-                <small class="field__hint" id="pressure-range-hint"></small>
-                <small class="field__error" data-error-for="scenario.pressure_mpa"></small>
+                <span class="field__label">Source Y (m)</span>
+                <input id="source-y-input" name="source_y" type="number" min="0" max="1" step="0.01" />
               </label>
+            </div>
+
+            <small class="field__error field__error--wide" data-error-for="geometry.source"></small>
+          </section>
+
+          <section class="section-block">
+            <div class="section-heading">
+              <h3>Probe point</h3>
+              <p>Observation point inside the fixed 1 m by 1 m plane.</p>
+            </div>
+
+            <div class="field-grid field-grid--two">
+              <label class="field">
+                <span class="field__label">Probe X (m)</span>
+                <input id="probe-x-input" name="probe_x" type="number" min="0" max="1" step="0.01" />
+              </label>
+
+              <label class="field">
+                <span class="field__label">Probe Y (m)</span>
+                <input id="probe-y-input" name="probe_y" type="number" min="0" max="1" step="0.01" />
+              </label>
+            </div>
+
+            <small class="field__error field__error--wide" data-error-for="geometry.probe"></small>
+          </section>
+
+          <section class="section-block">
+            <div class="section-heading">
+              <h3>Simplified scenario settings</h3>
+              <p>Locked v2 prototype settings resolved consistently by the backend.</p>
+            </div>
+
+            <div class="scenario-preset-grid" aria-label="Simplified scenario settings">
+              <div class="scenario-preset">
+                <span>Thermal source</span>
+                <strong>point</strong>
+              </div>
+              <div class="scenario-preset">
+                <span>Mechanical constraint</span>
+                <strong>free</strong>
+              </div>
+              <div class="scenario-preset">
+                <span>Boundary condition</span>
+                <strong>prototype simplified</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="section-block">
+            <div class="section-heading">
+              <h3>Observation</h3>
+              <p>Query time for the normalized prediction response.</p>
             </div>
 
             <div class="field-grid field-grid--single">
               <label class="field">
-                <span class="field__label">Time (ms)</span>
-                <input id="time-input" name="scenario_time_ms" type="number" step="0.1" />
-                <small class="field__hint">Observation horizon for the request.</small>
+                <span class="field__label">Time (s)</span>
+                <input id="time-input" name="observation_time_s" type="number" min="0" step="0.001" />
+                <small class="field__hint">The fixed training domain is resolved by the backend.</small>
+                <small class="field__error" data-error-for="observation.time_s"></small>
               </label>
             </div>
           </section>
@@ -102,192 +156,6 @@
             </div>
           </details>
 
-          <details class="fold-section">
-            <summary>
-              <div class="fold-section__summary">
-                <h3>Source and probe</h3>
-                <p>Optional excitation details and observation coordinates.</p>
-              </div>
-            </summary>
-
-            <div class="fold-section__content">
-              <div class="field-grid field-grid--three">
-                <label class="field">
-                  <span class="field__label">Source type</span>
-                  <select id="source-type-input" name="source_type">
-                    <option value="thermal_pulse">Thermal pulse</option>
-                    <option value="point_force">Point force</option>
-                    <option value="coupled_excitation">Coupled excitation</option>
-                  </select>
-                </label>
-
-                <label class="field">
-                  <span class="field__label">Amplitude</span>
-                  <input id="source-amplitude-input" name="source_amplitude" type="number" step="0.1" />
-                  <small class="field__hint">Normalized intensity.</small>
-                </label>
-
-                <label class="field">
-                  <span class="field__label">Frequency (Hz)</span>
-                  <input id="source-frequency-input" name="source_frequency_hz" type="number" step="0.1" />
-                  <small class="field__hint">Used by demo-oriented services.</small>
-                </label>
-              </div>
-
-              <div class="field-grid field-grid--three">
-                <label class="field">
-                  <span class="field__label">Source X</span>
-                  <input id="source-x-input" name="source_x" type="number" step="0.01" />
-                </label>
-
-                <label class="field">
-                  <span class="field__label">Source Y</span>
-                  <input id="source-y-input" name="source_y" type="number" step="0.01" />
-                </label>
-
-                <label class="field">
-                  <span class="field__label">Source Z</span>
-                  <input id="source-z-input" name="source_z" type="number" step="0.01" />
-                </label>
-              </div>
-
-              <div class="field-grid field-grid--three">
-                <label class="field">
-                  <span class="field__label">Direction X</span>
-                  <input id="direction-x-input" name="direction_x" type="number" step="0.01" />
-                </label>
-
-                <label class="field">
-                  <span class="field__label">Direction Y</span>
-                  <input id="direction-y-input" name="direction_y" type="number" step="0.01" />
-                </label>
-
-                <label class="field">
-                  <span class="field__label">Direction Z</span>
-                  <input id="direction-z-input" name="direction_z" type="number" step="0.01" />
-                </label>
-              </div>
-
-              <div class="field-grid field-grid--three">
-                <label class="field">
-                  <span class="field__label">Probe X</span>
-                  <input id="probe-x-input" name="probe_x" type="number" step="0.01" />
-                </label>
-
-                <label class="field">
-                  <span class="field__label">Probe Y</span>
-                  <input id="probe-y-input" name="probe_y" type="number" step="0.01" />
-                </label>
-
-                <label class="field">
-                  <span class="field__label">Probe Z</span>
-                  <input id="probe-z-input" name="probe_z" type="number" step="0.01" />
-                </label>
-              </div>
-
-              <small class="field__error field__error--wide" data-error-for="source.coordinates"></small>
-              <small class="field__error field__error--wide" data-error-for="source.direction"></small>
-              <small class="field__error field__error--wide" data-error-for="probe.coordinates"></small>
-            </div>
-          </details>
-
-          <details class="fold-section">
-            <summary>
-              <div class="fold-section__summary">
-                <h3>Domain configuration</h3>
-                <p>Size, resolution, and boundary conditions for the computational domain.</p>
-              </div>
-            </summary>
-
-            <div class="fold-section__content">
-              <div class="field-grid field-grid--three">
-                <label class="field">
-                  <span class="field__label">Domain type</span>
-                  <select id="domain-type-input" name="domain_type">
-                    <option value="rect_2d">rect_2d</option>
-                    <option value="rect_3d">rect_3d</option>
-                  </select>
-                  <small class="field__hint">The stack is moving to 3D-first. FNO remains 2D-only for now.</small>
-                </label>
-
-                <label class="field">
-                  <span class="field__label">Boundary left</span>
-                  <select id="boundary-left-input" name="boundary_left">
-                    <option value="fixed">fixed</option>
-                    <option value="free">free</option>
-                    <option value="insulated">insulated</option>
-                  </select>
-                </label>
-
-                <label class="field">
-                  <span class="field__label">Boundary right</span>
-                  <select id="boundary-right-input" name="boundary_right">
-                    <option value="free">free</option>
-                    <option value="fixed">fixed</option>
-                    <option value="insulated">insulated</option>
-                  </select>
-                </label>
-              </div>
-
-              <div class="field-grid field-grid--three">
-                <label class="field">
-                  <span class="field__label">Lx</span>
-                  <input id="domain-lx-input" name="domain_lx" type="number" step="0.01" />
-                </label>
-
-                <label class="field">
-                  <span class="field__label">Ly</span>
-                  <input id="domain-ly-input" name="domain_ly" type="number" step="0.01" />
-                </label>
-
-                <label class="field">
-                  <span class="field__label">Lz</span>
-                  <input id="domain-lz-input" name="domain_lz" type="number" step="0.01" />
-                </label>
-              </div>
-
-              <div class="field-grid field-grid--three">
-                <label class="field">
-                  <span class="field__label">Nx</span>
-                  <input id="domain-nx-input" name="domain_nx" type="number" step="1" />
-                </label>
-
-                <label class="field">
-                  <span class="field__label">Ny</span>
-                  <input id="domain-ny-input" name="domain_ny" type="number" step="1" />
-                </label>
-
-                <label class="field">
-                  <span class="field__label">Nz</span>
-                  <input id="domain-nz-input" name="domain_nz" type="number" step="1" />
-                </label>
-              </div>
-
-              <div class="field-grid field-grid--two">
-                <label class="field">
-                  <span class="field__label">Boundary top</span>
-                  <select id="boundary-top-input" name="boundary_top">
-                    <option value="insulated">insulated</option>
-                    <option value="fixed">fixed</option>
-                    <option value="free">free</option>
-                  </select>
-                </label>
-
-                <label class="field">
-                  <span class="field__label">Boundary bottom</span>
-                  <select id="boundary-bottom-input" name="boundary_bottom">
-                    <option value="insulated">insulated</option>
-                    <option value="fixed">fixed</option>
-                    <option value="free">free</option>
-                  </select>
-                </label>
-              </div>
-
-              <small class="field__error field__error--wide" data-error-for="domain.size"></small>
-              <small class="field__error field__error--wide" data-error-for="domain.resolution"></small>
-            </div>
-          </details>
-
           <div class="action-row">
             <button type="button" id="demo-button" class="button button--secondary">Use demo values</button>
             <button type="button" id="reset-button" class="button button--ghost">Reset</button>
@@ -302,7 +170,7 @@
           <div class="card__header card__header--result">
             <div>
               <h2>Prediction result</h2>
-              <p class="section-description">Directional response, latency, and a compact projected domain preview.</p>
+              <p class="section-description">Directional response, latency, and a compact planar domain preview.</p>
             </div>
 
             <div class="result-badges">
@@ -324,55 +192,162 @@
           <div class="result-shell">
             <div class="empty-state" id="result-empty">
               <h3>Ready for inference</h3>
-              <p>Run a prediction to populate the vector, angles, field summary, and normalized metadata.</p>
+              <p>Run a prediction to populate the planar diagram, physical result cards, and normalized metadata.</p>
             </div>
 
             <div class="result-content is-hidden" id="result-content">
-              <div class="result-hero">
-                <div>
-                  <p class="result-hero__label">Direction vector</p>
-                  <h3 id="result-direction">[0.000, 0.000, 0.000]</h3>
-                </div>
-                <div class="metric-pill" id="result-wave-type">wave</div>
+              <div class="result-card-grid">
+                <article class="result-physics-card">
+                  <div class="result-physics-card__header">
+                    <span>Thermal response</span>
+                    <small id="thermal-note">Prototype prediction</small>
+                  </div>
+                  <dl class="result-kv">
+                    <div>
+                      <dt>Temperature T</dt>
+                      <dd id="thermal-temperature">Not returned</dd>
+                      <small id="thermal-temperature-source">Unavailable</small>
+                    </div>
+                    <div>
+                      <dt>Temperature perturbation θ</dt>
+                      <dd id="thermal-perturbation">Not returned</dd>
+                      <small id="thermal-perturbation-source">Unavailable</small>
+                    </div>
+                  </dl>
+                </article>
+
+                <article class="result-physics-card">
+                  <div class="result-physics-card__header">
+                    <span>Mechanical displacement response</span>
+                    <small id="displacement-source">Unavailable</small>
+                  </div>
+                  <dl class="result-kv result-kv--three">
+                    <div>
+                      <dt>u component</dt>
+                      <dd id="displacement-u">Not returned</dd>
+                    </div>
+                    <div>
+                      <dt>v component</dt>
+                      <dd id="displacement-v">Not returned</dd>
+                    </div>
+                    <div>
+                      <dt>|u| magnitude</dt>
+                      <dd id="displacement-magnitude">Not returned</dd>
+                    </div>
+                  </dl>
+                  <div id="displacement-vector" class="displacement-vector-card" aria-label="Displacement vector visualization"></div>
+                </article>
+
+                <article class="result-physics-card">
+                  <div class="result-physics-card__header">
+                    <span>Directional response</span>
+                    <small>Normalized geometry</small>
+                  </div>
+                  <dl class="result-kv result-kv--two">
+                    <div>
+                      <dt>Distance</dt>
+                      <dd id="direction-distance">Not returned</dd>
+                    </div>
+                    <div>
+                      <dt>Azimuth</dt>
+                      <dd id="direction-azimuth">Not returned</dd>
+                    </div>
+                    <div>
+                      <dt>Unit direction</dt>
+                      <dd id="direction-unit">Not returned</dd>
+                    </div>
+                    <div>
+                      <dt>Magnitude score</dt>
+                      <dd id="direction-score">Not returned</dd>
+                    </div>
+                  </dl>
+                </article>
+
+                <article class="result-physics-card">
+                  <div class="result-physics-card__header">
+                    <span>Temporal response</span>
+                    <small id="temporal-source">Unavailable</small>
+                  </div>
+                  <dl class="result-kv result-kv--two">
+                    <div>
+                      <dt>Travel time</dt>
+                      <dd id="travel-time-s">Not returned</dd>
+                    </div>
+                    <div>
+                      <dt>Secondary</dt>
+                      <dd id="travel-time-ms">Not returned</dd>
+                    </div>
+                  </dl>
+                </article>
+
+                <article class="result-physics-card">
+                  <div class="result-physics-card__header">
+                    <span>Model metadata</span>
+                    <small id="metadata-fallback">No fallback</small>
+                  </div>
+                  <dl class="result-kv result-kv--two">
+                    <div>
+                      <dt>Model</dt>
+                      <dd id="metadata-model">Not returned</dd>
+                    </div>
+                    <div>
+                      <dt>Version</dt>
+                      <dd id="metadata-version">Not returned</dd>
+                    </div>
+                    <div>
+                      <dt>Inference time</dt>
+                      <dd id="metadata-latency">Not returned</dd>
+                    </div>
+                    <div>
+                      <dt>Request ID</dt>
+                      <dd id="metadata-request-id">Not returned</dd>
+                    </div>
+                  </dl>
+                  <p id="metadata-fallback-reason" class="result-note is-hidden"></p>
+                </article>
               </div>
 
-              <div class="metric-grid">
-                <div class="metric-card">
-                  <span class="metric-card__label">Azimuth</span>
-                  <strong id="result-azimuth">0.0°</strong>
+              <section class="spatial-field-section" aria-label="Optional spatial field output">
+                <div class="spatial-field-section__header">
+                  <div>
+                    <h3>Spatial field grid</h3>
+                    <p>Optional model-provided spatial output for the current prototype prediction.</p>
+                  </div>
                 </div>
-                <div class="metric-card">
-                  <span class="metric-card__label">Elevation</span>
-                  <strong id="result-elevation">0.0°</strong>
-                </div>
-                <div class="metric-card">
-                  <span class="metric-card__label">Magnitude</span>
-                  <strong id="result-magnitude">0.000</strong>
-                </div>
-                <div class="metric-card">
-                  <span class="metric-card__label">Travel time</span>
-                  <strong id="result-travel-time">0.0 ms</strong>
-                </div>
-              </div>
+                <div id="field-grid-heatmap" class="heatmap-panel"></div>
+              </section>
 
-              <div class="field-summary">
-                <div class="field-summary__item">
-                  <span>Max displacement</span>
-                  <strong id="result-displacement">0.000000</strong>
+              <section class="diagnostics-panel" aria-label="Prediction diagnostics">
+                <div class="diagnostics-panel__header">
+                  <div>
+                    <h3>Diagnostics</h3>
+                    <p>Runtime context for this prototype prediction.</p>
+                  </div>
+                  <div class="diagnostics-badges">
+                    <span id="diagnostics-status-badge" class="diagnostics-badge diagnostics-badge--normal">Normal response</span>
+                    <span id="diagnostics-fallback-badge" class="diagnostics-badge diagnostics-badge--fallback is-hidden">Fallback response</span>
+                    <span id="diagnostics-warning-badge" class="diagnostics-badge diagnostics-badge--warning is-hidden">Warnings</span>
+                  </div>
                 </div>
-                <div class="field-summary__item">
-                  <span>Temperature perturbation</span>
-                  <strong id="result-temperature-perturbation">0.000000</strong>
+
+                <div class="diagnostics-meta">
+                  <span>Request ID: <strong id="diagnostics-request-id">Not returned</strong></span>
+                  <span>Schema: <strong id="diagnostics-schema-version">Not returned</strong></span>
                 </div>
-                <div class="field-summary__item">
-                  <span>Model version</span>
-                  <strong id="result-model-version">--</strong>
+
+                <p id="diagnostics-fallback-reason" class="diagnostics-fallback-reason is-hidden"></p>
+
+                <div class="diagnostics-list-grid">
+                  <div>
+                    <h4>Warnings</h4>
+                    <ul id="diagnostics-warnings"></ul>
+                  </div>
+                  <div>
+                    <h4>Notes</h4>
+                    <ul id="diagnostics-notes"></ul>
+                  </div>
                 </div>
-                <div class="field-summary__item">
-                  <span>Request ID</span>
-                  <strong id="result-request-id">--</strong>
-                </div>
-              </div>
+              </section>
             </div>
 
             <div class="error-banner is-hidden" id="error-banner"></div>

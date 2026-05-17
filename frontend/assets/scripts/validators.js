@@ -5,65 +5,62 @@ export function formatRange(range, unit) {
   return `Allowed range: ${range[0]} to ${range[1]} ${unit}`.trim();
 }
 
-function within(value, min, max) {
-  return value >= min && value <= max;
+function finite(value) {
+  return Number.isFinite(Number(value));
 }
 
-function pointInBounds(point, size) {
-  return within(point.x, 0, size.lx) && within(point.y, 0, size.ly) && within(point.z, 0, size.lz);
+function withinUnitPlane(point) {
+  return finite(point.x_m) && finite(point.y_m) && point.x_m >= 0 && point.x_m <= 1 && point.y_m >= 0 && point.y_m <= 1;
 }
 
 export function validatePayload(payload, medium, model = null) {
   const errors = {};
 
   if (!medium) {
-    errors["medium"] = "Select a geological medium.";
+    errors.medium = "Select a geological medium.";
     return errors;
   }
 
-  const [minTemp, maxTemp] = medium.ranges.temperature_c;
-  if (!within(payload.scenario.temperature_c, minTemp, maxTemp)) {
-    errors["scenario.temperature_c"] = formatRange(medium.ranges.temperature_c, "°C");
+  if (!model) {
+    errors.model = "Select a model route.";
   }
 
-  const [minPressure, maxPressure] = medium.ranges.pressure_mpa;
-  if (!within(payload.scenario.pressure_mpa, minPressure, maxPressure)) {
-    errors["scenario.pressure_mpa"] = formatRange(medium.ranges.pressure_mpa, "MPa");
+  if (medium.thermoelastic_supported === false) {
+    errors.medium = "This medium is not available for the current prototype prediction workflow.";
   }
 
-  const { size, resolution, type } = payload.domain;
-  if (size.lx <= 0 || size.ly <= 0 || size.lz < 0) {
-    errors["domain.size"] = "Domain dimensions must be positive and Lz cannot be negative.";
+  if (payload.schema_version !== "2.0") {
+    errors.schema = "Frontend requests must use API Contract v2.";
   }
 
-  if (resolution.nx < 2 || resolution.ny < 2 || resolution.nz < 1) {
-    errors["domain.resolution"] = "Resolution must be at least 2 x 2 x 1.";
+  if (payload.geometry?.dimension !== 2) {
+    errors["geometry.source"] = "The demo uses planar source and probe coordinates.";
   }
 
-  if (type === "rect_2d" && (size.lz !== 0 || resolution.nz !== 1)) {
-    errors["domain.resolution"] = "rect_2d requires Lz = 0 and Nz = 1.";
-  }
-  if (type === "rect_3d" && (size.lz <= 0 || resolution.nz <= 1)) {
-    errors["domain.resolution"] = "rect_3d requires Lz > 0 and Nz > 1.";
+  const source = payload.geometry?.source || {};
+  const probe = payload.geometry?.probe || {};
+
+  if (!withinUnitPlane(source)) {
+    errors["geometry.source"] = "Source coordinates must stay within 0 to 1 m.";
   }
 
-  const supportedDomainTypes = Array.isArray(model?.supported_domain_types) ? model.supported_domain_types : [];
-  if (supportedDomainTypes.length > 0 && !supportedDomainTypes.includes(type)) {
-    const supportedLabel = supportedDomainTypes.join(", ");
-    errors["model"] = `${model.name || model.id} currently supports ${supportedLabel} only.`;
+  if (!withinUnitPlane(probe)) {
+    errors["geometry.probe"] = "Probe coordinates must stay within 0 to 1 m.";
   }
 
-  if (!pointInBounds(payload.source, size)) {
-    errors["source.coordinates"] = "Source coordinates must stay inside the domain.";
+  if (
+    finite(source.x_m) &&
+    finite(source.y_m) &&
+    finite(probe.x_m) &&
+    finite(probe.y_m) &&
+    source.x_m === probe.x_m &&
+    source.y_m === probe.y_m
+  ) {
+    errors["geometry.probe"] = "Probe must be different from the source.";
   }
 
-  if (!pointInBounds(payload.probe, size)) {
-    errors["probe.coordinates"] = "Probe coordinates must stay inside the domain.";
-  }
-
-  const directionMagnitude = Math.sqrt(payload.source.direction.reduce((sum, value) => sum + value * value, 0));
-  if (directionMagnitude === 0) {
-    errors["source.direction"] = "Direction vector magnitude must be greater than zero.";
+  if (!finite(payload.observation?.time_s) || payload.observation.time_s <= 0) {
+    errors["observation.time_s"] = "Observation time must be greater than zero.";
   }
 
   return errors;

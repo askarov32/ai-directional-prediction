@@ -25,7 +25,8 @@ The following parts are intentionally demo/MVP level:
 - FNO service is a first checkpoint-based baseline with fallback mode and limited 2D inference assumptions;
 - medium catalog values are starter presets;
 - PINN baseline is not yet independently validated;
-- frontend visualization is illustrative;
+- frontend UI is intentionally 2D-only and illustrative;
+- spatial heatmap rendering is optional and appears only when a route returns `optional_outputs.field_grid`;
 - model comparison is not yet a statistically rigorous benchmark;
 - no authentication, authorization, rate limiting, or audit logging;
 - no production monitoring/tracing/metrics backend.

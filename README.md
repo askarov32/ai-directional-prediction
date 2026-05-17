@@ -19,10 +19,10 @@ Main user flow:
 
 1. Choose a geological medium from the JSON preset catalog
 2. Inspect physical properties
-3. Configure the thermoelastic scenario, source, probe, and domain
+3. Configure the planar source, probe, and observation time
 4. Select the model route: `meshgraphnet`, `fno`, `transformer`, or `pinn`
 5. Run prediction
-6. Inspect normalized direction metrics and the 2D visualization
+6. Inspect the normalized prediction response and 2D visualization
 
 ## Architecture Summary
 
@@ -55,6 +55,7 @@ For scientific scope and known limitations, see:
 
 - [Model Card](docs/model_card.md)
 - [Demo Limitations](docs/demo_limitations.md)
+- [Frontend API v2 Usage](docs/frontend_api_v2_usage.md)
 - [New Model Integration Guide](docs/model_integration_guide.md)
 - [FNO Integration Roadmap](docs/FNO_INTEGRATION_ROADMAP.md)
 - [FNO Phase 1 Audit](docs/FNO_PHASE1_AUDIT.md)
@@ -346,35 +347,39 @@ User-facing inputs:
 
 - `Geological medium`: a preset loaded from `backend/data/media/catalog.json`; the current demo catalog includes sandstone, limestone, basalt, and granite.
 - `Model route`: `meshgraphnet`, `fno`, `transformer`, or `pinn`.
-- `Scenario`: temperature, pressure, and observation time.
-- `Source`: excitation type, coordinates, amplitude, frequency, and initial direction vector.
-- `Probe`: observation point where the response is evaluated.
-- `Domain`: 2D/3D rectangular domain, physical size, numerical resolution, and boundary condition labels.
+- `Source`: planar `x_m`, `y_m` coordinates inside the fixed `1 m x 1 m` domain.
+- `Probe`: planar `x_m`, `y_m` coordinates inside the fixed `1 m x 1 m` domain.
+- `Observation`: `time_s`.
+- `Scenario`: a locked prototype template resolved as `thermal_source_type=point`, `mechanical_constraint=free`, `boundary_condition_type=prototype_simplified`.
 
-The backend does not forward only the raw form values. It first resolves the selected medium, validates the scenario against medium-specific ranges, and builds an enriched payload:
+The current frontend sends API Contract v2 only:
 
-- medium summary: `id`, `name`, `category`;
-- medium physics: `rho`, porosity, `vp`, `vs`, thermal conductivity, heat capacity, thermal expansion;
-- scenario/source/probe/domain values from the user;
-- model-specific routing hints:
-  - `meshgraphnet` receives `representation: "graph"`;
-  - `fno` receives `representation: "grid"`;
-  - `transformer` receives `representation: "sequence"`;
-  - `pinn` receives `representation: "physics_informed"`.
+- `schema_version: "2.0"`
+- `model`
+- `medium_id`
+- `geometry.dimension: 2`
+- `geometry.source`
+- `geometry.probe`
+- `observation.time_s`
+- `scenario.*`
 
-The frontend displays the normalized prediction response:
+The frontend does not expose or send:
 
-- propagation direction as a 3-component vector;
-- azimuth angle in degrees;
-- elevation angle in degrees;
-- response magnitude;
-- predicted wave/response type;
-- estimated travel time;
-- maximum displacement summary;
-- maximum temperature perturbation summary;
-- model version, latency, and request id;
-- SVG domain preview with source point, probe point, and direction arrow;
-- optional request/response debug JSON.
+- `z` coordinates
+- `dimension: 3`
+- custom domain size or resolution
+- `frequency_hz`
+- source amplitude or source direction
+- old temperature/pressure form fields
+- backend-owned thermal overrides such as `reference_temperature_k`
+
+The frontend displays the normalized prediction response as:
+
+- a 2D source-to-probe SVG geometry diagram
+- separate result cards for thermal, displacement, directional, temporal, and model metadata blocks
+- a diagnostics/fallback panel with warnings, notes, request id, and schema version
+- an optional spatial heatmap only when `optional_outputs.field_grid` is returned
+- a collapsible debug section with raw JSON for QA and service inspection
 
 ### Unified Prediction Request
 
@@ -382,45 +387,27 @@ Example payload:
 
 ```json
 {
+  "schema_version": "2.0",
   "model": "meshgraphnet",
-  "medium_id": "sandstone_medium",
-  "scenario": {
-    "temperature_c": 120.0,
-    "pressure_mpa": 35.0,
-    "time_ms": 12.0
-  },
-  "source": {
-    "type": "thermal_pulse",
-    "x": 0.15,
-    "y": 0.40,
-    "z": 0.0,
-    "amplitude": 1.0,
-    "frequency_hz": 50.0,
-    "direction": [1.0, 0.0, 0.0]
-  },
-  "probe": {
-    "x": 0.70,
-    "y": 0.55,
-    "z": 0.0
-  },
-  "domain": {
-    "type": "rect_2d",
-    "size": {
-      "lx": 1.0,
-      "ly": 1.0,
-      "lz": 0.0
+  "medium_id": "sandstone",
+  "geometry": {
+    "dimension": 2,
+    "source": {
+      "x_m": 0.15,
+      "y_m": 0.40
     },
-    "resolution": {
-      "nx": 128,
-      "ny": 128,
-      "nz": 1
-    },
-    "boundary_conditions": {
-      "left": "fixed",
-      "right": "free",
-      "top": "insulated",
-      "bottom": "insulated"
+    "probe": {
+      "x_m": 0.70,
+      "y_m": 0.55
     }
+  },
+  "observation": {
+    "time_s": 0.012
+  },
+  "scenario": {
+    "thermal_source_type": "point",
+    "mechanical_constraint": "free",
+    "boundary_condition_type": "prototype_simplified"
   }
 }
 ```
@@ -429,28 +416,71 @@ Example payload:
 
 ```json
 {
-  "model": "meshgraphnet",
-  "medium": {
-    "id": "sandstone_medium",
-    "name": "Sandstone (medium)",
-    "category": "sedimentary"
+  "schema_version": "2.0",
+  "request_id": "uuid",
+  "status": "ok",
+  "model": {
+    "name": "meshgraphnet",
+    "version": "real-meshgraphnet-v1",
+    "route": "/predict",
+    "inference_time_ms": 48.0,
+    "fallback_used": false,
+    "fallback_reason": null
+  },
+  "material": {
+    "id": "sandstone",
+    "name": "Sandstone",
+    "category": "sedimentary siliciclastic"
+  },
+  "geometry": {
+    "dimension": 2,
+    "source": { "x_m": 0.15, "y_m": 0.40 },
+    "probe": { "x_m": 0.70, "y_m": 0.55 },
+    "propagation_vector_m": { "dx": 0.55, "dy": 0.15 },
+    "unit_direction": { "x": 0.9648, "y": 0.2631 },
+    "distance_m": 0.570088,
+    "azimuth_deg": 15.255119
   },
   "prediction": {
-    "direction_vector": [0.82, 0.57, 0.0],
-    "azimuth_deg": 34.7,
-    "elevation_deg": 0.0,
-    "magnitude": 1.0,
-    "wave_type": "dominant_p",
-    "travel_time_ms": 11.8
+    "thermal": {
+      "temperature_k": { "value": 293.2741, "source": "direct_model_prediction" },
+      "temperature_perturbation_k": {
+        "value": 3.2105,
+        "reference_temperature_k": 273.15,
+        "source": "direct_model_prediction"
+      }
+    },
+    "displacement": {
+      "components_m": { "u": -5.50e-05, "v": -4.76e-05 },
+      "magnitude_m": 7.27e-05,
+      "components_source": "direct_model_prediction",
+      "magnitude_source": "derived_from_u_v"
+    },
+    "directional_response": {
+      "distance_m": 0.570088,
+      "azimuth_deg": 15.255119,
+      "response_magnitude_score": 1.0
+    },
+    "temporal_response": {
+      "travel_time_s": 0.002940175,
+      "source": "direct_model_prediction"
+    }
   },
-  "field_summary": {
-    "max_displacement": 0.0032,
-    "max_temperature_perturbation": 1.7
+  "optional_outputs": {
+    "confidence_score": null,
+    "field_summary": {
+      "max_displacement_m": 0.002045799,
+      "max_temperature_perturbation_k": 3.21051
+    },
+    "field_grid": null,
+    "strain": null,
+    "stress": null
   },
-  "meta": {
-    "model_version": "mgn-service-fallback-v1",
-    "latency_ms": 48,
-    "request_id": "uuid"
+  "diagnostics": {
+    "fallback_used": false,
+    "fallback_reason": null,
+    "warnings": [],
+    "notes": ["Prototype prediction; not a field-validated thermoelastic simulation."]
   }
 }
 ```
@@ -607,6 +637,15 @@ python -m http.server 8080
 Then open [http://localhost:8080](http://localhost:8080).
 
 When served through Docker/nginx, the frontend uses `/api/v1`. If opened directly from `file://`, it falls back to `http://localhost:8000/api/v1`.
+
+Current frontend scope:
+
+- API Contract v2 only
+- fixed 2D `1 m x 1 m` source-probe workflow
+- no visible 3D controls in the UI
+- optional spatial heatmap only when a model route returns `optional_outputs.field_grid`
+
+For the current UI behavior and limitations, see [Frontend API v2 Usage](docs/frontend_api_v2_usage.md).
 
 ## PINN Service
 

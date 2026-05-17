@@ -1,7 +1,7 @@
 import { ApiError, createPrediction, fetchMedia, fetchModels } from "./api.js";
-import { renderDomain } from "./charts.js";
-import { applyModelDomainPolicy, buildDemoPayload, fillForm, normalizeDomainShape, readPayloadFromForm, toV2Payload } from "./form.js";
-import { CONTRACT_VERSION, getState, setState, subscribe } from "./state.js";
+import { renderDomain, renderFieldGridHeatmap } from "./charts.js";
+import { buildDemoPayload, fillForm, readPayloadFromForm } from "./form.js";
+import { getState, setState, subscribe } from "./state.js";
 import { createUI } from "./ui.js";
 import { validatePayload } from "./validators.js";
 
@@ -16,13 +16,8 @@ function getModelById(modelId) {
 }
 
 function syncDraftFromForm() {
-  const rawDraftRequest = readPayloadFromForm(ui.refs.form);
-  const shapeNormalizedDraft = normalizeDomainShape(rawDraftRequest);
-  const model = getModelById(rawDraftRequest.model);
-  const draftRequest = applyModelDomainPolicy(shapeNormalizedDraft, model);
-  if (JSON.stringify(draftRequest) !== JSON.stringify(rawDraftRequest)) {
-    fillForm(ui.refs.form, draftRequest);
-  }
+  const draftRequest = readPayloadFromForm(ui.refs.form);
+  const model = getModelById(draftRequest.model);
   const medium = getMediumById(draftRequest.medium_id);
   const validationErrors = validatePayload(draftRequest, medium, model);
 
@@ -41,10 +36,9 @@ function hydrateFormWithDemo() {
   const selectedMediumId = state.selectedMediumId || state.media[0]?.id || "";
   const selectedModel =
     state.models.find((model) => model.id === state.selectedModel) ||
-    state.models.find((model) => model.status === "configured" && model.default_domain_type === "rect_3d") ||
     state.models.find((model) => model.status === "configured") ||
     state.models[0] ||
-    { id: "meshgraphnet", default_domain_type: "rect_3d", supported_domain_types: ["rect_2d", "rect_3d"] };
+    { id: "pinn" };
   const payload = buildDemoPayload(selectedMediumId, selectedModel);
   fillForm(ui.refs.form, payload);
   syncDraftFromForm();
@@ -54,7 +48,7 @@ function resetForm() {
   const state = getState();
   const selectedModel =
     state.models.find((model) => model.id === state.selectedModel) ||
-    { id: state.selectedModel || "meshgraphnet" };
+    { id: state.selectedModel || "pinn" };
   const payload = buildDemoPayload(state.selectedMediumId || state.media[0]?.id || "", selectedModel);
   fillForm(ui.refs.form, payload);
   setState({
@@ -91,6 +85,10 @@ function updateView(state) {
   ui.renderError(state.error);
 
   renderDomain(ui.refs.domainSvg, state.draftRequest, state.lastResponse, model?.name || state.selectedModel);
+  renderFieldGridHeatmap(
+    ui.refs.fieldGridHeatmap,
+    state.lastResponse ? state.lastResponse.optional_outputs?.field_grid || null : undefined
+  );
 }
 
 async function handleSubmit(event) {
@@ -105,20 +103,14 @@ async function handleSubmit(event) {
     return;
   }
 
-  // When the ?contract=v2 flag is active, transform the form-collected
-  // v1 payload into the v2 shape before posting. The backend dispatches
-  // by schema_version, so the same /predictions endpoint serves both.
-  const wirePayload =
-    CONTRACT_VERSION === "2.0" ? toV2Payload(payload) : payload;
-
   setState({
     loading: true,
     error: null,
-    lastRequest: wirePayload,
+    lastRequest: payload,
   });
 
   try {
-    const response = await createPrediction(wirePayload);
+    const response = await createPrediction(payload);
     setState({
       loading: false,
       lastResponse: response,
@@ -145,10 +137,9 @@ async function bootstrap() {
       models,
       selectedMediumId: media[0]?.id || "",
       selectedModel:
-        models.find((model) => model.status === "configured" && model.default_domain_type === "rect_3d")?.id ||
         models.find((model) => model.status === "configured")?.id ||
         models[0]?.id ||
-        "meshgraphnet",
+        "pinn",
     });
 
     hydrateFormWithDemo();
@@ -191,21 +182,5 @@ ui.refs.copyJsonButton.addEventListener("click", async () => {
     ui.refs.copyJsonButton.textContent = "Copy JSON";
   }, 1200);
 });
-
-// Phase 5: contract toggle in the header. The text and href depend on
-// which contract is currently active.
-(function setupContractToggle() {
-  const node = document.querySelector("#contract-toggle");
-  if (!node) return;
-  if (CONTRACT_VERSION === "2.0") {
-    node.innerHTML =
-      ' · <span class="contract-badge contract-badge--v2">v2 contract</span>' +
-      ' · <a class="contract-link" href="?">Back to v1</a>';
-  } else {
-    node.innerHTML =
-      ' · <span class="contract-badge contract-badge--v1">v1 contract</span>' +
-      ' · <a class="contract-link" href="?contract=v2">Try v2 contract</a>';
-  }
-})();
 
 bootstrap();
