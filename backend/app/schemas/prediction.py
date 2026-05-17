@@ -10,12 +10,23 @@ from app.domain.entities.prediction import (
     Domain,
     DomainResolution,
     DomainSize,
+    Geometry2D,
+    ObservationV2,
+    Point2D,
     Probe,
     Scenario,
+    ScenarioPrototypeV2,
     Source,
+    ThermalStateV2,
     UnifiedPredictionRequest,
+    UnifiedPredictionRequestV2,
 )
 from app.domain.enums.model_type import ModelType
+from app.domain.services.derived_quantities import (
+    DOMAIN_SIZE_M,
+    REFERENCE_TEMPERATURE_K,
+    SOURCE_TEMPERATURE_K,
+)
 
 
 def _normalize_vector(direction: list[float]) -> tuple[float, float, float]:
@@ -216,3 +227,195 @@ class ModelInfoSchema(BaseModel):
     supported_domain_types: list[str] = Field(default_factory=list)
     default_domain_type: str | None = None
     capability_note: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# v2 contract schemas (api-contract-v2.md).
+#
+# The client-facing request collapses to four blocks: model, medium_id,
+# geometry, observation. thermal_state and domain.size are training-data
+# invariants and are rejected if the client tries to override them.
+# ---------------------------------------------------------------------------
+
+
+class Point2DSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    x_m: float = Field(..., ge=0.0, le=DOMAIN_SIZE_M, allow_inf_nan=False)
+    y_m: float = Field(..., ge=0.0, le=DOMAIN_SIZE_M, allow_inf_nan=False)
+
+
+class Geometry2DSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    dimension: Literal[2]
+    source: Point2DSchema
+    probe: Point2DSchema
+
+    @model_validator(mode="after")
+    def reject_coincident(self) -> "Geometry2DSchema":
+        if (self.source.x_m == self.probe.x_m
+                and self.source.y_m == self.probe.y_m):
+            raise ValueError(
+                "source and probe coincide; v2 requires distinct points."
+            )
+        return self
+
+
+class ObservationV2Schema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    time_s: float = Field(..., gt=0.0, le=60.0, allow_inf_nan=False)
+
+
+class ScenarioPrototypeV2Schema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    thermal_source_type: Literal["point"] = "point"
+    mechanical_constraint: Literal["free", "fixed", "roller"] = "free"
+    boundary_condition_type: Literal["prototype_simplified"] = (
+        "prototype_simplified"
+    )
+
+
+class PredictionRequestV2Schema(BaseModel):
+    """Public v2 request. Only four user-facing groups (PDF §2.1).
+
+    `thermal_state` is implicit and immutable. Any client field for
+    `reference_temperature_k`, `source_temperature_k`, `frequency_hz`,
+    or `domain.size` triggers a 400 — those values are training-data
+    invariants. `extra="forbid"` on each block enforces this at the
+    Pydantic layer.
+    """
+
+    model_config = ConfigDict(extra="forbid", use_enum_values=False)
+
+    schema_version: Literal["2.0"]
+    model: ModelType
+    medium_id: str = Field(..., min_length=2, max_length=120)
+    geometry: Geometry2DSchema
+    observation: ObservationV2Schema
+    scenario: ScenarioPrototypeV2Schema = Field(
+        default_factory=ScenarioPrototypeV2Schema
+    )
+
+    def to_entity(self) -> UnifiedPredictionRequestV2:
+        return UnifiedPredictionRequestV2(
+            model=self.model,
+            medium_id=self.medium_id,
+            geometry=Geometry2D(
+                dimension=self.geometry.dimension,
+                source=Point2D(
+                    x_m=self.geometry.source.x_m,
+                    y_m=self.geometry.source.y_m,
+                ),
+                probe=Point2D(
+                    x_m=self.geometry.probe.x_m,
+                    y_m=self.geometry.probe.y_m,
+                ),
+            ),
+            observation=ObservationV2(time_s=self.observation.time_s),
+            scenario=ScenarioPrototypeV2(
+                thermal_source_type=self.scenario.thermal_source_type,
+                mechanical_constraint=self.scenario.mechanical_constraint,
+                boundary_condition_type=self.scenario.boundary_condition_type,
+            ),
+            thermal_state=ThermalStateV2(
+                reference_temperature_k=REFERENCE_TEMPERATURE_K,
+                source_temperature_k=SOURCE_TEMPERATURE_K,
+            ),
+        )
+
+
+class ThermalPredictionV2Schema(BaseModel):
+    temperature_k: dict
+    temperature_perturbation_k: dict
+
+
+class DisplacementPredictionV2Schema(BaseModel):
+    components_m: dict[str, float | None]
+    magnitude_m: float | None
+    components_source: str
+    magnitude_source: str
+
+
+class DirectionalResponseV2Schema(BaseModel):
+    distance_m: float
+    azimuth_deg: float
+    response_magnitude_score: float | None = None
+
+
+class TemporalResponseV2Schema(BaseModel):
+    travel_time_s: float
+    source: str = "direct_model_prediction"
+
+
+class PredictionBlockV2Schema(BaseModel):
+    thermal: ThermalPredictionV2Schema
+    displacement: DisplacementPredictionV2Schema
+    directional_response: DirectionalResponseV2Schema
+    temporal_response: TemporalResponseV2Schema
+
+
+class FieldSummaryV2Schema(BaseModel):
+    max_displacement_m: float | None = None
+    max_temperature_perturbation_k: float | None = None
+
+
+class OptionalOutputsV2Schema(BaseModel):
+    confidence_score: float | None = None
+    field_summary: FieldSummaryV2Schema = Field(default_factory=FieldSummaryV2Schema)
+    field_grid: dict | None = None
+    strain: dict | None = None
+    stress: dict | None = None
+
+
+class ModelMetadataV2Schema(BaseModel):
+    name: ModelType
+    version: str
+    route: str
+    inference_time_ms: float | None = None
+    fallback_used: bool = False
+    fallback_reason: str | None = None
+
+
+class MaterialSummaryV2Schema(BaseModel):
+    id: str
+    name: str
+    category: str
+
+
+class GeometryEchoV2Schema(BaseModel):
+    dimension: Literal[2]
+    source: Point2DSchema
+    probe: Point2DSchema
+    propagation_vector_m: dict[str, float]
+    unit_direction: dict[str, float]
+    distance_m: float
+    azimuth_deg: float
+    azimuth_convention: str = "atan2(dy, dx), degrees, xy-plane"
+
+
+class DiagnosticsV2Schema(BaseModel):
+    fallback_used: bool = False
+    fallback_reason: str | None = None
+    warnings: list[str] = Field(default_factory=list)
+    notes: list[str] = Field(
+        default_factory=lambda: [
+            "Prototype prediction; not a field-validated thermoelastic simulation."
+        ]
+    )
+
+
+class PredictionResponseV2Schema(BaseModel):
+    schema_version: Literal["2.0"]
+    request_id: str
+    status: Literal["ok", "error"] = "ok"
+    model: ModelMetadataV2Schema
+    material: MaterialSummaryV2Schema
+    geometry: GeometryEchoV2Schema
+    prediction: PredictionBlockV2Schema
+    optional_outputs: OptionalOutputsV2Schema = Field(
+        default_factory=OptionalOutputsV2Schema
+    )
+    diagnostics: DiagnosticsV2Schema = Field(default_factory=DiagnosticsV2Schema)

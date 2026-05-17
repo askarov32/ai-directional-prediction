@@ -151,3 +151,142 @@ class RemotePredictionResponse:
     service_name: str
     payload: dict[str, Any]
     latency_ms: int
+
+
+# ---------------------------------------------------------------------------
+# v2 contract (api_contract_v2.md). Additive — v1 dataclasses above are not
+# touched so existing tests and clients keep working.
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class ThermalStateV2:
+    """All thermal parameters are training-data invariants in v2.
+
+    The contract locks reference_temperature_k = 273.15 K and
+    source_temperature_k = 1500 K, so theta_k = 1226.85 K. The dataclass
+    keeps the explicit values for traceability inside the pipeline.
+    """
+
+    reference_temperature_k: float
+    source_temperature_k: float
+
+    @property
+    def theta_k(self) -> float:
+        return self.source_temperature_k - self.reference_temperature_k
+
+    def to_dict(self) -> dict[str, float]:
+        return {
+            "reference_temperature_k": self.reference_temperature_k,
+            "source_temperature_k": self.source_temperature_k,
+            "temperature_perturbation_k": self.theta_k,
+        }
+
+
+@dataclass(frozen=True)
+class Point2D:
+    x_m: float
+    y_m: float
+
+    def to_dict(self) -> dict[str, float]:
+        return {"x_m": self.x_m, "y_m": self.y_m}
+
+
+@dataclass(frozen=True)
+class Geometry2D:
+    dimension: int  # always 2 in v2
+    source: Point2D
+    probe: Point2D
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "dimension": self.dimension,
+            "source": self.source.to_dict(),
+            "probe": self.probe.to_dict(),
+        }
+
+
+@dataclass(frozen=True)
+class DerivedGeometry2D:
+    propagation_vector_m: tuple[float, float]
+    distance_m: float
+    unit_direction: tuple[float, float]
+    azimuth_deg: float
+    azimuth_convention: str = "atan2(dy, dx), degrees, xy-plane"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "propagation_vector_m": {
+                "dx": self.propagation_vector_m[0],
+                "dy": self.propagation_vector_m[1],
+            },
+            "distance_m": self.distance_m,
+            "unit_direction": {
+                "x": self.unit_direction[0],
+                "y": self.unit_direction[1],
+            },
+            "azimuth_deg": self.azimuth_deg,
+            "azimuth_convention": self.azimuth_convention,
+        }
+
+
+@dataclass(frozen=True)
+class ObservationV2:
+    time_s: float
+
+    def to_dict(self) -> dict[str, float]:
+        return {"time_s": self.time_s}
+
+
+@dataclass(frozen=True)
+class ScenarioPrototypeV2:
+    """Boundary-condition template tokens.
+
+    These do not carry numerical physics; they label which prototype
+    scenario the client is requesting so prompts/checkpoints can route
+    accordingly.
+    """
+
+    thermal_source_type: str
+    mechanical_constraint: str
+    boundary_condition_type: str
+
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "thermal_source_type": self.thermal_source_type,
+            "mechanical_constraint": self.mechanical_constraint,
+            "boundary_condition_type": self.boundary_condition_type,
+        }
+
+
+@dataclass(frozen=True)
+class UnifiedPredictionRequestV2:
+    """v2 unified request as parsed from the public API."""
+
+    model: ModelType
+    medium_id: str
+    geometry: Geometry2D
+    observation: ObservationV2
+    scenario: ScenarioPrototypeV2
+    thermal_state: ThermalStateV2  # populated by backend from locked defaults
+
+
+@dataclass(frozen=True)
+class NormalizedPredictionOutputV2:
+    """Domain-level representation of a normalised v2 response.
+
+    Used between the response normaliser and the API serialiser so the
+    use case never speaks raw JSON.
+    """
+
+    temperature_k: float | None
+    temperature_perturbation_k: float | None
+    displacement_u_m: float | None
+    displacement_v_m: float | None
+    displacement_magnitude_m: float | None
+    travel_time_s: float | None
+    response_magnitude_score: float | None
+    field_summary: dict[str, Any]
+    fallback_used: bool
+    fallback_reason: str | None
+    warnings: list[str]

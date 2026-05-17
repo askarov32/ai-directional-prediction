@@ -179,6 +179,40 @@ export function readPayloadFromForm(form) {
   };
 }
 
+/**
+ * Convert a v1-shaped form payload into the v2 request shape
+ * (api-contract-v2 §2.1). The locked invariants (reference temperature,
+ * source temperature, frequency, domain size) are dropped — the
+ * backend fills them server-side.
+ */
+export function toV2Payload(payloadV1) {
+  return {
+    schema_version: "2.0",
+    model: payloadV1.model,
+    medium_id: payloadV1.medium_id,
+    geometry: {
+      dimension: 2,
+      source: {
+        x_m: payloadV1.source.x,
+        y_m: payloadV1.source.y,
+      },
+      probe: {
+        x_m: payloadV1.probe.x,
+        y_m: payloadV1.probe.y,
+      },
+    },
+    observation: {
+      // v1 form keeps time in milliseconds; v2 contract uses seconds.
+      time_s: (Number(payloadV1.scenario.time_ms) || 0) / 1000.0,
+    },
+    scenario: {
+      thermal_source_type: "point",
+      mechanical_constraint: "free",
+      boundary_condition_type: "prototype_simplified",
+    },
+  };
+}
+
 export function fillForm(form, payload) {
   form.querySelector("#model-select").value = payload.model;
   form.querySelector("#medium-select").value = payload.medium_id;

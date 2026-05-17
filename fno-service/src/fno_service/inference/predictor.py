@@ -304,6 +304,9 @@ class FNOInferenceService:
             denormalization_used=runtime.target_stats is not None,
         )
 
+        travel_time_ms = round(
+            max((distance / max(vp, 0.1)) * 10.0 + time_ms * 0.05, 0.001), 6
+        )
         return {
             "prediction": {
                 "direction_vector": [round(value, 6) for value in direction],
@@ -311,7 +314,7 @@ class FNOInferenceService:
                 "elevation_deg": round(elevation, 4),
                 "magnitude": round(float(magnitude), 6),
                 "wave_type": "fno_checkpoint_inference",
-                "travel_time_ms": round(max((distance / max(vp, 0.1)) * 10.0 + time_ms * 0.05, 0.001), 6),
+                "travel_time_ms": travel_time_ms,
             },
             "field_summary": {
                 "max_displacement": round(max_displacement, 8),
@@ -329,6 +332,7 @@ class FNOInferenceService:
                 "effective_domain_type": "rect_2d",
                 "domain_adaptation": "none",
                 "fallback_used": False,
+                "fallback_reason": None,
                 "normalization_used": runtime.input_stats is not None,
                 "denormalization_used": runtime.target_stats is not None,
                 "normalization": _normalization_diagnostics(runtime),
@@ -338,6 +342,35 @@ class FNOInferenceService:
                     "max_temperature_perturbation": "max(abs(temperature_k - reference_temperature_k))",
                     "magnitude": "bounded dimensionless local/global displacement response score",
                 },
+            },
+            # api-contract-v2 §7.1 — additive v2 blocks. FNO does not
+            # expose per-point u/v in this aggregation path, so leave
+            # those null; backend's normalizer falls back to
+            # field_summary for displacement magnitude.
+            "schema_version": "2.0",
+            "prediction_raw": {
+                "temperature_k": None,
+                "temperature_perturbation_k": round(
+                    max_temperature_perturbation, 8
+                ),
+                "displacement_m": {"u": None, "v": None},
+                "travel_time_s": travel_time_ms / 1000.0,
+                "response_magnitude_score": round(float(magnitude), 6),
+            },
+            "optional_outputs": {
+                "confidence_score": None,
+                "field_summary": {
+                    "max_displacement_m": round(max_displacement, 8),
+                    "max_temperature_perturbation_k": round(
+                        max_temperature_perturbation, 8
+                    ),
+                },
+                # FNO is the only route allowed to emit field_grid per
+                # the contract, but it requires opt-in via
+                # requested_outputs and we keep it null by default.
+                "field_grid": None,
+                "strain": None,
+                "stress": None,
             },
         }
 
@@ -353,7 +386,11 @@ class FNOInferenceService:
             temperature_c = float(payload.scenario.get("temperature_c", 20.0))
             pressure_mpa = float(payload.scenario.get("pressure_mpa", 1.0))
             amplitude = float(payload.source.get("amplitude", 1.0))
-            frequency_hz = float(payload.source.get("frequency_hz", 1.0))
+            # Phase 4a (api-contract-v2): frequency_hz has no physical
+            # referent in the COMSOL training data (thermal step, not
+            # harmonic source). The previous max(frequency_hz, 1.0)
+            # multiplier on the temperature channel is removed so the
+            # injected source intensity depends only on amplitude.
             source_direction = _normalize(
                 [float(value) for value in payload.source.get("direction", [1.0, 0.0, 0.0])]
             )
@@ -362,7 +399,7 @@ class FNOInferenceService:
                 temp_index = field_names.index("temperature_k")
                 base_temperature = runtime.reference_temperature_k + temperature_c
                 dynamic[temp_index, 0] = dynamic[temp_index, 0] * 0.35 + base_temperature * 0.65
-                dynamic[temp_index, 0] += source_mask * (0.15 * amplitude * max(frequency_hz, 1.0))
+                dynamic[temp_index, 0] += source_mask * (0.15 * amplitude)
                 dynamic[temp_index, 0] += pressure_mpa * 0.02
 
             if payload.domain.get("type") == "rect_2d":
@@ -411,6 +448,15 @@ class FNOInferenceService:
         pressure = float(scenario.get("pressure_mpa", 1.0))
         time_ms = float(scenario.get("time_ms", 1.0))
 
+        travel_time_ms = round(
+            max((distance / max(vp, 0.1)) * 10.0 + time_ms * 0.12, 0.001), 6
+        )
+        max_displacement = round(
+            0.001 + temperature / 350000.0 + pressure / 300000.0, 8
+        )
+        max_temperature_perturbation = round(
+            max(temperature, 0.0) / 160.0 + 0.45, 8
+        )
         return {
             "prediction": {
                 "direction_vector": [round(value, 6) for value in direction],
@@ -418,11 +464,11 @@ class FNOInferenceService:
                 "elevation_deg": round(elevation, 4),
                 "magnitude": 1.0,
                 "wave_type": "fno_skeleton_fallback",
-                "travel_time_ms": round(max((distance / max(vp, 0.1)) * 10.0 + time_ms * 0.12, 0.001), 6),
+                "travel_time_ms": travel_time_ms,
             },
             "field_summary": {
-                "max_displacement": round(0.001 + temperature / 350000.0 + pressure / 300000.0, 8),
-                "max_temperature_perturbation": round(max(temperature, 0.0) / 160.0 + 0.45, 8),
+                "max_displacement": max_displacement,
+                "max_temperature_perturbation": max_temperature_perturbation,
             },
             "model_version": "fno-skeleton-fallback-v0",
             "diagnostics": {
@@ -432,9 +478,29 @@ class FNOInferenceService:
                 "effective_domain_type": payload.domain.get("type", "unknown"),
                 "domain_adaptation": "none",
                 "fallback_used": True,
+                "fallback_reason": "no_checkpoint_configured",
                 "normalization_used": False,
                 "denormalization_used": False,
                 "warnings": ["fallback_response"],
+            },
+            # api-contract-v2 §7.1 — additive v2 blocks (fallback path)
+            "schema_version": "2.0",
+            "prediction_raw": {
+                "temperature_k": None,
+                "temperature_perturbation_k": max_temperature_perturbation,
+                "displacement_m": {"u": None, "v": None},
+                "travel_time_s": travel_time_ms / 1000.0,
+                "response_magnitude_score": 1.0,
+            },
+            "optional_outputs": {
+                "confidence_score": None,
+                "field_summary": {
+                    "max_displacement_m": max_displacement,
+                    "max_temperature_perturbation_k": max_temperature_perturbation,
+                },
+                "field_grid": None,
+                "strain": None,
+                "stress": None,
             },
         }
 
