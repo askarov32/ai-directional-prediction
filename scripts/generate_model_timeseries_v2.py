@@ -47,17 +47,22 @@ MODEL_COLOR = {
     "meshgraphnet": "#059669",
     "transformer": "#9333EA",
 }
+# Only the materials that have BOTH (a) an alpha_1_K value in the
+# canonical CSV (so the v2 backend accepts them as thermoelastic) and
+# (b) training data in pinn-service/artifacts/rod_experiments_2d/.
+# Basalt and marble are excluded: basalt has no alpha in the CSV
+# (v2 gates it off with material_thermoelastic_unsupported) and marble
+# has no per-model training dataset.
 MATERIALS = [
     ("granite", "Granite"),
     ("sandstone", "Sandstone"),
     ("limestone", "Limestone"),
-    ("marble", "Marble"),
 ]
 SOURCE = (0.2, 0.5)
 PROBE = (0.8, 0.5)
 # observation grid: 50 points across the model training range (4–16 ms)
 # plus a small padding on each side.
-TIME_GRID_S = np.linspace(0.001, 0.025, 50)
+TIME_GRID_S = np.linspace(0.001, 0.025, 20)
 
 plt.rcParams.update({
     "font.family": "serif",
