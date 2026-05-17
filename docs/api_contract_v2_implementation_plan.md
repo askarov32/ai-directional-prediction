@@ -17,19 +17,23 @@ their v1 responses.
 
 ---
 
-## Phase 0 — Contract document (no code)
+## Phase 0 — Contract document (no code) — **DONE 2026-05-17**
 
-- [ ] `docs/api-contract-v2.md` — full request and response examples,
-  units, field ownership table (model / backend / derived). Lift from
-  PDF §4.1, §4.2, §5, §5.1.
-- [ ] Add curl example (PDF §11) to the same doc.
-- [ ] Add "thesis-safe wording" block (PDF §13) so reviewers see scope
-  language from day one.
-- [ ] Keep this file (`api_contract_v2_implementation_plan.md`) and
-  `docs/api-contract-v2.md` cross-linked.
+- [x] `docs/api-contract-v2.md` — full request and response examples,
+  units, field ownership table (model / backend / derived). Lifted
+  from PDF §4.1, §4.2, §5, §5.1.
+- [x] curl example (PDF §11) included.
+- [x] "thesis-safe wording" block (PDF §13) included verbatim and
+  threaded into `diagnostics.notes`.
+- [x] Cross-linked with this file. Contract doc at
+  [`api-contract-v2.md`](api-contract-v2.md).
+- [x] Three open-question resolutions baked into the contract:
+  catalog from thesis CSV, hybrid optional outputs (travel_time_s
+  required, field_grid opt-in FNO-only, confidence/strain/stress
+  null), `?contract=v2` frontend feature flag.
 
 **Done when:** another contributor can implement a v2 client from
-`docs/api-contract-v2.md` alone, without reading the PDF.
+`docs/api-contract-v2.md` alone, without reading the PDF. ✅
 
 ---
 
