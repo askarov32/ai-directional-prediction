@@ -34,17 +34,17 @@ OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 API = "http://localhost:8000/api/v1/predictions"
 
-MODELS = ["pinn", "fno", "mgn", "transformer"]
+MODELS = ["pinn", "fno", "meshgraphnet", "transformer"]
 MODEL_LABEL = {
     "pinn": "PINN",
     "fno": "FNO",
-    "mgn": "MeshGraphNet",
+    "meshgraphnet": "MeshGraphNet",
     "transformer": "Transformer",
 }
 MODEL_COLOR = {
     "pinn": "#2563EB",
     "fno": "#DC2626",
-    "mgn": "#059669",
+    "meshgraphnet": "#059669",
     "transformer": "#9333EA",
 }
 MATERIALS = [
