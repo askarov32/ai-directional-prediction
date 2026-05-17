@@ -357,14 +357,25 @@ fallback status. No JS console errors.
   - `optional_outputs.strain` and `optional_outputs.stress` are
     declared but always `null` in v2 (PDF §3 explicitly forbids
     making them mandatory predictions in this prototype).
-- **Resolved 2026-05-17. Reference temperature is fixed at 273.15 K.**
-  The rock initial temperature is always 0 °C across the prototype
-  (matches the COMSOL training data setup).
-  `thermal_state.reference_temperature_k` is therefore implicit in
-  v2: clients send only `source_temperature_k`. Explicit override
-  is rejected with HTTP 400 /
-  `error_code: "reference_temperature_override_disabled"`. Frontend
-  does not render the field.
+- **Resolved 2026-05-17. Training-data invariants locked in v2.**
+  These parameters were constant in the COMSOL training data, so the
+  v2 contract locks them server-side and rejects any client override
+  with HTTP 400. The frontend renders none of these fields.
+
+  | Parameter           | Value         | Rejection code                              |
+  | ------------------- | ------------- | ------------------------------------------- |
+  | Reference temp      | 273.15 K (0 °C) | `reference_temperature_override_disabled` |
+  | Source temp         | 1500 K          | `source_temperature_override_disabled`    |
+  | (⇒ θ = 1226.85 K)   |                |                                             |
+  | Source frequency    | 25 Hz           | `frequency_override_disabled`             |
+  | Domain size         | 1 m × 1 m       | `domain_override_disabled`                |
+  | Dimension           | 2 (plane-strain)| reject `dimension != 2`                   |
+  | Coord bounds        | `x_m, y_m ∈ [0, 1]` | `geometry_out_of_domain`              |
+
+  After all locks, the **client-facing v2 request reduces to four
+  fields**: `model`, `medium_id`, `geometry.{source, probe}`,
+  `observation.time_s`. The `thermal_state` block is gone entirely;
+  every thermal parameter is a training-data invariant.
 - ~~Frontend rollout~~ **Resolved 2026-05-17. Feature flag (option B):**
   one frontend bundle, behaviour gated by a `?contract=v2` query
   parameter. Default stays v1 until the thesis defense is done plus

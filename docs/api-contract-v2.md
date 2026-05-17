@@ -61,13 +61,10 @@ attaches them and derives constants.
   "schema_version": "2.0",
   "model": "pinn",
   "medium_id": "sandstone",
-  "thermal_state": {
-    "source_temperature_k": 350.0
-  },
   "geometry": {
     "dimension": 2,
-    "source": { "x_m": 0.0, "y_m": 0.0 },
-    "probe":  { "x_m": 1.0, "y_m": 0.5 }
+    "source": { "x_m": 0.2, "y_m": 0.5 },
+    "probe":  { "x_m": 0.8, "y_m": 0.5 }
   },
   "observation": {
     "time_s": 0.1
@@ -80,6 +77,13 @@ attaches them and derives constants.
 }
 ```
 
+> **What the client sends in v2 (after all locks).** Only four blocks
+> are user-facing: `model`, `medium_id`, `geometry` (source + probe
+> coordinates inside the 1 m × 1 m domain), and `observation.time_s`.
+> Everything else (reference temperature, source temperature,
+> frequency, domain size, dimension) is a training-data invariant
+> resolved by the backend.
+
 > **Reference temperature is fixed.** The rock initial temperature is
 > always 0 °C = **273.15 K** in this prototype (matches the COMSOL
 > setup used to generate training data). `reference_temperature_k` is
@@ -89,13 +93,40 @@ attaches them and derives constants.
 > "reference_temperature_override_disabled"`. Frontend does not
 > render this field — it is implicit.
 
+> **Domain is fixed at 1 m × 1 m.** All training data was generated on
+> a square domain of side 1 m, so the v2 contract locks the spatial
+> domain to `lx = ly = 1.0 m`. The request does not carry a
+> `domain.size` field — it is implicit and immutable. `geometry.source`
+> and `geometry.probe` coordinates must satisfy `0 ≤ x_m ≤ 1.0` and
+> `0 ≤ y_m ≤ 1.0`. Out-of-domain coordinates are rejected with
+> `HTTP 400 / error_code: "geometry_out_of_domain"`. Explicit
+> `domain` overrides in the request are rejected with `HTTP 400 /
+> error_code: "domain_override_disabled"`.
+
+> **Source temperature is fixed at 1500 K.** The heating amplitude in
+> the training data is constant. `thermal_state.source_temperature_k`
+> is therefore implicit too: the backend uses `1500.0 K` always.
+> Combined with the fixed reference (273.15 K), the theta is also
+> constant at `θ = 1500 − 273.15 = 1226.85 K`. Explicit
+> `source_temperature_k` is rejected with `HTTP 400 / error_code:
+> "source_temperature_override_disabled"`. **As a consequence, the
+> v2 request has no `thermal_state` block at all** — every thermal
+> parameter is a training-data invariant.
+
+> **Source frequency is fixed at 25 Hz.** The training data uses a
+> single thermal-pulse frequency. The request does not carry a
+> `frequency_hz` field. Explicit override rejected with `HTTP 400 /
+> error_code: "frequency_override_disabled"`.
+
 ### 2.2 Required / optional / derived inputs
 
 | Group          | Required (from client)                                           | Optional                            | Derived by backend                                                   |
 | -------------- | ---------------------------------------------------------------- | ----------------------------------- | -------------------------------------------------------------------- |
 | Model          | `model`                                                          | `allow_fallback` (default `true`)   | `model_runtime.representation`, routing target URL                   |
 | Material       | `medium_id` resolved from catalog                                | manual property override (rare)     | `derived.shear_modulus_pa`, `bulk_modulus_pa`, `lame_lambda_pa`, `C` |
-| Thermal state  | `source_temperature_k` (only)                                    | `temperature_perturbation_k` override; **`reference_temperature_k` rejected (fixed at 273.15 K)** | `theta_k = T_source − 273.15`                                       |
+| Thermal state  | *(nothing — fully fixed)*                                        | every thermal field rejected (locked to training data) | `T_ref = 273.15 K`, `T_source = 1500 K`, `θ = 1226.85 K`             |
+| Source pulse   | *(nothing — fully fixed)*                                        | `frequency_hz` rejected (locked)                      | `frequency_hz = 25.0`                                               |
+| Domain         | *(nothing — fully fixed)*                                        | `domain.size` rejected (locked)                       | `lx = ly = 1.0 m`, `dimension = 2`                                  |
 | Geometry       | `geometry.dimension=2`, `source.{x_m,y_m}`, `probe.{x_m,y_m}`    | source direction as comparison vector | `propagation_vector_m`, `distance_m`, `unit_direction`, `azimuth_deg` |
 | Observation    | `observation.time_s`                                             | time array for batch prediction     | `time_ms` for v1 compatibility                                       |
 | Scenario       | `scenario.{thermal_source_type, mechanical_constraint, boundary_condition_type}` | resolution / boundary labels        | `rect_2d` default domain if omitted                                  |
@@ -367,13 +398,10 @@ curl -s -X POST http://localhost:8000/api/v1/predictions \
     "schema_version": "2.0",
     "model": "pinn",
     "medium_id": "sandstone",
-    "thermal_state": {
-      "source_temperature_k": 350.0
-    },
     "geometry": {
       "dimension": 2,
-      "source": { "x_m": 0.0, "y_m": 0.0 },
-      "probe":  { "x_m": 1.0, "y_m": 0.5 }
+      "source": { "x_m": 0.2, "y_m": 0.5 },
+      "probe":  { "x_m": 0.8, "y_m": 0.5 }
     },
     "observation": { "time_s": 0.1 },
     "scenario": {
@@ -408,6 +436,10 @@ All errors return HTTP 4xx/5xx and a JSON body of the form:
 | `unknown_medium`                          | 404  | `medium_id` not in the catalog.                                      |
 | `material_thermoelastic_unsupported`      | 400  | Catalog entry has `thermoelastic_supported: false`.                  |
 | `reference_temperature_override_disabled` | 400  | Client sent `reference_temperature_k`; v2 fixes it at 273.15 K.      |
+| `source_temperature_override_disabled`    | 400  | Client sent `source_temperature_k`; v2 fixes it at 1500 K.           |
+| `frequency_override_disabled`             | 400  | Client sent `frequency_hz`; v2 fixes it at 25 Hz.                    |
+| `domain_override_disabled`                | 400  | Client sent `domain.size` or `domain.resolution`; v2 fixes domain at 1 m × 1 m. |
+| `geometry_out_of_domain`                  | 400  | `source` or `probe` coordinate outside `[0, 1] m`.                   |
 | `invalid_geometry`                        | 400  | `source == probe`, non-finite coords, or `dimension != 2`.           |
 | `model_route_unavailable`                 | 503  | Selected model service is down and `allow_fallback: false`.          |
 | `model_route_error`                       | 502  | Model service returned non-2xx; details surfaced in `diagnostics`.   |
