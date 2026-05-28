@@ -14,6 +14,7 @@ For a Windows-specific copy-paste training flow, see:
 
 For the concrete PINN network and loss architecture, see:
 
+- [PINN Model Structure](PINN_MODEL_STRUCTURE.md)
 - [PINN Architecture Details](../docs/pinn_architecture_details.md)
 
 ## Supported COMSOL exports
