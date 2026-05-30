@@ -87,7 +87,8 @@ function updateView(state) {
   renderDomain(ui.refs.domainSvg, state.draftRequest, state.lastResponse, model?.name || state.selectedModel);
   renderFieldGridHeatmap(
     ui.refs.fieldGridHeatmap,
-    state.lastResponse ? state.lastResponse.optional_outputs?.field_grid || null : undefined
+    state.lastResponse ? state.lastResponse.optional_outputs?.field_grid || null : undefined,
+    state.lastResponse?.geometry || null
   );
 }
 

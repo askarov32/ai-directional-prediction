@@ -27,11 +27,15 @@ def test_parse_v2_native_payload():
         },
         "optional_outputs": {
             "field_summary": {
+                "max_temperature_k": 318.4,
                 "max_displacement_m": 1.5e-6,
                 "max_temperature_perturbation_k": 25.0,
             },
             "confidence_score": 0.91,
-            "field_grid": None,
+            "field_grid": {"type": "rect_2d", "channels": {}},
+            "field_sources": {"temperature_k": "direct_model_output"},
+            "available_fields": ["temperature_k"],
+            "missing_fields": ["stress_von_mises_pa"],
         },
         "diagnostics": {
             "fallback_used": False,
@@ -50,6 +54,11 @@ def test_parse_v2_native_payload():
     assert out.max_displacement_m == pytest.approx(1.5e-6)
     assert out.max_temperature_perturbation_k == pytest.approx(25.0)
     assert out.confidence_score == pytest.approx(0.91)
+    assert out.field_grid == {"type": "rect_2d", "channels": {}}
+    assert out.field_summary["max_temperature_k"] == pytest.approx(318.4)
+    assert out.field_sources == {"temperature_k": "direct_model_output"}
+    assert out.available_fields == ["temperature_k"]
+    assert out.missing_fields == ["stress_von_mises_pa"]
     assert out.model_version == "pinn-v2@best"
     assert out.fallback_used is False
     assert out.warnings == ["cpu-only"]

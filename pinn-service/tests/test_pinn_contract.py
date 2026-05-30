@@ -114,3 +114,29 @@ def test_checkpoint_smoke_check_exposes_metadata_and_diagnostics():
     assert "postprocessed_prediction" in response
     assert "diagnostics" in response
     assert response["diagnostics"]["smoke_check"]["status"] == "passed"
+
+
+def test_checkpoint_prediction_can_return_requested_field_grid():
+    service = PINNInferenceService(inference_config(CHECKPOINT_DIR))
+    payload = sample_payload()
+    payload["requested_outputs"] = ["field_grid", "field_summary", "diagnostics"]
+    payload["domain"]["resolution"] = {"nx": 4, "ny": 3, "nz": 1}
+
+    service.try_initialize()
+
+    response = service.predict(PINNPredictionRequest.model_validate(payload))
+    optional = response["optional_outputs"]
+    grid = optional["field_grid"]
+
+    assert grid["type"] == "rect_2d"
+    assert grid["nx"] == 4
+    assert grid["ny"] == 3
+    assert len(grid["x_coords"]) == 4
+    assert len(grid["y_coords"]) == 3
+    assert "temperature_k" in grid["channels"]
+    assert "displacement_magnitude_m" in grid["channels"]
+    assert len(grid["channels"]["temperature_k"]["values"]) == 3
+    assert len(grid["channels"]["temperature_k"]["values"][0]) == 4
+    assert optional["field_sources"]["temperature_k"] == "direct_model_output"
+    assert "stress_von_mises_pa" in optional["missing_fields"]
+    assert response["diagnostics"]["field_grid"]["method"] == "batched_probe_inference"

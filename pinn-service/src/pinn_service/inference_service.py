@@ -19,6 +19,30 @@ class CheckpointNotReadyError(RuntimeError):
     """Raised when the PINN checkpoint is missing or failed to load."""
 
 
+_FIELD_GRID_DEFAULT_RESOLUTION = 64
+_FIELD_GRID_MAX_RESOLUTION = 128
+_FIELD_GRID_CHUNK_SIZE = 4096
+_FIELD_GRID_MISSING_FIELDS = [
+    "stress_xx_pa",
+    "stress_yy_pa",
+    "stress_zz_pa",
+    "stress_xy_pa",
+    "stress_xz_pa",
+    "stress_yz_pa",
+    "stress_von_mises_pa",
+    "strain_xx",
+    "strain_yy",
+    "strain_zz",
+    "strain_xy",
+    "strain_xz",
+    "strain_yz",
+    "velocity_x_m_s",
+    "velocity_y_m_s",
+    "velocity_z_m_s",
+    "velocity_magnitude_m_s",
+]
+
+
 @dataclass(frozen=True)
 class LoadedInferenceArtifacts:
     model: nn.Module
@@ -91,13 +115,7 @@ class PINNInferenceService:
         )
         self._assert_feature_alignment(features.feature_names, artifacts.input_feature_names)
 
-        scaled = ((features.values - artifacts.input_mean) / artifacts.input_std).astype(np.float32)
-        tensor = torch.from_numpy(scaled[None, :]).to(artifacts.device)
-
-        artifacts.model.eval()
-        with torch.no_grad():
-            outputs_scaled = artifacts.model(tensor).cpu().numpy()[0]
-        outputs = outputs_scaled * artifacts.output_std + artifacts.output_mean
+        outputs = self._predict_feature_matrix(features.values[None, :], artifacts, chunk_size=1)[0]
 
         payload = build_prediction_payload(
             request=request,
@@ -144,6 +162,27 @@ class PINNInferenceService:
             if feature_names
             else {}
         )
+        field_grid_payload = (
+            self._build_field_grid(request, artifacts)
+            if _should_emit_field_grid(request)
+            else None
+        )
+        max_temperature_k = (
+            field_grid_payload["field_summary"]["max_temperature_k"]
+            if field_grid_payload
+            else output_map.get("temperature_k")
+        )
+        max_temperature_perturbation_k = (
+            field_grid_payload["field_summary"]["max_temperature_perturbation_k"]
+            if field_grid_payload
+            else payload["max_temperature_perturbation"]
+        )
+        max_displacement_m = (
+            field_grid_payload["field_summary"]["max_displacement_m"]
+            if field_grid_payload
+            else payload["max_displacement"]
+        )
+
         payload["schema_version"] = "2.0"
         payload["prediction_raw"] = {
             "temperature_k": output_map.get("temperature_k"),
@@ -162,16 +201,194 @@ class PINNInferenceService:
         payload["optional_outputs"] = {
             "confidence_score": None,
             "field_summary": {
-                "max_displacement_m": payload["max_displacement"],
-                "max_temperature_perturbation_k": payload[
-                    "max_temperature_perturbation"
-                ],
+                "max_temperature_k": max_temperature_k,
+                "max_temperature_perturbation_k": max_temperature_perturbation_k,
+                "max_displacement_m": max_displacement_m,
+                "max_von_mises_stress_pa": None,
             },
-            "field_grid": None,
+            "field_grid": field_grid_payload["field_grid"] if field_grid_payload else None,
+            "field_sources": field_grid_payload["field_sources"] if field_grid_payload else {},
+            "available_fields": (
+                field_grid_payload["available_fields"] if field_grid_payload else []
+            ),
+            "missing_fields": field_grid_payload["missing_fields"] if field_grid_payload else [],
             "strain": None,
             "stress": None,
         }
+        if field_grid_payload:
+            payload["diagnostics"]["field_grid"] = field_grid_payload["diagnostics"]
+        elif _should_emit_field_grid(request):
+            payload["diagnostics"]["warnings"].append(
+                "field_grid_not_available_for_domain"
+                if request.domain.type != "rect_2d"
+                else "field_grid_not_returned_by_model"
+            )
         return payload
+
+    def _predict_feature_matrix(
+        self,
+        feature_matrix: np.ndarray,
+        artifacts: LoadedInferenceArtifacts,
+        *,
+        chunk_size: int,
+    ) -> np.ndarray:
+        matrix = np.asarray(feature_matrix, dtype=np.float32)
+        outputs: list[np.ndarray] = []
+
+        artifacts.model.eval()
+        with torch.no_grad():
+            for start in range(0, matrix.shape[0], chunk_size):
+                chunk = matrix[start : start + chunk_size]
+                scaled = ((chunk - artifacts.input_mean) / artifacts.input_std).astype(np.float32)
+                tensor = torch.from_numpy(scaled).to(artifacts.device)
+                outputs.append(artifacts.model(tensor).cpu().numpy())
+
+        output_matrix = np.concatenate(outputs, axis=0)
+        denormalized = output_matrix * artifacts.output_std + artifacts.output_mean
+        if not np.all(np.isfinite(denormalized)):
+            raise CheckpointNotReadyError("PINN inference produced NaN or infinite values.")
+        return denormalized
+
+    def _build_field_grid(
+        self,
+        request: PINNPredictionRequest,
+        artifacts: LoadedInferenceArtifacts,
+    ) -> dict[str, Any] | None:
+        if request.domain.type != "rect_2d":
+            return None
+
+        nx, ny = _field_grid_resolution(request)
+        lx = float(request.domain.size.lx)
+        ly = float(request.domain.size.ly)
+        x_coords = np.linspace(0.0, lx, nx, dtype=np.float32)
+        y_coords = np.linspace(0.0, ly, ny, dtype=np.float32)
+        feature_rows: list[np.ndarray] = []
+
+        for y_coord in y_coords:
+            for x_coord in x_coords:
+                probe = request.probe.model_copy(
+                    update={
+                        "x": float(x_coord),
+                        "y": float(y_coord),
+                        "z": 0.0,
+                    }
+                )
+                grid_request = request.model_copy(update={"probe": probe})
+                features = build_feature_vector(
+                    grid_request,
+                    time_scale=self.config.time_scale,
+                    expected_feature_names=artifacts.input_feature_names,
+                )
+                feature_rows.append(features.values)
+
+        feature_matrix = np.stack(feature_rows).astype(np.float32, copy=False)
+        outputs = self._predict_feature_matrix(
+            feature_matrix,
+            artifacts,
+            chunk_size=_FIELD_GRID_CHUNK_SIZE,
+        ).reshape(ny, nx, len(artifacts.output_feature_names))
+
+        output_channels = artifacts.output_feature_names
+        temperature = _output_grid_or_zeros(outputs, output_channels, "temperature_k")
+        disp_x = _output_grid_or_zeros(outputs, output_channels, "disp_x")
+        disp_y = _output_grid_or_zeros(outputs, output_channels, "disp_y")
+        disp_z_available = "disp_z" in output_channels
+        disp_z = np.zeros_like(disp_x, dtype=np.float32)
+        if disp_z_available and request.domain.type != "rect_2d":
+            disp_z = _output_grid_or_zeros(outputs, output_channels, "disp_z")
+
+        temperature_perturbation = temperature - self.config.reference_temperature_k
+        displacement_magnitude = np.sqrt(disp_x**2 + disp_y**2 + disp_z**2)
+
+        channels = {
+            "temperature_k": _field_channel(
+                label="Temperature",
+                group="temperature",
+                unit="K",
+                values=temperature,
+                source="direct_model_output",
+                decimals=6,
+            ),
+            "temperature_perturbation_k": _field_channel(
+                label="Temperature perturbation",
+                group="temperature",
+                unit="K",
+                values=temperature_perturbation,
+                source="derived_from_temperature",
+                decimals=6,
+            ),
+            "disp_x_m": _field_channel(
+                label="Displacement X",
+                group="displacement",
+                unit="m",
+                values=disp_x,
+                source="direct_model_output",
+                decimals=12,
+            ),
+            "disp_y_m": _field_channel(
+                label="Displacement Y",
+                group="displacement",
+                unit="m",
+                values=disp_y,
+                source="direct_model_output",
+                decimals=12,
+            ),
+            "disp_z_m": _field_channel(
+                label="Displacement Z",
+                group="displacement",
+                unit="m",
+                values=disp_z,
+                source=(
+                    "direct_model_output"
+                    if disp_z_available and request.domain.type != "rect_2d"
+                    else "derived_from_2d_domain"
+                ),
+                decimals=12,
+            ),
+            "displacement_magnitude_m": _field_channel(
+                label="Displacement magnitude",
+                group="displacement",
+                unit="m",
+                values=displacement_magnitude,
+                source="derived_from_displacement_components",
+                decimals=12,
+            ),
+        }
+        field_summary = {
+            "max_temperature_k": round(float(np.max(temperature)), 6),
+            "max_temperature_perturbation_k": round(
+                float(np.max(np.abs(temperature_perturbation))),
+                8,
+            ),
+            "max_displacement_m": round(float(np.max(displacement_magnitude)), 8),
+            "max_von_mises_stress_pa": None,
+        }
+        return {
+            "field_grid": {
+                "type": "rect_2d",
+                "nx": nx,
+                "ny": ny,
+                "x_coords": np.round(x_coords.astype(np.float64), decimals=8).tolist(),
+                "y_coords": np.round(y_coords.astype(np.float64), decimals=8).tolist(),
+                "channels": channels,
+            },
+            "field_summary": field_summary,
+            "field_sources": {
+                name: channel["source"] for name, channel in channels.items()
+            },
+            "available_fields": list(channels.keys()),
+            "missing_fields": list(_FIELD_GRID_MISSING_FIELDS),
+            "diagnostics": {
+                "emitted": True,
+                "type": "rect_2d",
+                "nx": nx,
+                "ny": ny,
+                "point_count": nx * ny,
+                "chunk_size": _FIELD_GRID_CHUNK_SIZE,
+                "policy": request.grid_policy or "service_default",
+                "method": "batched_probe_inference",
+            },
+        }
 
     def _require_artifacts(self) -> LoadedInferenceArtifacts:
         if self._artifacts is None:
@@ -365,3 +582,57 @@ def _read_mlp_layer_dims(raw_value: Any) -> tuple[int, ...] | None:
     if isinstance(raw_value, (list, tuple)):
         return tuple(int(value) for value in raw_value)
     raise ValueError(f"Unsupported mlp_layer_dims checkpoint value: {raw_value!r}")
+
+
+def _should_emit_field_grid(request: PINNPredictionRequest) -> bool:
+    requested = {
+        str(item).strip().lower()
+        for item in request.requested_outputs
+        if str(item).strip()
+    }
+    return "field_grid" in requested or "all" in requested
+
+
+def _field_grid_resolution(request: PINNPredictionRequest) -> tuple[int, int]:
+    policy = (request.grid_policy or "service_default").strip().lower()
+    cap = (
+        _FIELD_GRID_MAX_RESOLUTION
+        if policy in {"high", "full", "native", "128", "max"}
+        else _FIELD_GRID_DEFAULT_RESOLUTION
+    )
+    nx = min(max(int(request.domain.resolution.nx), 2), cap)
+    ny = min(max(int(request.domain.resolution.ny), 2), cap)
+    return nx, ny
+
+
+def _output_grid_or_zeros(
+    outputs: np.ndarray,
+    output_channels: list[str],
+    name: str,
+) -> np.ndarray:
+    if name not in output_channels:
+        return np.zeros(outputs.shape[:2], dtype=np.float32)
+    return outputs[:, :, output_channels.index(name)].astype(np.float32, copy=False)
+
+
+def _field_channel(
+    *,
+    label: str,
+    group: str,
+    unit: str,
+    values: np.ndarray,
+    source: str,
+    decimals: int,
+) -> dict[str, Any]:
+    return {
+        "label": label,
+        "group": group,
+        "unit": unit,
+        "values": _matrix_values(values, decimals=decimals),
+        "source": source,
+    }
+
+
+def _matrix_values(values: np.ndarray, *, decimals: int) -> list[list[float]]:
+    matrix = np.asarray(values, dtype=np.float64)
+    return np.round(matrix, decimals=decimals).tolist()

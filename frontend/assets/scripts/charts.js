@@ -32,6 +32,12 @@ function toTitleCase(value) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function sourceLabelForChart(value) {
+  return String(value || "")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 const COLORS = {
   domainFill: "#172033",
   domainStroke: "rgba(148, 163, 184, 0.88)",
@@ -75,6 +81,14 @@ const CHANNEL_UNITS = {
   disp_magnitude: "m",
   magnitude_m: "m",
 };
+
+const FIELD_GROUPS = [
+  { key: "temperature", label: "Temperature" },
+  { key: "displacement", label: "Displacement" },
+  { key: "stress", label: "Stress" },
+  { key: "strain", label: "Strain" },
+  { key: "velocity", label: "Velocity" },
+];
 
 function buildBoxGeometry() {
   return {
@@ -425,6 +439,29 @@ function matrixFromData(data, widthHint, heightHint) {
   return matrix;
 }
 
+function inferChannelGroup(key, configuredGroup) {
+  const group = String(configuredGroup || "").toLowerCase();
+  if (FIELD_GROUPS.some((item) => item.key === group)) {
+    return group;
+  }
+  if (key.includes("temp")) {
+    return "temperature";
+  }
+  if (key.includes("disp") || key.includes("displacement") || key === "u" || key === "v" || key === "w") {
+    return "displacement";
+  }
+  if (key.includes("stress") || key.includes("mises") || key.startsWith("solid.s")) {
+    return "stress";
+  }
+  if (key.includes("strain") || key.startsWith("solid.e")) {
+    return "strain";
+  }
+  if (key.includes("vel") || key.endsWith("_m_s") || key === "ut" || key === "vt" || key === "wt") {
+    return "velocity";
+  }
+  return "temperature";
+}
+
 function normalizeChannel(name, candidate, parentGrid) {
   const config = candidate && typeof candidate === "object" && !Array.isArray(candidate) ? candidate : {};
   const rawData = Array.isArray(candidate)
@@ -447,6 +484,8 @@ function normalizeChannel(name, candidate, parentGrid) {
     key,
     label: config.label || CHANNEL_LABELS[key] || toTitleCase(config.name || name || "field"),
     unit: config.unit || CHANNEL_UNITS[key] || "",
+    group: inferChannelGroup(key, config.group),
+    source: config.source || "",
     matrix,
     min: Math.min(...values),
     max: Math.max(...values),
@@ -536,7 +575,42 @@ function coordAt(coords, index, count) {
   return count <= 1 ? 0 : index / (count - 1);
 }
 
-function buildHeatmapSvg(channel) {
+function projectFieldPoint(point, plot) {
+  return {
+    x: plot.x + clamp(point.x, 0, 1) * plot.width,
+    y: plot.y + (1 - clamp(point.y, 0, 1)) * plot.height,
+  };
+}
+
+function buildFieldOverlay(geometry, plot) {
+  if (!geometry?.source || !geometry?.probe) {
+    return "";
+  }
+  const source = readPoint(geometry.source, { x: 0.15, y: 0.4 });
+  const probe = readPoint(geometry.probe, { x: 0.7, y: 0.55 });
+  const sourcePoint = projectFieldPoint(source, plot);
+  const probePoint = projectFieldPoint(probe, plot);
+  const distance = finiteNumber(geometry.distance_m, computeDistance(source, probe));
+  const azimuth = finiteNumber(geometry.azimuth_deg, computeAzimuth(source, probe));
+  const labelX = clamp((sourcePoint.x + probePoint.x) / 2 - 78, plot.x + 10, plot.x + plot.width - 164);
+  const labelY = clamp((sourcePoint.y + probePoint.y) / 2 - 20, plot.y + 28, plot.y + plot.height - 24);
+
+  return `
+    <g class="field-overlay" aria-label="Source and probe overlay">
+      <line x1="${sourcePoint.x}" y1="${sourcePoint.y}" x2="${probePoint.x}" y2="${probePoint.y}" stroke="rgba(15, 23, 42, 0.48)" stroke-width="8" stroke-linecap="round" />
+      <line x1="${sourcePoint.x}" y1="${sourcePoint.y}" x2="${probePoint.x}" y2="${probePoint.y}" stroke="rgba(248, 250, 252, 0.84)" stroke-width="3.2" stroke-linecap="round" marker-end="url(#field-arrowhead)" />
+      <circle cx="${sourcePoint.x}" cy="${sourcePoint.y}" r="10" fill="${COLORS.sourceFill}" stroke="${COLORS.sourceStroke}" stroke-width="3" />
+      <circle cx="${probePoint.x}" cy="${probePoint.y}" r="10" fill="${COLORS.probeFill}" stroke="${COLORS.probeStroke}" stroke-width="3" />
+      <text x="${sourcePoint.x + 13}" y="${sourcePoint.y - 13}" font-family="Avenir Next, Segoe UI, sans-serif" font-size="12" font-weight="700" fill="${COLORS.label}">Source</text>
+      <text x="${probePoint.x + 13}" y="${probePoint.y - 13}" font-family="Avenir Next, Segoe UI, sans-serif" font-size="12" font-weight="700" fill="${COLORS.label}">Probe</text>
+      <rect x="${labelX - 10}" y="${labelY - 18}" width="156" height="42" rx="10" fill="rgba(15, 23, 42, 0.76)" stroke="rgba(148, 163, 184, 0.26)" />
+      <text x="${labelX}" y="${labelY - 2}" font-family="JetBrains Mono, monospace" font-size="11.5" fill="${COLORS.label}">${formatNumber(distance, 3)} m</text>
+      <text x="${labelX}" y="${labelY + 16}" font-family="JetBrains Mono, monospace" font-size="11.5" fill="${COLORS.angle}">${formatNumber(azimuth, 1)} deg</text>
+    </g>
+  `;
+}
+
+function buildHeatmapSvg(channel, geometry) {
   const rows = channel.matrix.length;
   const cols = Math.max(...channel.matrix.map((row) => row.length));
   const width = 760;
@@ -577,6 +651,11 @@ function buildHeatmapSvg(channel) {
 
   return `
     <svg class="heatmap-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(channel.label)} heatmap">
+      <defs>
+        <marker id="field-arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="${COLORS.arrow}"></path>
+        </marker>
+      </defs>
       <rect x="0" y="0" width="${width}" height="${height}" rx="24" fill="rgba(15, 23, 42, 0.24)" />
       <text x="${plot.x}" y="24" font-family="Avenir Next, Segoe UI, sans-serif" font-size="15" font-weight="700" fill="${COLORS.label}">
         ${escapeHtml(channel.label)}
@@ -584,6 +663,7 @@ function buildHeatmapSvg(channel) {
       <g>
         <rect x="${plot.x}" y="${plot.y}" width="${plot.width}" height="${plot.height}" fill="rgba(15, 23, 42, 0.32)" stroke="${COLORS.tooltipStroke}" />
         ${cells.join("")}
+        ${buildFieldOverlay(geometry, plot)}
       </g>
       <text x="${plot.x}" y="${plot.y + plot.height + 28}" font-family="JetBrains Mono, monospace" font-size="12" fill="${COLORS.meta}">x · 0 to 1 m</text>
       <text x="${plot.x - 44}" y="${plot.y + 14}" font-family="JetBrains Mono, monospace" font-size="12" fill="${COLORS.meta}">y</text>
@@ -595,9 +675,7 @@ function buildHeatmapSvg(channel) {
         <text x="${legendX + 30}" y="${legendY + 10}" font-family="JetBrains Mono, monospace" font-size="12" fill="${COLORS.label}">${formatNumber(channel.max, 4)}${unitSuffix}</text>
         <text x="${legendX + 30}" y="${legendY + legendHeight}" font-family="JetBrains Mono, monospace" font-size="12" fill="${COLORS.label}">${formatNumber(channel.min, 4)}${unitSuffix}</text>
       </g>
-      <text x="${plot.x}" y="${height - 24}" font-family="Avenir Next, Segoe UI, sans-serif" font-size="12.5" fill="${COLORS.meta}">
-        Hover cells to inspect coordinate and value.
-      </text>
+      <text x="${plot.x}" y="${height - 24}" font-family="Avenir Next, Segoe UI, sans-serif" font-size="12.5" fill="${COLORS.meta}">${escapeHtml(channel.source ? sourceLabelForChart(channel.source) : "")}</text>
     </svg>
   `;
 }
@@ -610,7 +688,49 @@ function renderUnavailableHeatmap(container) {
   `;
 }
 
-export function renderFieldGridHeatmap(container, fieldGrid) {
+function availableGroupKeys(channels) {
+  return new Set(channels.map((channel) => channel.group));
+}
+
+function firstAvailableGroup(channels) {
+  const groups = availableGroupKeys(channels);
+  const configured = FIELD_GROUPS.find((group) => groups.has(group.key));
+  return configured?.key || channels[0]?.group || "temperature";
+}
+
+function channelOptions(channels) {
+  return channels
+    .map(
+      (channel) =>
+        `<option value="${escapeHtml(channel.key)}">${escapeHtml(channel.label)}</option>`
+    )
+    .join("");
+}
+
+function groupButtons(channels, activeGroup) {
+  const groups = availableGroupKeys(channels);
+  return FIELD_GROUPS.map((group) => {
+    const disabled = !groups.has(group.key);
+    const classes = [
+      "heatmap-group-button",
+      activeGroup === group.key ? "is-active" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    return `
+      <button
+        type="button"
+        class="${classes}"
+        data-field-group="${group.key}"
+        ${disabled ? "disabled" : ""}
+        aria-pressed="${activeGroup === group.key ? "true" : "false"}">
+        ${escapeHtml(group.label)}
+      </button>
+    `;
+  }).join("");
+}
+
+export function renderFieldGridHeatmap(container, fieldGrid, geometry = null) {
   if (!container) {
     return;
   }
@@ -626,15 +746,16 @@ export function renderFieldGridHeatmap(container, fieldGrid) {
     return;
   }
 
-  const options = parsed.channels
-    .map((channel, index) => `<option value="${index}">${escapeHtml(channel.label)}</option>`)
-    .join("");
+  let activeGroup = firstAvailableGroup(parsed.channels);
 
   container.innerHTML = `
+    <div class="heatmap-group-tabs" role="tablist" aria-label="Physical field groups">
+      ${groupButtons(parsed.channels, activeGroup)}
+    </div>
     <div class="heatmap-controls">
       <label class="heatmap-control">
         <span>Channel</span>
-        <select class="heatmap-channel-select">${options}</select>
+        <select class="heatmap-channel-select"></select>
       </label>
       <div class="heatmap-stats" aria-live="polite"></div>
     </div>
@@ -644,17 +765,34 @@ export function renderFieldGridHeatmap(container, fieldGrid) {
   const select = container.querySelector(".heatmap-channel-select");
   const stats = container.querySelector(".heatmap-stats");
   const figure = container.querySelector(".heatmap-figure");
+  const tablist = container.querySelector(".heatmap-group-tabs");
 
-  const draw = (index) => {
-    const channel = parsed.channels[index] || parsed.channels[0];
-    const unitSuffix = channel.unit ? ` ${channel.unit}` : "";
-    stats.textContent = `min ${formatNumber(channel.min, 5)}${unitSuffix} · max ${formatNumber(channel.max, 5)}${unitSuffix}`;
-    figure.innerHTML = buildHeatmapSvg(channel);
+  const draw = (selectedKey = "") => {
+    const groupChannels = parsed.channels.filter((channel) => channel.group === activeGroup);
+    const channels = groupChannels.length > 0 ? groupChannels : parsed.channels;
+    const selected = channels.find((channel) => channel.key === selectedKey) || channels[0];
+    select.innerHTML = channelOptions(channels);
+    select.value = selected.key;
+    const unitSuffix = selected.unit ? ` ${selected.unit}` : "";
+    const sourceText = selected.source ? ` · ${sourceLabelForChart(selected.source)}` : "";
+    stats.textContent = `min ${formatNumber(selected.min, 5)}${unitSuffix} · max ${formatNumber(selected.max, 5)}${unitSuffix}${sourceText}`;
+    figure.innerHTML = buildHeatmapSvg(selected, geometry);
   };
 
   select.addEventListener("change", () => {
-    draw(Number(select.value));
+    draw(select.value);
   });
 
-  draw(0);
+  tablist.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+    const button = target?.closest("[data-field-group]");
+    if (!button || button.disabled) {
+      return;
+    }
+    activeGroup = button.dataset.fieldGroup;
+    tablist.innerHTML = groupButtons(parsed.channels, activeGroup);
+    draw();
+  });
+
+  draw();
 }

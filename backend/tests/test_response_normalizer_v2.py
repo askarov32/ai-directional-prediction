@@ -198,9 +198,27 @@ def test_normalizer_passes_v2_native_through_intact():
         },
         "optional_outputs": {
             "field_summary": {
+                "max_temperature_k": 315.2,
                 "max_displacement_m": 1.5e-6,
                 "max_temperature_perturbation_k": 25.0,
             },
+            "field_grid": {
+                "type": "rect_2d",
+                "nx": 2,
+                "ny": 2,
+                "channels": {
+                    "temperature_k": {
+                        "label": "Temperature",
+                        "group": "temperature",
+                        "unit": "K",
+                        "values": [[293.15, 294.0], [295.0, 296.0]],
+                        "source": "direct_model_output",
+                    }
+                },
+            },
+            "field_sources": {"temperature_k": "direct_model_output"},
+            "available_fields": ["temperature_k"],
+            "missing_fields": ["stress_von_mises_pa"],
         },
         "diagnostics": {
             "fallback_used": False,
@@ -221,6 +239,15 @@ def test_normalizer_passes_v2_native_through_intact():
     assert out["prediction"]["temporal_response"]["travel_time_s"] == pytest.approx(
         0.000186
     )
+    assert out["optional_outputs"]["field_summary"]["max_temperature_k"] == pytest.approx(
+        315.2
+    )
+    assert out["optional_outputs"]["field_grid"]["type"] == "rect_2d"
+    assert out["optional_outputs"]["field_sources"] == {
+        "temperature_k": "direct_model_output"
+    }
+    assert out["optional_outputs"]["available_fields"] == ["temperature_k"]
+    assert out["optional_outputs"]["missing_fields"] == ["stress_von_mises_pa"]
 
 
 # --- fallback path -------------------------------------------------------

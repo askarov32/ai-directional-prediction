@@ -358,14 +358,19 @@ class PredictionBlockV2Schema(BaseModel):
 
 
 class FieldSummaryV2Schema(BaseModel):
-    max_displacement_m: float | None = None
+    max_temperature_k: float | None = None
     max_temperature_perturbation_k: float | None = None
+    max_displacement_m: float | None = None
+    max_von_mises_stress_pa: float | None = None
 
 
 class OptionalOutputsV2Schema(BaseModel):
     confidence_score: float | None = None
     field_summary: FieldSummaryV2Schema = Field(default_factory=FieldSummaryV2Schema)
     field_grid: dict | None = None
+    field_sources: dict[str, str] = Field(default_factory=dict)
+    available_fields: list[str] = Field(default_factory=list)
+    missing_fields: list[str] = Field(default_factory=list)
     strain: dict | None = None
     stress: dict | None = None
 

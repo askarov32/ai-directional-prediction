@@ -21,4 +21,5 @@ class TransformerClient(BaseModelClient):
         payload = request.to_shared_payload()
         payload["representation"] = "tokenset"
         payload["routing_hint"] = "transformer"
+        payload["requested_outputs"] = ["direction", "field_summary", "diagnostics"]
         return payload

@@ -115,3 +115,5 @@ class TransformerPredictionRequest(BaseModel):
     domain: DomainSchema
     representation: Literal["tokenset"]
     routing_hint: Literal["transformer"]
+    requested_outputs: list[str] = Field(default_factory=list)
+    grid_policy: str | None = None

@@ -21,4 +21,11 @@ class MeshGraphNetClient(BaseModelClient):
         payload = request.to_shared_payload()
         payload["representation"] = "graph"
         payload["routing_hint"] = "meshgraphnet"
+        payload["requested_outputs"] = [
+            "field_grid",
+            "field_summary",
+            "probe_sample",
+            "diagnostics",
+            "direction",
+        ]
         return payload

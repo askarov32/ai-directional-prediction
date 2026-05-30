@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class PredictionPayload(BaseModel):
@@ -15,3 +15,5 @@ class PredictionPayload(BaseModel):
     domain: dict[str, Any]
     representation: str = "grid"
     routing_hint: str | None = None
+    requested_outputs: list[str] = Field(default_factory=list)
+    grid_policy: str | None = None
