@@ -1,0 +1,8 @@
+fastapi==0.115.5
+numpy==2.2.2
+pandas>=1.5,<3
+pydantic==2.10.3
+PyYAML==6.0.2
+scikit-learn>=1.2,<2
+tqdm>=4.64,<5
+uvicorn[standard]==0.32.0

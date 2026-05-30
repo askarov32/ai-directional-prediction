@@ -1,0 +1,23 @@
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app/src
+
+WORKDIR /app
+
+COPY requirements.runtime.txt ./requirements.runtime.txt
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 \
+    && pip install --no-cache-dir -r requirements.runtime.txt
+
+RUN useradd --create-home --shell /usr/sbin/nologin appuser
+
+COPY --chown=appuser:appuser src ./src
+RUN mkdir -p /app/artifacts && chown -R appuser:appuser /app/artifacts
+
+USER appuser
+
+EXPOSE 9000
+
+CMD ["uvicorn", "transformer_service.service_app:app", "--host", "0.0.0.0", "--port", "9000"]

@@ -1,0 +1,216 @@
+name: thermoelastic-prod
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+  init: true
+  logging: *default-logging
+  security_opt:
+    - no-new-privileges:true
+
+services:
+  gateway:
+    <<: *service-defaults
+    image: caddy:2.8-alpine
+    environment:
+      DEPLOY_HOST: ${DEPLOY_HOST:?Set DEPLOY_HOST in .env.production}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in .env.production}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      frontend:
+        condition: service_started
+    networks:
+      - edge
+    mem_limit: ${GATEWAY_MEMORY_LIMIT:-256m}
+    cpus: ${GATEWAY_CPU_LIMIT:-0.50}
+
+  frontend:
+    <<: *service-defaults
+    build:
+      context: ./frontend
+    expose:
+      - "80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - edge
+      - internal
+    mem_limit: ${FRONTEND_MEMORY_LIMIT:-128m}
+    cpus: ${FRONTEND_CPU_LIMIT:-0.50}
+
+  backend:
+    <<: *service-defaults
+    build:
+      context: ./backend
+    environment:
+      APP_NAME: ${APP_NAME:-Thermoelastic Field Workspace API}
+      APP_VERSION: ${APP_VERSION:-0.1.0}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      API_PREFIX: ${API_PREFIX:-/api/v1}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      CORS_ORIGINS: ${CORS_ORIGINS:?Set CORS_ORIGINS in .env.production}
+      MEDIA_CATALOG_PATH: /app/data/media/catalog.json
+      REMOTE_MODEL_TIMEOUT_SECONDS: ${REMOTE_MODEL_TIMEOUT_SECONDS:-90}
+      MODEL_MESHGRAPHNET_URL: http://mgn-service:9000
+      MODEL_FNO_URL: http://fno-service:9000
+      MODEL_PINN_URL: http://pinn-service:9000
+      MODEL_TRANSFORMER_URL: http://transformer-service:9000
+      MODEL_MESHGRAPHNET_PREDICT_PATH: /predict
+      MODEL_FNO_PREDICT_PATH: /predict
+      MODEL_PINN_PREDICT_PATH: /predict
+      MODEL_TRANSFORMER_PREDICT_PATH: /predict
+    expose:
+      - "8000"
+    depends_on:
+      mgn-service:
+        condition: service_healthy
+      fno-service:
+        condition: service_healthy
+      pinn-service:
+        condition: service_healthy
+      transformer-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - internal
+    mem_limit: ${BACKEND_MEMORY_LIMIT:-768m}
+    cpus: ${BACKEND_CPU_LIMIT:-1.00}
+
+  mgn-service:
+    <<: *service-defaults
+    build:
+      context: ./mgn-service
+      dockerfile: Dockerfile.runtime
+    environment:
+      MGN_DATASET_ID: ${MGN_DATASET_ID:-sandstone_comsol_real}
+      MGN_CONFIG_PATH: ${MGN_CONFIG_PATH:-configs/inference.yaml}
+      MGN_CHECKPOINT_PATH: ${MGN_CHECKPOINT_PATH:-outputs/checkpoints/best_model.pt}
+      MGN_DEVICE: ${MGN_DEVICE:-cpu}
+      MGN_PREDICT_TIMEOUT_SECONDS: ${MGN_PREDICT_TIMEOUT_SECONDS:-600}
+      MGN_ROLLOUT_STEPS: ${MGN_ROLLOUT_STEPS:-1}
+      MGN_ALLOW_FALLBACK: ${MGN_ALLOW_FALLBACK:-false}
+    volumes:
+      - ./mgn-service/datasets:/app/datasets:ro
+      - ./mgn-service/outputs:/app/outputs
+    expose:
+      - "9000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/ready')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - internal
+    mem_limit: ${MGN_MEMORY_LIMIT:-4g}
+    cpus: ${MGN_CPU_LIMIT:-2.00}
+
+  fno-service:
+    <<: *service-defaults
+    build:
+      context: ./fno-service
+      dockerfile: Dockerfile.runtime
+    environment:
+      FNO_CHECKPOINT_PATH: ${FNO_CHECKPOINT_PATH:-/app/artifacts/checkpoints/baseline}
+      FNO_CONFIG_PATH: ${FNO_CONFIG_PATH:-/app/configs/inference.yaml}
+      FNO_DATASET_PATH: ${FNO_DATASET_PATH:-/app/artifacts/datasets/sandstone_fno}
+      FNO_DEVICE: ${FNO_DEVICE:-cpu}
+      FNO_LOG_LEVEL: ${FNO_LOG_LEVEL:-INFO}
+      FNO_SERVICE_PORT: "9000"
+      FNO_ALLOW_FALLBACK: ${FNO_ALLOW_FALLBACK:-false}
+    volumes:
+      - ./fno-service/artifacts:/app/artifacts:ro
+    expose:
+      - "9000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/ready')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - internal
+    mem_limit: ${FNO_MEMORY_LIMIT:-2g}
+    cpus: ${FNO_CPU_LIMIT:-1.50}
+
+  pinn-service:
+    <<: *service-defaults
+    build:
+      context: ./pinn-service
+      dockerfile: Dockerfile.runtime
+    environment:
+      PINN_CHECKPOINT_PATH: ${PINN_CHECKPOINT_PATH:-/app/artifacts/checkpoints/baseline_cpu}
+      PINN_DEVICE: ${PINN_DEVICE:-cpu}
+      PINN_LOG_LEVEL: ${PINN_LOG_LEVEL:-INFO}
+      PINN_SERVICE_PORT: "9000"
+      PINN_REFERENCE_TEMPERATURE_K: ${PINN_REFERENCE_TEMPERATURE_K:-293.15}
+      PINN_TIME_SCALE: ${PINN_TIME_SCALE:-1.0}
+    volumes:
+      - ./pinn-service/artifacts:/app/artifacts:ro
+    expose:
+      - "9000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/ready')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - internal
+    mem_limit: ${PINN_MEMORY_LIMIT:-2g}
+    cpus: ${PINN_CPU_LIMIT:-2.00}
+
+  transformer-service:
+    <<: *service-defaults
+    build:
+      context: ./transformer-service
+      dockerfile: Dockerfile.runtime
+    environment:
+      TRANSFORMER_CHECKPOINT_PATH: ${TRANSFORMER_CHECKPOINT_PATH:-/app/artifacts/checkpoints/smoke}
+      TRANSFORMER_DEVICE: ${TRANSFORMER_DEVICE:-cpu}
+      TRANSFORMER_LOG_LEVEL: ${TRANSFORMER_LOG_LEVEL:-INFO}
+      TRANSFORMER_SERVICE_PORT: "9000"
+      TRANSFORMER_REFERENCE_TEMPERATURE_K: ${TRANSFORMER_REFERENCE_TEMPERATURE_K:-293.15}
+      TRANSFORMER_TIME_SCALE: ${TRANSFORMER_TIME_SCALE:-1.0}
+      TRANSFORMER_ROLLOUT_STEPS: ${TRANSFORMER_ROLLOUT_STEPS:-5}
+    volumes:
+      - ./transformer-service/artifacts:/app/artifacts:ro
+    expose:
+      - "9000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/ready')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - internal
+    mem_limit: ${TRANSFORMER_MEMORY_LIMIT:-2g}
+    cpus: ${TRANSFORMER_CPU_LIMIT:-2.00}
+
+networks:
+  edge:
+  internal:
+    internal: true
+
+volumes:
+  caddy_data:
+  caddy_config:
