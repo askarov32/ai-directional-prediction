@@ -333,18 +333,6 @@ class PINNInferenceService:
                 source="direct_model_output",
                 decimals=12,
             ),
-            "disp_z_m": _field_channel(
-                label="Displacement Z",
-                group="displacement",
-                unit="m",
-                values=disp_z,
-                source=(
-                    "direct_model_output"
-                    if disp_z_available and request.domain.type != "rect_2d"
-                    else "derived_from_2d_domain"
-                ),
-                decimals=12,
-            ),
             "displacement_magnitude_m": _field_channel(
                 label="Displacement magnitude",
                 group="displacement",

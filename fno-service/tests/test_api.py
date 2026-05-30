@@ -166,12 +166,11 @@ def test_checkpoint_predict_returns_requested_field_grid(tmp_path: Path) -> None
         "temperature_perturbation_k",
         "disp_x_m",
         "disp_y_m",
-        "disp_z_m",
         "displacement_magnitude_m",
     }
     assert field_grid["channels"]["temperature_k"]["group"] == "temperature"
     assert field_grid["channels"]["disp_x_m"]["source"] == "direct_model_output"
-    assert field_grid["channels"]["disp_z_m"]["source"] == "derived_from_2d_domain"
+    assert field_grid["channels"]["disp_y_m"]["source"] == "direct_model_output"
     assert len(field_grid["channels"]["temperature_k"]["values"]) == 6
     assert len(field_grid["channels"]["temperature_k"]["values"][0]) == 6
     assert "stress_von_mises_pa" in body["optional_outputs"]["missing_fields"]
