@@ -21,6 +21,12 @@ class FNOClient(BaseModelClient):
         payload = request.to_shared_payload()
         payload["representation"] = "grid"
         payload["routing_hint"] = "fno"
-        payload["requested_outputs"] = ["direction", "field_summary"]
+        payload["requested_outputs"] = [
+            "direction",
+            "field_grid",
+            "field_summary",
+            "probe_sample",
+            "diagnostics",
+        ]
         payload["grid_policy"] = "service_default"
         return payload

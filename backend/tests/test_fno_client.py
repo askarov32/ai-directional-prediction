@@ -22,7 +22,13 @@ def test_fno_client_build_payload_adds_grid_hints(enriched_request) -> None:
 
     assert payload["representation"] == "grid"
     assert payload["routing_hint"] == "fno"
-    assert payload["requested_outputs"] == ["direction", "field_summary"]
+    assert payload["requested_outputs"] == [
+        "direction",
+        "field_grid",
+        "field_summary",
+        "probe_sample",
+        "diagnostics",
+    ]
     assert payload["grid_policy"] == "service_default"
     assert payload["medium"]["id"] == "sandstone_medium"
 

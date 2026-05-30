@@ -21,4 +21,11 @@ class PINNClient(BaseModelClient):
         payload = request.to_shared_payload()
         payload["representation"] = "physics_informed"
         payload["routing_hint"] = "pinn"
+        payload["requested_outputs"] = [
+            "field_grid",
+            "field_summary",
+            "probe_sample",
+            "diagnostics",
+            "direction",
+        ]
         return payload

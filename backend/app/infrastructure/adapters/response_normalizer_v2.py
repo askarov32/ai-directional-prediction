@@ -39,6 +39,23 @@ def _round_optional(value: float | None, digits: int) -> float | None:
     return round(value, digits)
 
 
+def _field_summary_from_payload(payload: NormalizedRemotePayloadV2) -> dict:
+    summary = dict(payload.field_summary)
+    summary["max_displacement_m"] = _round_optional(
+        payload.max_displacement_m, 9
+    )
+    summary["max_temperature_perturbation_k"] = _round_optional(
+        payload.max_temperature_perturbation_k, 6
+    )
+    for key, digits in {
+        "max_temperature_k": 6,
+        "max_von_mises_stress_pa": 3,
+    }.items():
+        if isinstance(summary.get(key), (int, float)):
+            summary[key] = round(float(summary[key]), digits)
+    return summary
+
+
 def _theta_from_perturbation_or_compute(
     request: UnifiedPredictionRequestV2,
     payload: NormalizedRemotePayloadV2,
@@ -100,6 +117,11 @@ def normalize_to_v2(
 
     # --- diagnostics ---------------------------------------------------
     warnings = list(payload.warnings)
+    if (
+        payload.field_grid is None
+        and "field_grid_not_returned_by_model" not in warnings
+    ):
+        warnings.append("field_grid_not_returned_by_model")
     notes = [DISCLAIMER]
     fallback_used = payload.fallback_used
     fallback_reason = payload.fallback_reason
@@ -182,15 +204,11 @@ def normalize_to_v2(
         },
         "optional_outputs": {
             "confidence_score": payload.confidence_score,
-            "field_summary": {
-                "max_displacement_m": _round_optional(
-                    payload.max_displacement_m, 9
-                ),
-                "max_temperature_perturbation_k": _round_optional(
-                    payload.max_temperature_perturbation_k, 6
-                ),
-            },
+            "field_summary": _field_summary_from_payload(payload),
             "field_grid": payload.field_grid,
+            "field_sources": payload.field_sources,
+            "available_fields": payload.available_fields,
+            "missing_fields": payload.missing_fields,
             "strain": None,
             "stress": None,
         },

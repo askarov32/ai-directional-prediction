@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI-assisted Directional Prediction Prototype</title>
+    <title>AI-assisted Thermoelastic Field Prediction</title>
     <link rel="stylesheet" href="assets/styles/reset.css?v=20260517a" />
     <link rel="stylesheet" href="assets/styles/variables.css?v=20260517a" />
     <link rel="stylesheet" href="assets/styles/base.css?v=20260517a" />
@@ -15,16 +15,16 @@
     <div class="page-shell">
       <header class="hero">
         <div>
-          <p class="eyebrow">Directional Prediction Workspace</p>
-          <h1>AI-assisted 2D directional prediction in geological media</h1>
+          <p class="eyebrow">Thermoelastic Field Workspace</p>
+          <h1>AI-guided 2D field prediction in geological media</h1>
         </div>
         <p class="hero__lead">
-          Configure a planar source-probe scenario, compare MeshGraphNet, FNO, Transformer, and PINN routes, and inspect the normalized prediction response.
+          Configure a planar source-probe scenario, run MeshGraphNet, FNO, Transformer, and PINN routes, and inspect the normalized physical response.
         </p>
         <div class="hero__meta">
           <span>Research prototype</span>
           <span>Fixed 1 m x 1 m domain</span>
-          <span>Model comparison</span>
+          <span>Physical field viewer</span>
         </div>
         <p class="hero__note">Prototype prediction; not a field-validated thermoelastic simulation.</p>
       </header>
@@ -170,7 +170,7 @@
           <div class="card__header card__header--result">
             <div>
               <h2>Prediction result</h2>
-              <p class="section-description">Directional response, latency, and a compact planar domain preview.</p>
+              <p class="section-description">Physical field response, probe values, latency, and diagnostics.</p>
             </div>
 
             <div class="result-badges">
@@ -310,8 +310,8 @@
               <section class="spatial-field-section" aria-label="Optional spatial field output">
                 <div class="spatial-field-section__header">
                   <div>
-                    <h3>Spatial field grid</h3>
-                    <p>Optional model-provided spatial output for the current prototype prediction.</p>
+                    <h3>Predicted physical field over domain</h3>
+                    <p>Full-domain response for the selected model and observation time.</p>
                   </div>
                 </div>
                 <div id="field-grid-heatmap" class="heatmap-panel"></div>

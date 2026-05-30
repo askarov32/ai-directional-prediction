@@ -115,3 +115,5 @@ class PINNPredictionRequest(BaseModel):
     domain: DomainSchema
     representation: Literal["physics_informed"]
     routing_hint: Literal["pinn"]
+    requested_outputs: list[str] = Field(default_factory=list)
+    grid_policy: str | None = None

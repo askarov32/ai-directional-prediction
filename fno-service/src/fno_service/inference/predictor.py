@@ -307,6 +307,26 @@ class FNOInferenceService:
         travel_time_ms = round(
             max((distance / max(vp, 0.1)) * 10.0 + time_ms * 0.05, 0.001), 6
         )
+        field_grid_payload = (
+            _build_field_grid(
+                outputs=outputs,
+                output_channels=runtime.output_channels,
+                grid_coords=runtime.tensors.grid_coords,
+                domain=payload.domain,
+                reference_temperature_k=runtime.reference_temperature_k,
+                is_rect_2d=is_rect_2d,
+            )
+            if _should_emit_field_grid(payload)
+            else None
+        )
+        field_summary = {
+            "max_temperature_k": round(float(np.max(temperature_field)), 6),
+            "max_temperature_perturbation_k": round(
+                max_temperature_perturbation, 8
+            ),
+            "max_displacement_m": round(max_displacement, 8),
+            "max_von_mises_stress_pa": None,
+        }
         return {
             "prediction": {
                 "direction_vector": [round(value, 6) for value in direction],
@@ -362,16 +382,19 @@ class FNOInferenceService:
             },
             "optional_outputs": {
                 "confidence_score": None,
-                "field_summary": {
-                    "max_displacement_m": round(max_displacement, 8),
-                    "max_temperature_perturbation_k": round(
-                        max_temperature_perturbation, 8
-                    ),
-                },
-                # FNO is the only route allowed to emit field_grid per
-                # the contract, but it requires opt-in via
-                # requested_outputs and we keep it null by default.
-                "field_grid": None,
+                "field_summary": field_summary,
+                "field_grid": field_grid_payload["field_grid"]
+                if field_grid_payload
+                else None,
+                "field_sources": field_grid_payload["field_sources"]
+                if field_grid_payload
+                else {},
+                "available_fields": field_grid_payload["available_fields"]
+                if field_grid_payload
+                else [],
+                "missing_fields": field_grid_payload["missing_fields"]
+                if field_grid_payload
+                else [],
                 "strain": None,
                 "stress": None,
             },
@@ -500,8 +523,20 @@ class FNOInferenceService:
                 "field_summary": {
                     "max_displacement_m": max_displacement,
                     "max_temperature_perturbation_k": max_temperature_perturbation,
+                    "max_temperature_k": None,
+                    "max_von_mises_stress_pa": None,
                 },
                 "field_grid": None,
+                "field_sources": {},
+                "available_fields": [],
+                "missing_fields": [
+                    "temperature_k",
+                    "temperature_perturbation_k",
+                    "disp_x_m",
+                    "disp_y_m",
+                    "disp_z_m",
+                    "displacement_magnitude_m",
+                ],
                 "strain": None,
                 "stress": None,
             },
@@ -525,6 +560,162 @@ def _validate_request_domain(payload: PredictionPayload) -> None:
     direction = payload.source.get("direction", [1.0, 0.0, 0.0])
     if len(direction) == 3 and abs(float(direction[2])) > 1e-12:
         raise UnsupportedDomainError("Current FNO2d inference requires source.direction[2]=0.0.")
+
+
+def _should_emit_field_grid(payload: PredictionPayload) -> bool:
+    requested = {
+        str(item).strip().lower()
+        for item in (payload.requested_outputs or [])
+        if str(item).strip()
+    }
+    return "field_grid" in requested or "all" in requested
+
+
+def _build_field_grid(
+    *,
+    outputs: np.ndarray,
+    output_channels: list[str],
+    grid_coords: np.ndarray,
+    domain: dict[str, Any],
+    reference_temperature_k: float,
+    is_rect_2d: bool,
+) -> dict[str, Any]:
+    temperature = _channel_or_zeros(outputs, output_channels, "temperature_k")
+    disp_x = _channel_or_zeros(outputs, output_channels, "disp_x")
+    disp_y = _channel_or_zeros(outputs, output_channels, "disp_y")
+    disp_z_available = "disp_z" in output_channels
+    disp_z = _channel_or_zeros(outputs, output_channels, "disp_z")
+    if is_rect_2d:
+        disp_z = np.zeros_like(disp_z, dtype=np.float32)
+
+    temperature_perturbation = temperature - reference_temperature_k
+    displacement_magnitude = np.sqrt(disp_x**2 + disp_y**2 + disp_z**2)
+    size = domain.get("size", {})
+    lx = float(size.get("lx", 1.0) or 1.0)
+    ly = float(size.get("ly", 1.0) or 1.0)
+    ny, nx = temperature.shape
+
+    channels = {
+        "temperature_k": _field_channel(
+            label="Temperature",
+            group="temperature",
+            unit="K",
+            values=temperature,
+            source="direct_model_output",
+            decimals=6,
+        ),
+        "temperature_perturbation_k": _field_channel(
+            label="Temperature perturbation",
+            group="temperature",
+            unit="K",
+            values=temperature_perturbation,
+            source="derived_from_temperature",
+            decimals=6,
+        ),
+        "disp_x_m": _field_channel(
+            label="Displacement X",
+            group="displacement",
+            unit="m",
+            values=disp_x,
+            source="direct_model_output",
+            decimals=12,
+        ),
+        "disp_y_m": _field_channel(
+            label="Displacement Y",
+            group="displacement",
+            unit="m",
+            values=disp_y,
+            source="direct_model_output",
+            decimals=12,
+        ),
+        "disp_z_m": _field_channel(
+            label="Displacement Z",
+            group="displacement",
+            unit="m",
+            values=disp_z,
+            source=(
+                "direct_model_output"
+                if disp_z_available and not is_rect_2d
+                else "derived_from_2d_domain"
+            ),
+            decimals=12,
+        ),
+        "displacement_magnitude_m": _field_channel(
+            label="Displacement magnitude",
+            group="displacement",
+            unit="m",
+            values=displacement_magnitude,
+            source="derived_from_displacement_components",
+            decimals=12,
+        ),
+    }
+    available_fields = list(channels.keys())
+    missing_fields = [
+        "stress_xx_pa",
+        "stress_yy_pa",
+        "stress_zz_pa",
+        "stress_xy_pa",
+        "stress_xz_pa",
+        "stress_yz_pa",
+        "stress_von_mises_pa",
+        "strain_xx",
+        "strain_yy",
+        "strain_zz",
+        "strain_xy",
+        "strain_xz",
+        "strain_yz",
+        "velocity_x_m_s",
+        "velocity_y_m_s",
+        "velocity_z_m_s",
+        "velocity_magnitude_m_s",
+    ]
+    return {
+        "field_grid": {
+            "type": "rect_2d",
+            "nx": nx,
+            "ny": ny,
+            "x_coords": _axis_coords(grid_coords[0, 0], "x", scale=lx),
+            "y_coords": _axis_coords(grid_coords[1, 0], "y", scale=ly),
+            "channels": channels,
+        },
+        "field_sources": {
+            name: channel["source"] for name, channel in channels.items()
+        },
+        "available_fields": available_fields,
+        "missing_fields": missing_fields,
+    }
+
+
+def _field_channel(
+    *,
+    label: str,
+    group: str,
+    unit: str,
+    values: np.ndarray,
+    source: str,
+    decimals: int,
+) -> dict[str, Any]:
+    return {
+        "label": label,
+        "group": group,
+        "unit": unit,
+        "values": _matrix_values(values, decimals=decimals),
+        "source": source,
+    }
+
+
+def _matrix_values(values: np.ndarray, *, decimals: int) -> list[list[float]]:
+    matrix = np.asarray(values, dtype=np.float64)
+    return np.round(matrix, decimals=decimals).tolist()
+
+
+def _axis_coords(matrix: np.ndarray, axis: str, *, scale: float) -> list[float]:
+    normalized = _normalize_grid_axis(np.asarray(matrix, dtype=np.float32))
+    if axis == "x":
+        coords = normalized[0, :]
+    else:
+        coords = normalized[:, 0]
+    return np.round(coords.astype(np.float64) * scale, decimals=8).tolist()
 
 
 def _resolve_time_index(scenario: dict[str, Any], metadata: dict[str, Any], total_timesteps: int) -> int:

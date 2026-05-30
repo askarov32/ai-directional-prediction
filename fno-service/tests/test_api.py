@@ -132,6 +132,54 @@ def test_checkpoint_predict_returns_real_inference_payload(tmp_path: Path) -> No
     assert payload["model_version"].startswith("fno-baseline@")
 
 
+def test_checkpoint_predict_returns_requested_field_grid(tmp_path: Path) -> None:
+    dataset_dir = write_tiny_2d_fno_dataset(tmp_path / "dataset")
+    checkpoint_path = train_tiny_fno_checkpoint(dataset_dir, tmp_path / "checkpoint")
+    config = FNOServiceConfig(
+        checkpoint_path=checkpoint_path,
+        config_path=tmp_path / "inference.yaml",
+        dataset_path=dataset_dir,
+        device="cpu",
+        log_level="INFO",
+        service_port=9000,
+        allow_fallback=False,
+    )
+    client = TestClient(create_app(config))
+    payload = sample_payload()
+    payload["requested_outputs"] = [
+        "field_grid",
+        "field_summary",
+        "probe_sample",
+        "diagnostics",
+    ]
+
+    response = client.post("/predict", json=payload)
+
+    assert response.status_code == 200
+    body = response.json()
+    field_grid = body["optional_outputs"]["field_grid"]
+    assert field_grid["type"] == "rect_2d"
+    assert field_grid["nx"] == 6
+    assert field_grid["ny"] == 6
+    assert set(field_grid["channels"]) >= {
+        "temperature_k",
+        "temperature_perturbation_k",
+        "disp_x_m",
+        "disp_y_m",
+        "disp_z_m",
+        "displacement_magnitude_m",
+    }
+    assert field_grid["channels"]["temperature_k"]["group"] == "temperature"
+    assert field_grid["channels"]["disp_x_m"]["source"] == "direct_model_output"
+    assert field_grid["channels"]["disp_z_m"]["source"] == "derived_from_2d_domain"
+    assert len(field_grid["channels"]["temperature_k"]["values"]) == 6
+    assert len(field_grid["channels"]["temperature_k"]["values"][0]) == 6
+    assert "stress_von_mises_pa" in body["optional_outputs"]["missing_fields"]
+    assert body["optional_outputs"]["field_sources"][
+        "displacement_magnitude_m"
+    ] == "derived_from_displacement_components"
+
+
 def test_predict_returns_400_for_unsupported_domain(tmp_path: Path) -> None:
     dataset_dir = write_tiny_2d_fno_dataset(tmp_path / "dataset")
     checkpoint_path = train_tiny_fno_checkpoint(dataset_dir, tmp_path / "checkpoint")

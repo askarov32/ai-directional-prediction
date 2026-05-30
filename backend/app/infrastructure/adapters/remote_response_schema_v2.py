@@ -43,6 +43,10 @@ class NormalizedRemotePayloadV2:
     fallback_reason: str | None
     warnings: list[str] = field(default_factory=list)
     raw_shape: str = "unknown"
+    field_summary: dict[str, Any] = field(default_factory=dict)
+    field_sources: dict[str, str] = field(default_factory=dict)
+    available_fields: list[str] = field(default_factory=list)
+    missing_fields: list[str] = field(default_factory=list)
 
 
 def _maybe_float(value: Any) -> float | None:
@@ -94,6 +98,12 @@ def _parse_v2(payload: dict[str, Any]) -> NormalizedRemotePayloadV2:
         fallback_reason=diag.get("fallback_reason"),
         warnings=list(diag.get("warnings") or []),
         raw_shape="v2",
+        field_summary=fs if isinstance(fs, dict) else {},
+        field_sources=(
+            opt.get("field_sources") if isinstance(opt.get("field_sources"), dict) else {}
+        ),
+        available_fields=list(opt.get("available_fields") or []),
+        missing_fields=list(opt.get("missing_fields") or []),
     )
 
 
@@ -123,6 +133,12 @@ def _parse_v1_nested(payload: dict[str, Any]) -> NormalizedRemotePayloadV2:
         fallback_reason=diag.get("fallback_reason"),
         warnings=list(diag.get("warnings") or []),
         raw_shape="v1_nested",
+        field_summary={
+            "max_displacement_m": _maybe_float(fs.get("max_displacement")),
+            "max_temperature_perturbation_k": _maybe_float(
+                fs.get("max_temperature_perturbation")
+            ),
+        },
     )
 
 
@@ -157,6 +173,12 @@ def _parse_v1_flat(payload: dict[str, Any]) -> NormalizedRemotePayloadV2:
         fallback_reason=diag.get("fallback_reason"),
         warnings=list(diag.get("warnings") or []),
         raw_shape="v1_flat",
+        field_summary={
+            "max_displacement_m": _maybe_float(payload.get("max_displacement")),
+            "max_temperature_perturbation_k": _maybe_float(
+                payload.get("max_temperature_perturbation")
+            ),
+        },
     )
 
 
