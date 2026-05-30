@@ -132,7 +132,7 @@
     margin-bottom: 1.75rem;
   }
 
-  .field-grid--two,
+  .field-grid--two:not(.field-grid--coordinates),
   .field-grid--three,
   .debug-grid,
   .result-card-grid {
