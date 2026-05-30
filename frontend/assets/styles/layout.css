@@ -73,7 +73,7 @@
 }
 
 .table-wrap {
-  overflow: hidden;
+  overflow: auto;
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-md);
 }
@@ -82,7 +82,7 @@
   width: 100%;
   margin-top: 1.25rem;
   padding: 0.7rem;
-  overflow: hidden;
+  overflow: auto;
   background:
     radial-gradient(circle at 18% 24%, rgba(110, 211, 247, 0.09), transparent 18rem),
     rgba(8, 17, 31, 0.42);
@@ -147,6 +147,39 @@
 @media (max-width: 768px) {
   .page-shell {
     width: min(100% - 24px, 1680px);
-    padding-block: 24px 40px;
+    padding-block: 16px 32px;
+  }
+}
+
+@media (max-width: 620px) {
+  .workspace {
+    gap: 0.85rem;
+  }
+
+  .hero {
+    gap: 0.85rem;
+    margin-bottom: 1rem;
+  }
+
+  .field-grid--coordinates {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.7rem;
+  }
+
+  .visual-stage {
+    margin-top: 0.9rem;
+    padding: 0.45rem;
+    overscroll-behavior-inline: contain;
+  }
+
+  .visual-stage svg {
+    width: 540px;
+    max-width: none;
+    min-height: 0;
+  }
+
+  .result-shell {
+    margin-top: 0.9rem;
+    padding-top: 0.9rem;
   }
 }
